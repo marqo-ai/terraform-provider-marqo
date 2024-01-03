@@ -98,7 +98,7 @@ func (r *IndexResource) Create(ctx context.Context, req resource.CreateRequest, 
 	// Update the state with the created resource ID or other necessary information
 	// Assuming the API returns the ID or name of the created index in the response,
 	// or you can use the name provided in the request
-	data.Id = types.String{Value: data.Name.Value}
+	// data.Id = types.String{Value: data.Name.Value}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
