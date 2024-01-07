@@ -231,3 +231,51 @@ func (d *IndexesDataSource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
+
+
+func (d *IndexSettingsDataSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var model IndexSettingsDataSourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &model)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	url := fmt.Sprintf("https://api.marqo.ai/api/indexes/%s/settings", model.IndexName.Value)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create request", err.Error())
+		return
+	}
+
+	providerConfig := req.ProviderData.(*ProviderConfiguration)
+	httpReq.Header.Add("x-api-key", providerConfig.APIKey)
+
+	httpResp, err := providerConfig.APIClient.Do(httpReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Error sending request to API", err.Error())
+		return
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		bodyBytes, err := ioutil.ReadAll(httpResp.Body)
+		if err != nil {
+			resp.Diagnostics.AddError("Error reading response body", err.Error())
+			return
+		}
+		resp.Diagnostics.AddError("API returned non-OK status", fmt.Sprintf("API Error: %s", string(bodyBytes)))
+		return
+	}
+
+	var settings map[string]interface{}
+	err = json.NewDecoder(httpResp.Body).Decode(&settings)
+	if err != nil {
+		resp.Diagnostics.AddError("Error decoding response body", err.Error())
+		return
+	}
+
+	model.Settings = types.Map{Value: settings}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
