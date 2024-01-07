@@ -279,3 +279,53 @@ func (d *IndexSettingsDataSource) Read(ctx context.Context, req resource.ReadReq
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
 
+
+func (d *IndexStatsDataSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var model IndexStatsDataSourceModel
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &model)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	url := fmt.Sprintf("https://api.marqo.ai/api/indexes/%s/stats", model.IndexName.Value)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create request", err.Error())
+		return
+	}
+
+	providerConfig := req.ProviderData.(*ProviderConfiguration)
+	httpReq.Header.Add("x-api-key", providerConfig.APIKey)
+
+	httpResp, err := providerConfig.APIClient.Do(httpReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Error sending request to API", err.Error())
+		return
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode != http.StatusOK {
+		bodyBytes, err := ioutil.ReadAll(httpResp.Body)
+		if err != nil {
+			resp.Diagnostics.AddError("Error reading response body", err.Error())
+			return
+		}
+		resp.Diagnostics.AddError("API returned non-OK status", fmt.Sprintf("API Error: %s", string(bodyBytes)))
+		return
+	}
+
+	var stats struct {
+		NumberOfDocuments int64 `json:"numberOfDocuments"`
+		NumberOfVectors   int64 `json:"numberOfVectors"`
+	}
+	err = json.NewDecoder(httpResp.Body).Decode(&stats)
+	if err != nil {
+		resp.Diagnostics.AddError("Error decoding response body", err.Error())
+		return
+	}
+
+	model.NumberOfDocuments = types.Int64{Value: stats.NumberOfDocuments}
+	model.NumberOfVectors = types.Int64{Value: stats.NumberOfVectors}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
