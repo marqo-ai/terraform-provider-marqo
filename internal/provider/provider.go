@@ -13,6 +13,11 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"index": NewIndexResource(), // Use NewIndexResource here
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"marqo_indexes":          NewIndexesDataSource(),
+			"marqo_index_settings":   NewIndexSettingsDataSource(),
+			"marqo_index_stats":      NewIndexStatsDataSource(),
+		},
 		ConfigureContextFunc: providerConfigure,
 	}
 }
