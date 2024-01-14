@@ -7,23 +7,13 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
-
-func NewIndexesDataSource() resource.DataSource {
-	return &IndexesDataSource{}
-}
-
-func NewIndexSettingsDataSource() resource.DataSource {
-	return &IndexSettingsDataSource{}
-}
-
-func NewIndexStatsDataSource() resource.DataSource {
-	return &IndexStatsDataSource{}
-}
-
 
 type IndexesDataSource struct {
 	providerConfig *ProviderConfiguration
@@ -35,6 +25,79 @@ type IndexStatsDataSource struct {
 
 type IndexSettingsDataSource struct {
 	providerConfig *ProviderConfiguration
+}
+
+func NewIndexesDataSource() datasource.DataSource {
+	return &IndexesDataSource{}
+}
+
+func NewIndexSettingsDataSource() datasource.DataSource {
+	return &IndexSettingsDataSource{}
+}
+
+func NewIndexStatsDataSource() datasource.DataSource {
+	return &IndexStatsDataSource{}
+}
+
+func (d *IndexSettingsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+    resp.TypeName = req.ProviderTypeName + "_indexes"
+}
+
+func (d *IndexesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+    resp.TypeName = req.ProviderTypeName + "_indexes"
+}
+
+func (d *IndexStatsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+    resp.TypeName = req.ProviderTypeName + "_indexes"
+}
+
+func (d *IndexesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+    resp.Schema = schema.Schema{
+        MarkdownDescription: "Data source for retrieving a list of indexes from Marqo API",
+
+        Attributes: map[string]schema.Attribute{
+            "indexes": schema.ListAttribute{
+                MarkdownDescription: "List of index names",
+                Computed:            true,
+                ElementType: types.StringType,
+            },
+        },
+    }
+}
+
+func (d *IndexStatsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+    resp.Schema = schema.Schema{
+        MarkdownDescription: "Data source for retrieving statistics of a specific index from Marqo API",
+
+        Attributes: map[string]schema.Attribute{
+            "index_name": schema.StringAttribute{
+                MarkdownDescription: "Name of the index",
+                Required:            true,
+            },
+            "number_of_documents": schema.Int64Attribute{
+                MarkdownDescription: "Number of documents in the index",
+                Computed:            true,
+            },
+            "number_of_vectors": schema.Int64Attribute{
+                MarkdownDescription: "Number of vectors in the index",
+                Computed:            true,
+            },
+        },
+    }
+}
+
+func (d *IndexSettingsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+    resp.Schema = schema.Schema{
+        MarkdownDescription: "Data source for retrieving settings of a specific index from Marqo API",
+
+        Attributes: map[string]schema.Attribute{
+            "index_name": schema.StringAttribute{
+                MarkdownDescription: "Name of the index",
+                Required:            true,
+            },
+			// Implement nested attributes here
+        },
+    }
 }
 
 type IndexesDataSourceModel struct {
@@ -52,8 +115,7 @@ type IndexSettingsDataSourceModel struct {
 	Settings    types.Map    `tfsdk:"settings"`
 }
 
-
-func (d *IndexesDataSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (d *IndexesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var model IndexesDataSourceModel
 
 	url := "https://api.marqo.ai/api/indexes"
@@ -63,7 +125,8 @@ func (d *IndexesDataSource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	providerConfig := req.ProviderData.(*ProviderConfiguration)
+	providerConfig := req.Provider.(*ProviderConfiguration)
+	//providerConfig := req.ProviderData.(*ProviderConfiguration)
 	httpReq.Header.Add("x-api-key", providerConfig.APIKey)
 
 	httpResp, err := providerConfig.APIClient.Do(httpReq)
@@ -102,10 +165,10 @@ func (d *IndexesDataSource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 
-func (d *IndexSettingsDataSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (d *IndexSettingsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var model IndexSettingsDataSourceModel
 
-	resp.Diagnostics.Append(req.State.Get(ctx, &model)...)
+	resp.Diagnostics.Append(resp.State.Get(ctx, &model)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -116,7 +179,7 @@ func (d *IndexSettingsDataSource) Read(ctx context.Context, req resource.ReadReq
 		resp.Diagnostics.AddError("Failed to create request", err.Error())
 		return
 	}
-
+	
 	providerConfig := req.ProviderData.(*ProviderConfiguration)
 	httpReq.Header.Add("x-api-key", providerConfig.APIKey)
 
@@ -149,10 +212,10 @@ func (d *IndexSettingsDataSource) Read(ctx context.Context, req resource.ReadReq
 }
 
 
-func (d *IndexStatsDataSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (d *IndexStatsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var model IndexStatsDataSourceModel
 
-	resp.Diagnostics.Append(req.State.Get(ctx, &model)...)
+	resp.Diagnostics.Append(resp.State.Get(ctx, &model)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -164,6 +227,7 @@ func (d *IndexStatsDataSource) Read(ctx context.Context, req resource.ReadReques
 		return
 	}
 
+	//providerConfig := req.Provider.(*ProviderConfiguration)
 	providerConfig := req.ProviderData.(*ProviderConfiguration)
 	httpReq.Header.Add("x-api-key", providerConfig.APIKey)
 
