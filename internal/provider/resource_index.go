@@ -1,11 +1,14 @@
 package provider
 
 import (
-	"context"
-	"net/http"
+    "context"
+    "encoding/json"
+    "fmt"
+    "io/ioutil"
+    "net/http"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+    "github.com/hashicorp/terraform-plugin-framework/resource"
+    "github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ resource.Resource = &IndexResource{}
@@ -139,4 +142,63 @@ func (r *IndexResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	// The resource is successfully deleted. Terraform will automatically remove it from the state.
+}
+
+// Read method implementation
+func (r *IndexResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+    var data IndexResourceModel
+
+    // Retrieve the provider configuration
+    providerConfig := req.ProviderData.(*ProviderConfiguration)
+
+    // Make an HTTP request to get the list of indexes
+    url := "https://api.marqo.ai/api/indexes"
+    httpReq, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+    httpResp, err := providerConfig.APIClient.Do(httpReq)
+    if err != nil {
+        resp.Diagnostics.AddError("Error sending request to API", err.Error())
+        return
+    }
+    defer httpResp.Body.Close()
+
+    var indexesResponse struct {
+        Results []struct {
+            IndexName string `json:"index_name"`
+        } `json:"results"`
+    }
+    err = json.NewDecoder(httpResp.Body).Decode(&indexesResponse)
+    if err != nil {
+        resp.Diagnostics.AddError("Error decoding response body", err.Error())
+        return
+    }
+
+    // Iterate over the indexes and get settings for each index
+    for _, index := range indexesResponse.Results {
+        settingsURL := fmt.Sprintf("https://api.marqo.ai/api/indexes/%s/settings", index.IndexName)
+        settingsReq, _ := http.NewRequestWithContext(ctx, "GET", settingsURL, nil)
+        settingsResp, err := providerConfig.APIClient.Do(settingsReq)
+        if err != nil {
+            resp.Diagnostics.AddError("Error getting index settings", err.Error())
+            continue
+        }
+        defer settingsResp.Body.Close()
+
+        var settingsResponse struct {
+            NumberOfShards   int64 `json:"number_of_shards"`
+            NumberOfReplicas int64 `json:"number_of_replicas"`
+        }
+        err = json.NewDecoder(settingsResp.Body).Decode(&settingsResponse)
+        if err != nil {
+            resp.Diagnostics.AddError("Error decoding settings response", err.Error())
+            continue
+        }
+
+        // Populate the IndexResourceModel
+        data.Name = types.String{Value: index.IndexName}
+        data.NumberOfShards = types.Int64{Value: settingsResponse.NumberOfShards}
+        data.NumberOfReplicas = types.Int64{Value: settingsResponse.NumberOfReplicas}
+
+        // Save updated data into Terraform state
+        resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+    }
 }
