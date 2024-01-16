@@ -1,5 +1,13 @@
 package provider
 
+import (
+    "context"  // For context management
+    "net/http" // For HTTP client
+
+    "github.com/hashicorp/terraform-plugin-framework/diag" // For diag
+    "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema" // For schema
+)
+
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{

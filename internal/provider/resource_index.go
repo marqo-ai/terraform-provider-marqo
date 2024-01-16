@@ -31,6 +31,11 @@ type IndexResourceModel struct {
 	NumberOfInferences types.Int64  `tfsdk:"number_of_inferences"`
 }
 
+func (r *IndexResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+    // Implementation of the Metadata method
+}
+
+
 func (r *IndexResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data IndexResourceModel
 
