@@ -1,5 +1,9 @@
 package provider
 
+// This should be deleted if we are to replace it with individual resources for each marqo api handled
+// The reason is that we need to define a different schema for each marqo api we expect to interface with
+// The schema for each api is defined in the respective resource file
+
 import (
     "context"
     "encoding/json"
@@ -32,7 +36,43 @@ type IndexResourceModel struct {
 }
 
 func (r *IndexResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-    // Implementation of the Metadata method
+    resp.TypeName = "marqo_index"
+    // More as needed
+}
+
+
+func (r *IndexResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+    resp.Schema = map[string]tfsdk.Attribute{
+        "name": {
+            Type:     types.StringType,
+            Required: true,
+        },
+        "index_defaults": {
+            Type:     types.MapType{ElemType: types.StringType},
+            Optional: true,
+        },
+        "number_of_shards": {
+            Type:     types.Int64Type,
+            Optional: true,
+        },
+        "number_of_replicas": {
+            Type:     types.Int64Type,
+            Optional: true,
+        },
+        "inference_type": {
+            Type:     types.StringType,
+            Optional: true,
+        },
+        "storage_class": {
+            Type:     types.StringType,
+            Optional: true,
+        },
+        "number_of_inferences": {
+            Type:     types.Int64Type,
+            Optional: true,
+        },
+        // More as needed
+    }
 }
 
 
