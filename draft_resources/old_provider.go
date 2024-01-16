@@ -1,0 +1,44 @@
+package provider
+
+import (
+    "context"  // For context management
+    "net/http" // For HTTP client
+
+    "github.com/hashicorp/terraform-plugin-framework/diag" // For diag
+    "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema" // For schema
+)
+
+func Provider() *schema.Provider {
+	return &schema.Provider{
+		Schema: map[string]*schema.Schema{
+			"api_key": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "API Key for accessing your API",
+				Sensitive:   true,
+			},
+		},
+		ResourcesMap: map[string]*schema.Resource{
+			//"index": NewIndexResource(), // Use NewIndexResource here
+			"create_index": NewCreateIndexResource(),
+			"delete_index": NewDeleteIndexResource(),
+			"read_indices_status": NewReadIndicesStatusesResource(),
+		},
+		ConfigureContextFunc: providerConfigure,
+	}
+}
+
+func providerConfigure(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	apiKey := data.Get("api_key").(string)
+
+	var diags diag.Diagnostics
+
+	client := &http.Client{
+		// Optionally, set up HTTP client parameters (Timeout, Transport, etc.)
+	}
+
+	return &ProviderConfiguration{
+		APIClient: client,
+		APIKey:    apiKey,
+	}, diags
+}
