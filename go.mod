@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module terraform-provider-marqo
 
 go 1.20
 

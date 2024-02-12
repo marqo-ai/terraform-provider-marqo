@@ -3,23 +3,46 @@ package marqo
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
 type Client struct {
-	BaseURL         string
-	APIKey          string
-	ReturnTelemetry bool
+	BaseURL string
+	APIKey  string
 }
 
-func NewClient(baseURL, apiKey string, returnTelemetry bool) *Client {
-	return &Client{
-		BaseURL:         baseURL,
-		APIKey:          apiKey,
-		ReturnTelemetry: returnTelemetry,
+// NewClient creates and returns a new API client or an error.
+func NewClient(baseURL, apiKey *string) (*Client, error) {
+	// Validate the input parameters
+	if baseURL == nil || *baseURL == "" {
+		return nil, errors.New("baseURL is required but was not provided")
 	}
+	if apiKey == nil || *apiKey == "" {
+		return nil, errors.New("apiKey is required but was not provided")
+	}
+
+	//
+	// TO IMPLEMENT:
+	// - Translate is_marqo_cloud = False
+	//    if url is not None:
+	//	if url.lower().startswith(os.environ.get("MARQO_CLOUD_URL", "https://api.marqo.ai")):
+	//		instance_mappings = MarqoCloudInstanceMappings(control_base_url=url, api_key=api_key)
+	//		is_marqo_cloud = True
+	//	else:
+	//		instance_mappings = DefaultInstanceMappings(url, main_user, main_password)
+	//
+
+	// Create the client instance
+	client := &Client{
+		BaseURL: *baseURL,
+		APIKey:  *apiKey,
+	}
+
+	// Return the client instance and nil for the error
+	return client, nil
 }
 
 func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) (map[string]interface{}, error) {
@@ -43,7 +66,7 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +95,7 @@ func (c *Client) DeleteIndex(indexName string) (map[string]interface{}, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
