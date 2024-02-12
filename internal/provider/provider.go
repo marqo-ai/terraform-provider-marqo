@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 
+	"terraform-provider-marqo/marqo"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -143,7 +145,7 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 			"Unable to Create HashiCups API Client",
 			"An unexpected error occurred when creating the HashiCups API client. "+
 				"If the error is not clear, please contact the provider developers.\n\n"+
-				"HashiCups Client Error: "+err.Error(),
+				"Marqo Client Error: "+err.Error(),
 		)
 		return
 	}
