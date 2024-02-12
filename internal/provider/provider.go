@@ -150,7 +150,7 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	// Make the HashiCups client available during DataSource and Resource
+	// Make the Marqo client available during DataSource and Resource
 	// type Configure methods.
 	resp.DataSourceData = client
 	resp.ResourceData = client
@@ -158,7 +158,9 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 // DataSources defines the data sources implemented in the provider.
 func (p *marqoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		NewIndicesDataSource,
+	}
 }
 
 // Resources defines the resources implemented in the provider.

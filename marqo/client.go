@@ -24,6 +24,17 @@ func NewClient(baseURL, apiKey *string) (*Client, error) {
 		return nil, errors.New("apiKey is required but was not provided")
 	}
 
+	//
+	// TO IMPLEMENT:
+	// - Translate is_marqo_cloud = False
+	//    if url is not None:
+	//	if url.lower().startswith(os.environ.get("MARQO_CLOUD_URL", "https://api.marqo.ai")):
+	//		instance_mappings = MarqoCloudInstanceMappings(control_base_url=url, api_key=api_key)
+	//		is_marqo_cloud = True
+	//	else:
+	//		instance_mappings = DefaultInstanceMappings(url, main_user, main_password)
+	//
+
 	// Create the client instance
 	client := &Client{
 		BaseURL: *baseURL,

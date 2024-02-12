@@ -6,6 +6,9 @@ terraform {
   }
 }
 
-provider "marqo" {}
+provider "marqo" {
+    host = "http://localhost:8080"
+    api_key = "your"
+}
 
 data "marqo_indices" "example" {}
