@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -14,7 +14,7 @@ type Client struct {
 	APIKey  string
 }
 
-// NewClient creates and returns a new API client or an error
+// NewClient creates and returns a new API client or an error.
 func NewClient(baseURL, apiKey *string) (*Client, error) {
 	// Validate the input parameters
 	if baseURL == nil || *baseURL == "" {
@@ -66,7 +66,7 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (c *Client) DeleteIndex(indexName string) (map[string]interface{}, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
