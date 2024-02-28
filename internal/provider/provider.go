@@ -165,9 +165,8 @@ func (p *marqoProvider) DataSources(_ context.Context) []func() datasource.DataS
 
 // Resources defines the resources implemented in the provider.
 func (p *marqoProvider) Resources(_ context.Context) []func() resource.Resource {
-	//return []func() resource.Resource{
-	//	ManageIndicesResource,
-	//}
-	// pass
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		ManageIndicesResource,
+	}
+	//return []func() resource.Resource{}
 }
