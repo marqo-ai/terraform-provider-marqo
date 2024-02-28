@@ -1,0 +1,182 @@
+
+// orderResourceModel maps the resource schema data.
+type allIndicesResourceModel struct {
+	ID          types.String `tfsdk:"id"`
+	Items       []indexModel `tfsdk:"items"`
+	LastUpdated types.String `tfsdk:"last_updated"`
+}
+
+// orderItemModel maps order item data.
+type indexModel struct {
+	// Index Name, Index Settings, Index Stats
+	IndexName     types.String       `tfsdk:"index_name"`
+	IndexSettings indexSettingsModel `tfsdk:"index_settings"`
+	IndexStats    indexStatsModel    `tfsdk:"index_stats"`
+}
+
+// indexStatsModel maps index stats data.
+type indexStatsModel struct {
+	NumberOfDocuments types.Int64            `tfsdk:"number_of_documents"`
+	NumberOfVectors   types.Int64            `tfsdk:"number_of_vectors"`
+	Backend           indexStatsBackendModel `tfsdk:"backend"`
+}
+
+// indexStatsBackendModel maps the backend part of index stats.
+type indexStatsBackendModel struct {
+	MemoryUsedPercentage  types.Float64 `tfsdk:"memory_used_percentage"`
+	StorageUsedPercentage types.Float64 `tfsdk:"storage_used_percentage"`
+}
+
+// indexSettingsModel maps index settings data.
+type indexSettingsModel struct {
+	AnnParameters                annParametersModel     `tfsdk:"ann_parameters"`
+	FilterStringMaxLength        types.Int64            `tfsdk:"filter_string_max_length"`
+	ImagePreprocessing           types.Object           `tfsdk:"image_preprocessing"` // Assuming empty object, adjust as needed
+	Model                        types.String           `tfsdk:"model"`
+	NormalizeEmbeddings          types.Bool             `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            textPreprocessingModel `tfsdk:"text_preprocessing"`
+	TreatUrlsAndPointersAsImages types.Bool             `tfsdk:"treat_urls_and_pointers_as_images"`
+	Type                         types.String           `tfsdk:"type"`
+	VectorNumericType            types.String           `tfsdk:"vector_numeric_type"`
+}
+
+// annParametersModel maps the ANN parameters part of index settings.
+type annParametersModel struct {
+	Parameters parametersModel `tfsdk:"parameters"`
+	SpaceType  types.String    `tfsdk:"space_type"`
+}
+
+// parametersModel maps the parameters part of ANN parameters.
+type parametersModel struct {
+	EfConstruction types.Int64 `tfsdk:"ef_construction"`
+	M              types.Int64 `tfsdk:"m"`
+}
+
+// textPreprocessingModel maps the text preprocessing part of index settings.
+type textPreprocessingModel struct {
+	SplitLength  types.Int64  `tfsdk:"split_length"`
+	SplitMethod  types.String `tfsdk:"split_method"`
+	SplitOverlap types.Int64  `tfsdk:"split_overlap"`
+}
+
+// Schema defines the schema for the resource.
+func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The unique identifier for the resource.",
+			},
+			"last_updated": schema.StringAttribute{
+				Computed:    true,
+				Description: "The last time the resource was updated.",
+			},
+			"items": schema.ListNestedAttribute{
+				Computed: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"index_name": schema.StringAttribute{
+							Computed:    true,
+							Description: "The name of the index",
+						},
+						"index_settings": schema.ListNestedAttribute{
+							Required: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"ann_parameters": schema.SingleNestedAttribute{
+										Required: true,
+										Attributes: map[string]schema.Attribute{
+											"ef_construction": schema.Int64Attribute{
+												Computed:    true,
+												Description: "The efConstruction parameter for the index.",
+											},
+											"m": schema.Int64Attribute{
+												Computed:    true,
+												Description: "The m parameter for the index.",
+											},
+										},
+									},
+
+									"filter_string_max_length": schema.Int64Attribute{
+										Computed:    true,
+										Description: "The filterStringMaxLength parameter for the index.",
+									},
+
+									"image_preprocessing": schema.SingleNestedAttribute{
+										Computed:   true,
+										Attributes: map[string]schema.Attribute{
+											// Assuming the structure of imagePreprocessing, adjust as needed
+										},
+									},
+									"model": schema.StringAttribute{
+										Computed:    true,
+										Description: "The model parameter for the index.",
+									},
+									"normalize_embeddings": schema.BoolAttribute{
+										Computed:    true,
+										Description: "Indicates if embeddings should be normalized.",
+									},
+									"text_preprocessing": schema.SingleNestedAttribute{
+										Computed: true,
+										Attributes: map[string]schema.Attribute{
+											"split_length": schema.Int64Attribute{
+												Computed:    true,
+												Description: "The split length for text preprocessing.",
+											},
+											"split_method": schema.StringAttribute{
+												Computed:    true,
+												Description: "The split method for text preprocessing.",
+											},
+											"split_overlap": schema.Int64Attribute{
+												Computed:    true,
+												Description: "The split overlap for text preprocessing.",
+											},
+										},
+									},
+									"treat_urls_and_pointers_as_images": schema.BoolAttribute{
+										Computed:    true,
+										Description: "Indicates if URLs and pointers should be treated as images.",
+									},
+									"type": schema.StringAttribute{
+										Computed:    true,
+										Description: "The type of the index.",
+									},
+									"vector_numeric_type": schema.StringAttribute{
+										Computed:    true,
+										Description: "The numeric type of the vector.",
+									},
+								},
+							},
+						},
+						"index_stats": schema.SingleNestedAttribute{
+							Computed: true,
+							Attributes: map[string]schema.Attribute{
+								"number_of_documents": schema.Int64Attribute{
+									Computed:    true,
+									Description: "The number of documents in the index.",
+								},
+								"number_of_vectors": schema.Int64Attribute{
+									Computed:    true,
+									Description: "The number of vectors in the index.",
+								},
+								"backend": schema.SingleNestedAttribute{
+									Computed: true,
+									Attributes: map[string]schema.Attribute{
+										"memory_used_percentage": schema.Float64Attribute{
+											Computed:    true,
+											Description: "The percentage of memory used by the index.",
+										},
+										"storage_used_percentage": schema.Float64Attribute{
+											Computed:    true,
+											Description: "The percentage of storage used by the index.",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
