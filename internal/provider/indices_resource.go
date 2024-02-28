@@ -258,7 +258,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		delete(settings, "imagePreprocessing")
 	}
 
-	// Assuming CreateIndex accepts a map[string]interface{} for settings
 	//indexNameAsString := model.IndexName.
 
 	err := r.marqoClient.CreateIndex(model.IndexName.ValueString(), settings)
