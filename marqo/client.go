@@ -8,10 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 type Client struct {
@@ -110,62 +106,6 @@ type IndexSettings struct {
 	TreatUrlsAndPointersAsImages bool                   `json:"treat_urls_and_pointers_as_images"`
 	Type                         string                 `json:"type"`
 	VectorNumericType            string                 `json:"vector_numeric_type"`
-}
-
-// Convert types.String to native Go string
-func convertString(tfString types.String) string {
-	if tfString.IsNull() {
-		return "" // or handle null as needed
-	}
-	if tfString.IsUnknown() {
-		return "" // or handle unknown as needed
-	}
-	return tfString.ValueString()
-}
-
-// Convert types.Bool to native Go bool
-func convertBool(tfBool types.Bool) bool {
-	if tfBool.IsNull() {
-		return false // or handle null as needed
-	}
-	if tfBool.IsUnknown() {
-		return false // or handle unknown as needed
-	}
-	return tfBool.ValueBool()
-}
-
-func convertInt64(tfInt types.Int64) int64 {
-	if tfInt.IsNull() {
-		return 0 // or handle null as needed
-	}
-	if tfInt.IsUnknown() {
-		return 0 // or handle unknown as needed
-	}
-	return tfInt.ValueInt64()
-}
-
-func convertSettings(originalMap map[string]interface{}) (map[string]interface{}, error) {
-	convertedMap := make(map[string]interface{})
-	for key, value := range originalMap {
-		switch v := value.(type) {
-		case basetypes.StringValue:
-			convertedMap[key] = v.String()
-		case basetypes.BoolValue:
-			convertedMap[key] = v
-		case basetypes.Int64Value:
-			convertedMap[key] = v.ValueInt64()
-		case map[string]interface{}:
-			// Recursively convert nested maps
-			nestedMap, err := convertSettings(v)
-			if err != nil {
-				return nil, err
-			}
-			convertedMap[key] = nestedMap
-		default:
-			return nil, fmt.Errorf("unsupported type for key %s", key)
-		}
-	}
-	return convertedMap, nil
 }
 
 // NewClient creates and returns a new API client or an error.
@@ -279,33 +219,8 @@ func (c *Client) GetIndexStats(indexName string) (IndexStats, error) {
 // CreateIndex creates a new index with the given settings
 func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) error {
 	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
-	fmt.Printf("%T\n", settings)
+	//fmt.Printf("%T\n", settings)
 
-	/*
-		convertedSettings, err := convertSettings(settings)
-		if err != nil {
-			// Handle error
-			fmt.Println("Error converting settings:", err)
-			return err
-		}
-
-
-		jsonData, err := json.Marshal(convertedSettings)
-		if err != nil {
-			fmt.Println("Error marshaling converted settings:", err)
-			return err
-		}
-
-		jsonString := string(jsonData)
-	*/
-
-	/*
-		for key, value := range settings {
-			fmt.Printf("Key: %s, Value: %v, Type: %T\n", key, value, value)
-		}
-	*/
-	//fmt.Println("Converted settings: ", convertedSettings)
-	//fmt.Println("JSON Data: ", jsonData)
 	jsonData, err := json.Marshal(settings)
 	if err != nil {
 		return err
@@ -315,8 +230,8 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	fmt.Println("Settings: ", settings)
-	fmt.Println("Request: ", req)
+	//fmt.Println("Settings: ", settings)
+	//fmt.Println("Request: ", req)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-KEY", c.APIKey)
@@ -325,7 +240,7 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	fmt.Println("Response: ", resp)
+	//fmt.Println("Response: ", resp)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
