@@ -87,7 +87,7 @@ func (r *indicesResource) Configure(_ context.Context, req resource.ConfigureReq
 
 // Metadata returns the resource type name.
 func (r *indicesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_indices"
+	resp.TypeName = req.ProviderTypeName + "_index"
 }
 
 func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -213,29 +213,31 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	//fmt.Println(model.Settings)
+
 	// Construct settings map
 	settings := map[string]interface{}{
-		"type":                         model.Settings.Type,
-		"vectorNumericType":            model.Settings.VectorNumericType,
-		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages,
-		"model":                        model.Settings.Model,
-		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings,
+		"type":                         model.Settings.Type.ValueString(),
+		"vectorNumericType":            model.Settings.VectorNumericType.ValueString(),
+		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
+		"model":                        model.Settings.Model.ValueString(),
+		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
 		"textPreprocessing": map[string]interface{}{
-			"splitLength":  model.Settings.TextPreprocessing.SplitLength,
-			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod,
-			"splitOverlap": model.Settings.TextPreprocessing.SplitOverlap,
+			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
+			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod.ValueString(),
+			"splitOverlap": model.Settings.TextPreprocessing.SplitOverlap.ValueInt64(),
 		},
 		"imagePreprocessing": map[string]interface{}{
-			"patchMethod": model.Settings.ImagePreprocessing.PatchMethod,
+			"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
 		},
 		"annParameters": map[string]interface{}{
-			"spaceType": model.Settings.AnnParameters.SpaceType,
+			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
 			"parameters": map[string]interface{}{
-				"efConstruction": model.Settings.AnnParameters.Parameters.EfConstruction,
-				"m":              model.Settings.AnnParameters.Parameters.M,
+				"efConstruction": model.Settings.AnnParameters.Parameters.EfConstruction.ValueInt64(),
+				"m":              model.Settings.AnnParameters.Parameters.M.ValueInt64(),
 			},
 		},
-		"filterStringMaxLength": model.Settings.FilterStringMaxLength,
+		"filterStringMaxLength": model.Settings.FilterStringMaxLength.ValueInt64(),
 	}
 
 	// Remove optional fields if they are not set
