@@ -3,11 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"terraform-provider-marqo/marqo"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -156,7 +158,18 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 	}
 }
 
+// Utility function to convert standard Go string to types.Int64
+func StringToInt64(str string) types.Int64 {
+	intVal, err := strconv.ParseInt(str, 10, 64)
+	if err != nil {
+		// Handle the error appropriately. Here, we return a Null types.Int64 to indicate failure.
+		return types.Int64Null()
+	}
+	return types.Int64Value(intVal)
+}
+
 func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// Initialize the state variable based on the IndexResourceModel
 	var state IndexResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -164,40 +177,47 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	indexSettings, err := r.marqoClient.GetIndexSettings(state.IndexName.ValueString())
+	tflog.Debug(ctx, "Calling marqo client ListIndices")
+	indices, err := r.marqoClient.ListIndices()
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error Reading Index",
-			fmt.Sprintf("Could not read index '%s': %s", state.IndexName, err.Error()),
-		)
+		resp.Diagnostics.AddError("Failed to List Indices", fmt.Sprintf("Could not list indices: %s", err.Error()))
 		return
 	}
 
-	// Map the fetched index settings to the Terraform state
-	state.Settings = IndexSettingsModel{
-		Type:                         types.StringValue(indexSettings.Type),
-		VectorNumericType:            types.StringValue(indexSettings.VectorNumericType),
-		TreatUrlsAndPointersAsImages: types.BoolValue(indexSettings.TreatUrlsAndPointersAsImages),
-		Model:                        types.StringValue(indexSettings.Model),
-		NormalizeEmbeddings:          types.BoolValue(indexSettings.NormalizeEmbeddings),
-		TextPreprocessing: TextPreprocessingModelCreate{
-			SplitLength:  types.Int64Value(indexSettings.TextPreprocessing.SplitLength),
-			SplitMethod:  types.StringValue(indexSettings.TextPreprocessing.SplitMethod),
-			SplitOverlap: types.Int64Value(indexSettings.TextPreprocessing.SplitOverlap),
-		},
-		ImagePreprocessing: ImagePreprocessingModel{
-			PatchMethod: types.StringValue(indexSettings.ImagePreprocessing["patchMethod"].(string)),
-		},
-		AnnParameters: AnnParametersModelCreate{
-			SpaceType: types.StringValue(indexSettings.AnnParameters.SpaceType),
-			Parameters: ParametersModel{
-				EfConstruction: types.Int64Value(indexSettings.AnnParameters.Parameters.EfConstruction),
-				M:              types.Int64Value(indexSettings.AnnParameters.Parameters.M),
-			},
-		},
-		FilterStringMaxLength: types.Int64Value(indexSettings.FilterStringMaxLength),
+	// Assuming you need to find a specific index based on the IndexName in the state
+	// and update the state with its settings. This is a simplification.
+	// In a real scenario, you might need to handle multiple indices or validate the existence.
+	for _, indexDetail := range indices {
+		if indexDetail.IndexName == state.IndexName.ValueString() {
+			// Update the state with the details from the indexDetail
+			state.Settings = IndexSettingsModel{
+				Type:                         types.StringValue(indexDetail.Type),
+				VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
+				TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
+				Model:                        types.StringValue(indexDetail.Model),
+				NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
+				TextPreprocessing: TextPreprocessingModelCreate{
+					SplitLength:  StringToInt64(indexDetail.TextPreprocessing.SplitLength),
+					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
+					SplitOverlap: StringToInt64(indexDetail.TextPreprocessing.SplitOverlap),
+				},
+				ImagePreprocessing: ImagePreprocessingModel{
+					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
+				},
+				AnnParameters: AnnParametersModelCreate{
+					SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
+					Parameters: ParametersModel{
+						EfConstruction: StringToInt64(indexDetail.AnnParameters.Parameters.EfConstruction),
+						M:              StringToInt64(indexDetail.AnnParameters.Parameters.M),
+					},
+				},
+				FilterStringMaxLength: StringToInt64(indexDetail.FilterStringMaxLength),
+			}
+			break
+		}
 	}
 
+	// Set the updated state
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

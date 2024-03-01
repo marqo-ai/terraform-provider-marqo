@@ -173,6 +173,7 @@ func (c *Client) ListIndices() ([]IndexDetail, error) {
 // GetIndexSettings fetches settings for a specific index and decodes into IndexSettings model
 func (c *Client) GetIndexSettings(indexName string) (IndexSettings, error) {
 	url := fmt.Sprintf("%s/indexes/%s/settings", c.BaseURL, indexName)
+	fmt.Println("GetIndexSettings URL: ", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return IndexSettings{}, fmt.Errorf("API request error: %s - %v", req.URL.String(), err)
@@ -183,6 +184,7 @@ func (c *Client) GetIndexSettings(indexName string) (IndexSettings, error) {
 	if err != nil {
 		return IndexSettings{}, err
 	}
+	fmt.Println("Settings Response: ", resp)
 	defer resp.Body.Close()
 
 	var settings IndexSettings
@@ -240,7 +242,7 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	//fmt.Println("Response: ", resp)
+	fmt.Println("Response: ", resp)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
