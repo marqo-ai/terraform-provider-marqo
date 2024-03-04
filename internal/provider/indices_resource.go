@@ -38,6 +38,11 @@ type IndexResourceModel struct {
 type IndexSettingsModel struct {
 	Type                         types.String                 `tfsdk:"type"`
 	VectorNumericType            types.String                 `tfsdk:"vector_numeric_type"`
+	NumberOfInferences           types.Int64                  `tfsdk:"number_of_inferences"`
+	InferenceType                types.String                 `tfsdk:"inference_type"`
+	StorageClass                 types.String                 `tfsdk:"storage_class"`
+	NumberOfShards               types.Int64                  `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.Int64                  `tfsdk:"number_of_replicas"`
 	TreatUrlsAndPointersAsImages types.Bool                   `tfsdk:"treat_urls_and_pointers_as_images"`
 	Model                        types.String                 `tfsdk:"model"`
 	NormalizeEmbeddings          types.Bool                   `tfsdk:"normalize_embeddings"`
@@ -111,6 +116,21 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Required: true,
 					},
 					"vector_numeric_type": schema.StringAttribute{
+						Optional: true,
+					},
+					"number_of_inferences": schema.Int64Attribute{
+						Optional: true,
+					},
+					"inference_type": schema.StringAttribute{
+						Optional: true,
+					},
+					"storage_class": schema.StringAttribute{
+						Optional: true,
+					},
+					"number_of_shards": schema.Int64Attribute{
+						Optional: true,
+					},
+					"number_of_replicas": schema.Int64Attribute{
 						Optional: true,
 					},
 					"treat_urls_and_pointers_as_images": schema.BoolAttribute{
@@ -217,6 +237,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 	}
 
+	// implement deletion of state if resource no longer exists in cloud
+
 	// Set the updated state
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -242,6 +264,11 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
 		"model":                        model.Settings.Model.ValueString(),
 		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
+		"inferenceType":                model.Settings.InferenceType.ValueString(),
+		"numberOfInferences":           model.Settings.NumberOfInferences.ValueInt64(),
+		"storageClass":                 model.Settings.StorageClass.ValueString(),
+		"numberOfShards":               model.Settings.NumberOfShards.ValueInt64(),
+		"numberOfReplicas":             model.Settings.NumberOfReplicas.ValueInt64(),
 		"textPreprocessing": map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
 			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod.ValueString(),
@@ -279,6 +306,21 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if len(settings["imagePreprocessing"].(map[string]interface{})) == 0 {
 		delete(settings, "imagePreprocessing")
 	}
+	if model.Settings.InferenceType.IsNull() {
+		delete(settings, "inferenceType")
+	}
+	if model.Settings.NumberOfInferences.IsNull() {
+		delete(settings, "numberOfInferences")
+	}
+	if model.Settings.StorageClass.IsNull() {
+		delete(settings, "storageClass")
+	}
+	if model.Settings.NumberOfShards.IsNull() {
+		delete(settings, "numberOfShards")
+	}
+	if model.Settings.NumberOfReplicas.IsNull() {
+		delete(settings, "numberOfReplicas")
+	}
 
 	//indexNameAsString := model.IndexName.
 
@@ -311,4 +353,36 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var model IndexResourceModel
+	diags := req.Plan.Get(ctx, &model)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Construct settings map
+	settings := map[string]interface{}{
+		"inferenceType":      model.Settings.InferenceType.ValueString(),
+		"numberOfInferences": model.Settings.NumberOfInferences.ValueInt64(),
+	}
+
+	if model.Settings.InferenceType.IsNull() {
+		delete(settings, "inferenceType")
+	}
+	if model.Settings.NumberOfInferences.IsNull() {
+		delete(settings, "numberOfInferences")
+	}
+
+	//indexNameAsString := model.IndexName.
+
+	err := r.marqoClient.UpdateIndex(model.IndexName.ValueString(), settings)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to Update Index", "Could not create index: "+err.Error())
+		return
+	}
+
+	// Set the index name as the ID in the Terraform state
+	model.ID = model.IndexName
+	diags = resp.State.Set(ctx, &model)
+	resp.Diagnostics.Append(diags...)
 }

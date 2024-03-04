@@ -276,3 +276,38 @@ func (c *Client) DeleteIndex(indexName string) error {
 
 	return nil
 }
+
+// CreateIndex creates a new index with the given settings
+func (c *Client) UpdateIndex(indexName string, settings map[string]interface{}) error {
+	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
+	//fmt.Printf("%T\n", settings)
+
+	jsonData, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	//fmt.Println("Settings: ", settings)
+	//fmt.Println("Request: ", req)
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-KEY", c.APIKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Response: ", resp)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to update index: %s", string(body))
+	}
+
+	return nil
+}
