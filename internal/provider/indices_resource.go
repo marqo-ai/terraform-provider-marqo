@@ -178,7 +178,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 	}
 }
 
-// Utility function to convert standard Go string to types.Int64
+// Utility function to convert standard Go string to types.Int64 .
 func StringToInt64(str string) types.Int64 {
 	intVal, err := strconv.ParseInt(str, 10, 64)
 	if err != nil {
@@ -300,11 +300,13 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.NormalizeEmbeddings.IsNull() {
 		delete(settings, "normalizeEmbeddings")
 	}
-	if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
-		delete(settings["imagePreprocessing"].(map[string]interface{}), "patchMethod")
-	}
-	if len(settings["imagePreprocessing"].(map[string]interface{})) == 0 {
-		delete(settings, "imagePreprocessing")
+	if imagePreprocessing, ok := settings["imagePreprocessing"].(map[string]interface{}); ok {
+		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
+			delete(imagePreprocessing, "patchMethod")
+		}
+		if len(imagePreprocessing) == 0 {
+			delete(settings, "imagePreprocessing")
+		}
 	}
 	if model.Settings.InferenceType.IsNull() {
 		delete(settings, "inferenceType")

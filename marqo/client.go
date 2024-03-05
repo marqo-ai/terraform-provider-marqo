@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -141,7 +140,7 @@ func NewClient(baseURL, apiKey *string) (*Client, error) {
 	return client, nil
 }
 
-// ListIndices lists all indices
+// ListIndices lists all indices.
 func (c *Client) ListIndices() ([]IndexDetail, error) {
 	url := fmt.Sprintf("%s/indexes", c.BaseURL)
 	req, err := http.NewRequest("GET", url, nil)
@@ -170,7 +169,7 @@ func (c *Client) ListIndices() ([]IndexDetail, error) {
 	return response.Results, nil
 }
 
-// GetIndexSettings fetches settings for a specific index and decodes into IndexSettings model
+// GetIndexSettings fetches settings for a specific index and decodes into IndexSettings model.
 func (c *Client) GetIndexSettings(indexName string) (IndexSettings, error) {
 	url := fmt.Sprintf("%s/indexes/%s/settings", c.BaseURL, indexName)
 	fmt.Println("GetIndexSettings URL: ", url)
@@ -195,7 +194,7 @@ func (c *Client) GetIndexSettings(indexName string) (IndexSettings, error) {
 	return settings, nil
 }
 
-// GetIndexStats fetches stats for a specific index and decodes into IndexStats model
+// GetIndexStats fetches stats for a specific index and decodes into IndexStats model.
 func (c *Client) GetIndexStats(indexName string) (IndexStats, error) {
 	url := fmt.Sprintf("%s/indexes/%s/stats", c.BaseURL, indexName)
 	req, err := http.NewRequest("GET", url, nil)
@@ -218,7 +217,7 @@ func (c *Client) GetIndexStats(indexName string) (IndexStats, error) {
 	return stats, nil
 }
 
-// CreateIndex creates a new index with the given settings
+// CreateIndex creates a new index with the given settings.
 func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) error {
 	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
 	//fmt.Printf("%T\n", settings)
@@ -253,7 +252,7 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	return nil
 }
 
-// DeleteIndex deletes an index by name
+// DeleteIndex deletes an index by name.
 func (c *Client) DeleteIndex(indexName string) error {
 	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
 	req, err := http.NewRequest("DELETE", url, nil)
@@ -270,14 +269,14 @@ func (c *Client) DeleteIndex(indexName string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed to delete index: %s", string(body))
 	}
 
 	return nil
 }
 
-// CreateIndex creates a new index with the given settings
+// CreateIndex creates a new index with the given settings.
 func (c *Client) UpdateIndex(indexName string, settings map[string]interface{}) error {
 	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
 	//fmt.Printf("%T\n", settings)
