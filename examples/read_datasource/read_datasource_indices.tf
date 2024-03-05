@@ -8,7 +8,7 @@ terraform {
 
 provider "marqo" {
     host = "https://api.marqo.ai/api/v2"
-    api_key = ""
+    api_key = "/xDdPdfdVdmuKv0Xc3F9pzOFUmKDmNOVsqQwHPILbAb4dzNHlrjrzk0bsZl7+DFw"
 }
 
 data "marqo_read_indices" "example" {}
