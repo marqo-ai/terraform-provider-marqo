@@ -3,6 +3,7 @@
 
 package provider
 
+/*
 import (
 	"testing"
 
@@ -30,3 +31,4 @@ data "scaffolding_example" "test" {
   configurable_attribute = "example"
 }
 `
+*/

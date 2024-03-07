@@ -78,9 +78,9 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	if config.Host.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("host"),
-			"Unknown HashiCups API Host",
-			"The provider cannot create the HashiCups API client as there is an unknown configuration value for the HashiCups API host. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the HASHICUPS_HOST environment variable.",
+			"Unknown Marqo API Host",
+			"The provider cannot create the Marqo API client as there is an unknown configuration value for the HashiCups API host. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the MARQO_HOST environment variable.",
 		)
 	}
 
@@ -88,8 +88,8 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		resp.Diagnostics.AddAttributeError(
 			path.Root("api_key"),
 			"Unknown HashiCups API Username",
-			"The provider cannot create the HashiCups API client as there is an unknown configuration value for the HashiCups API username. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the HASHICUPS_USERNAME environment variable.",
+			"The provider cannot create the Marqo API client as there is an unknown configuration value for the Marqo API key. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the MARQO_API_KEY environment variable.",
 		)
 	}
 
@@ -159,11 +159,14 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 // DataSources defines the data sources implemented in the provider.
 func (p *marqoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewIndicesDataSource,
+		ReadIndicesDataSource,
 	}
 }
 
 // Resources defines the resources implemented in the provider.
 func (p *marqoProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		ManageIndicesResource,
+	}
+	//return []func() resource.Resource{}
 }

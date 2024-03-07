@@ -7,8 +7,8 @@ terraform {
 }
 
 provider "marqo" {
-    host = "http://localhost:8080"
-    api_key = "your"
+    host = "https://api.marqo.ai"
+    api_key = "mXU94cDBGV32u+Ha8A/DKw9sUl6ldz8uce8E9JmhpiCniq3pjhWdAxlIv6Iog8eU"
 }
 
 data "marqo_indices" "example" {}

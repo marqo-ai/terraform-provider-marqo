@@ -6,22 +6,17 @@ import (
 
 	"terraform-provider-marqo/marqo"
 
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &indicesDataSource{}
-	_ datasource.DataSourceWithConfigure = &indicesDataSource{}
+	_ resource.Resource              = &indicesResource{}
+	_ resource.ResourceWithConfigure = &indicesResource{}
 )
-
-// ManageIndicesResource is a helper function to simplify the provider implementation.
-func ReadIndicesDataSource() datasource.DataSource {
-	return &indicesDataSource{}
-}
 
 // orderResourceModel maps the resource schema data.
 type allIndicesResourceModel struct {
@@ -74,9 +69,7 @@ type parametersModel struct {
 }
 
 // Configure adds the provider configured client to the resource.
-func (d *indicesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	fmt.Println("Configure called")
-
+func (r *indicesResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -92,21 +85,26 @@ func (d *indicesDataSource) Configure(_ context.Context, req datasource.Configur
 		return
 	}
 
-	d.marqoClient = client
+	r.marqoClient = client
+}
+
+// ManageIndicesResource is a helper function to simplify the provider implementation.
+func ManageIndicesResource() resource.Resource {
+	return &indicesResource{}
 }
 
 // orderResource is the resource implementation.
-type indicesDataSource struct {
+type indicesResource struct {
 	marqoClient *marqo.Client
 }
 
 // Metadata returns the resource type name.
-func (d *indicesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_read_indices"
+func (r *indicesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_indices"
 }
 
 // Schema defines the schema for the resource.
-func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -247,11 +245,57 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 	}
 }
 
+// Create creates the resource and sets the initial Terraform state.
+func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var model allIndicesResourceModel
+	req.Plan.Get(ctx, &model)
+
+	for _, item := range model.Items {
+		indexName := item.IndexName.ValueString()
+		settings := make(map[string]interface{})
+
+		// Reforming index settings based on common fields in schema and models
+		settings["indexSettings"] = map[string]interface{}{
+			"annParameters": map[string]interface{}{
+				"parameters": map[string]interface{}{
+					"efConstruction": item.AnnParameters.Parameters.EfConstruction,
+					"m":              item.AnnParameters.Parameters.M,
+				},
+				"spaceType": item.AnnParameters.SpaceType,
+			},
+			"filterStringMaxLength": item.FilterStringMaxLength,
+			//"imagePreprocessing":    item. // Adjusted based on common fields
+			"model":               item.Model,
+			"normalizeEmbeddings": item.NormalizeEmbeddings,
+			"textPreprocessing": map[string]interface{}{
+				"splitLength":  item.TextPreprocessing.SplitLength,
+				"splitMethod":  item.TextPreprocessing.SplitMethod,
+				"splitOverlap": item.TextPreprocessing.SplitOverlap,
+			},
+			"treatUrlsAndPointersAsImages": item.TreatUrlsAndPointersAsImages,
+			"type":                         item.Type,
+			"vectorNumericType":            item.VectorNumericType,
+			"marqoVersion":                 item.MarqoVersion,  // Added based on common fields
+			"marqoEndpoint":                item.MarqoEndpoint, // Added based on common fields
+		}
+
+		err := r.marqoClient.CreateIndex(indexName, settings)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to Create Index", fmt.Sprintf("Could not create index '%s': %s", indexName, err.Error()))
+			return
+		}
+
+		// Set ID and other state attributes as needed
+		model.ID = types.StringValue(indexName)
+		resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+	}
+}
+
 // Read refreshes the Terraform state with the latest data.
-func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	tflog.Debug(context.TODO(), "Calling marqo client ListIndices")
 	var model allIndicesResourceModel
-	indices, err := d.marqoClient.ListIndices()
+	indices, err := r.marqoClient.ListIndices()
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to List Indices", fmt.Sprintf("Could not list indices: %s", err.Error()))
 		return
@@ -300,4 +344,23 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	model.Items = items
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
+// Update updates the resource and sets the updated Terraform state on success.
+func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+}
+
+// Delete deletes the resource and removes the Terraform state on success.
+func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var model allIndicesResourceModel
+	req.State.Get(ctx, &model)
+
+	err := r.marqoClient.DeleteIndex(model.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to Delete Index", fmt.Sprintf("Could not delete index '%s': %s", model.ID.ValueString(), err.Error()))
+		return
+	}
+
+	// Remove the resource from state by setting it to nil
+	resp.State.RemoveResource(ctx)
 }
