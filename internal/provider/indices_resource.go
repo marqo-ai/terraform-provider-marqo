@@ -204,18 +204,26 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	fmt.Println("indices: ", indices)
+
 	// Assuming you need to find a specific index based on the IndexName in the state
 	// and update the state with its settings. This is a simplification.
 	// In a real scenario, you might need to handle multiple indices or validate the existence.
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == state.IndexName.ValueString() {
 			// Update the state with the details from the indexDetail
+			fmt.Println("indexDetail: ", indexDetail)
 			state.Settings = IndexSettingsModel{
 				Type:                         types.StringValue(indexDetail.Type),
 				VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 				TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
 				Model:                        types.StringValue(indexDetail.Model),
 				NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
+				InferenceType:                types.StringValue(indexDetail.InferenceType),
+				NumberOfInferences:           StringToInt64(indexDetail.NumberOfInferences),
+				StorageClass:                 types.StringValue(indexDetail.StorageClass),
+				NumberOfShards:               StringToInt64(indexDetail.NumberOfShards),
+				NumberOfReplicas:             StringToInt64(indexDetail.NumberOfReplicas),
 				TextPreprocessing: TextPreprocessingModelCreate{
 					SplitLength:  StringToInt64(indexDetail.TextPreprocessing.SplitLength),
 					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
@@ -236,6 +244,9 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			break
 		}
 	}
+
+	fmt.Println("state: ", state)
+	fmt.Println("inferenceType: ", state.Settings.InferenceType)
 
 	// implement deletion of state if resource no longer exists in cloud
 
