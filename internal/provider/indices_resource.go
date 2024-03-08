@@ -204,15 +204,12 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	fmt.Println("indices: ", indices)
-
 	// Assuming you need to find a specific index based on the IndexName in the state
 	// and update the state with its settings. This is a simplification.
 	// In a real scenario, you might need to handle multiple indices or validate the existence.
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == state.IndexName.ValueString() {
 			// Update the state with the details from the indexDetail
-			fmt.Println("indexDetail: ", indexDetail)
 			state.Settings = IndexSettingsModel{
 				Type:                         types.StringValue(indexDetail.Type),
 				VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
@@ -245,9 +242,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 	}
 
-	fmt.Println("state: ", state)
-	fmt.Println("inferenceType: ", state.Settings.InferenceType)
-
 	// implement deletion of state if resource no longer exists in cloud
 
 	// Set the updated state
@@ -265,8 +259,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	//fmt.Println(model.Settings)
 
 	// Construct settings map
 	settings := map[string]interface{}{
