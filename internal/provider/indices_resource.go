@@ -39,6 +39,8 @@ type IndexSettingsModel struct {
 	Type                         types.String                 `tfsdk:"type"`
 	VectorNumericType            types.String                 `tfsdk:"vector_numeric_type"`
 	NumberOfInferences           types.Int64                  `tfsdk:"number_of_inferences"`
+	AllFields                    []AllFieldInput              `tfsdk:"all_fields"`
+	TensorFields                 []string                     `tfsdk:"tensor_fields"`
 	InferenceType                types.String                 `tfsdk:"inference_type"`
 	StorageClass                 types.String                 `tfsdk:"storage_class"`
 	NumberOfShards               types.Int64                  `tfsdk:"number_of_shards"`
@@ -50,6 +52,13 @@ type IndexSettingsModel struct {
 	ImagePreprocessing           ImagePreprocessingModel      `tfsdk:"image_preprocessing"`
 	AnnParameters                AnnParametersModelCreate     `tfsdk:"ann_parameters"`
 	FilterStringMaxLength        types.Int64                  `tfsdk:"filter_string_max_length"`
+}
+
+type AllFieldInput struct {
+	Name            types.String             `tfsdk:"name"`
+	Type            types.String             `tfsdk:"type"`
+	Features        []types.String           `tfsdk:"features"`
+	DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
 }
 
 type TextPreprocessingModelCreate struct {
