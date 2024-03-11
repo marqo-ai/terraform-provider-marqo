@@ -54,6 +54,8 @@ type IndexSettingsModel struct {
 	FilterStringMaxLength        types.Int64                  `tfsdk:"filter_string_max_length"`
 }
 
+//             "dependentFields": {"image_field": 0.8, "text_field": 0.1},
+
 type AllFieldInput struct {
 	Name            types.String             `tfsdk:"name"`
 	Type            types.String             `tfsdk:"type"`
@@ -130,6 +132,22 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"number_of_inferences": schema.Int64Attribute{
 						Optional: true,
 					},
+					"all_fields": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"name":             schema.StringAttribute{Optional: true},
+								"type":             schema.StringAttribute{Optional: true},
+								"features":         schema.ListAttribute{Optional: true},
+								"dependent_fields": schema.MapAttribute{Optional: true},
+							},
+						},
+					},
+					"tensor_fields": schema.ListAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+					},
+
 					"inference_type": schema.StringAttribute{
 						Optional: true,
 					},
@@ -196,6 +214,70 @@ func StringToInt64(str string) types.Int64 {
 	}
 	return types.Int64Value(intVal)
 }
+
+// validateAndConstructAllFields validates the allFields input and constructs the corresponding setting.
+func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string]interface{}, error) {
+	var allFields []map[string]interface{}
+	for _, field := range allFieldsInput {
+		// Basic validation example. Expand based on full Marqo documentation requirements.
+		if field.Name.IsNull() || field.Type.IsNull() {
+			return nil, fmt.Errorf("each field must have a name and type")
+		}
+		fieldMap := map[string]interface{}{
+			"name":     field.Name.ValueString(),
+			"type":     field.Type.ValueString(),
+			"features": []string{}, // Convert types.String to string
+		}
+		for _, feature := range field.Features {
+			fieldMap["features"] = append(fieldMap["features"].([]string), feature.ValueString())
+		}
+		if len(field.DependentFields) > 0 {
+			dependentFields := make(map[string]float64)
+			for key, value := range field.DependentFields {
+				dependentFields[key] = value.ValueFloat64()
+			}
+			fieldMap["dependent_fields"] = dependentFields
+		}
+		allFields = append(allFields, fieldMap)
+	}
+	return allFields, nil
+}
+
+// Utility function to convert []AllFieldInput to a format suitable for settings map.
+func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interface{} {
+	allFields := []map[string]interface{}{}
+	for _, field := range allFieldsInput {
+		fieldMap := map[string]interface{}{
+			"name": field.Name.ValueString(),
+			"type": field.Type.ValueString(),
+			// Add other necessary fields from AllFieldInput struct
+		}
+		// Assuming Features is a slice of types.String and needs conversion
+		features := []string{}
+		for _, feature := range field.Features {
+			features = append(features, feature.ValueString())
+		}
+		fieldMap["features"] = features
+
+		// Convert DependentFields if necessary
+		dependentFieldsMap := make(map[string]float64)
+		for key, value := range field.DependentFields {
+			dependentFieldsMap[key] = value.ValueFloat64()
+		}
+		if len(dependentFieldsMap) > 0 {
+			fieldMap["dependent_fields"] = dependentFieldsMap
+		}
+
+		allFields = append(allFields, fieldMap)
+	}
+	return allFields
+}
+
+// constructTensorFields constructs the tensorFields setting from the input.
+//func constructTensorFields(tensorFieldsInput []string) ([]string, error) {
+//	// Blank for now
+//	return tensorFieldsInput, nil
+//}
 
 func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Initialize the state variable based on the IndexResourceModel
@@ -276,6 +358,8 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
 		"model":                        model.Settings.Model.ValueString(),
 		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
+		"allFields":                    convertAllFieldsToMap(model.Settings.AllFields),
+		"tensorFields":                 model.Settings.TensorFields,
 		"inferenceType":                model.Settings.InferenceType.ValueString(),
 		"numberOfInferences":           model.Settings.NumberOfInferences.ValueInt64(),
 		"storageClass":                 model.Settings.StorageClass.ValueString(),
@@ -335,8 +419,33 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.NumberOfReplicas.IsNull() {
 		delete(settings, "numberOfReplicas")
 	}
+	if len(model.Settings.AllFields) == 0 {
+		delete(settings, "allFields")
+	}
+	if len(model.Settings.TensorFields) == 0 {
+		delete(settings, "tensorFields")
+	}
 
 	//indexNameAsString := model.IndexName.
+
+	// Adjust settings for structured index
+	if model.Settings.Type.ValueString() == "structured" {
+		allFields, err := validateAndConstructAllFields(model.Settings.AllFields)
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid allFields", "Error validating allFields: "+err.Error())
+			return
+		}
+		settings["allFields"] = allFields
+
+		//if len(model.Settings.TensorFields) > 0 {
+		//    tensorFields, err := constructTensorFields(model.Settings.TensorFields)
+		//    if err != nil {
+		//        resp.Diagnostics.AddError("Invalid tensorFields", "Error validating tensorFields: "+err.Error())
+		//        return
+		//    }
+		//    settings["tensorFields"] = tensorFields
+		//}
+	}
 
 	err := r.marqoClient.CreateIndex(model.IndexName.ValueString(), settings)
 	if err != nil {
