@@ -231,8 +231,9 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	//fmt.Println("Settings: ", settings)
-	//fmt.Println("Request: ", req)
+	fmt.Println("Settings: ", settings)
+	fmt.Println("Request: ", req)
+	//fmt.Println("JSON Body: ", jsonData)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-KEY", c.APIKey)

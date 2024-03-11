@@ -57,10 +57,10 @@ type IndexSettingsModel struct {
 //             "dependentFields": {"image_field": 0.8, "text_field": 0.1},
 
 type AllFieldInput struct {
-	Name            types.String             `tfsdk:"name"`
-	Type            types.String             `tfsdk:"type"`
-	Features        []types.String           `tfsdk:"features"`
-	DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
+	Name     types.String   `tfsdk:"name"`
+	Type     types.String   `tfsdk:"type"`
+	Features []types.String `tfsdk:"features"`
+	// DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
 }
 
 type TextPreprocessingModelCreate struct {
@@ -136,10 +136,16 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
-								"name":             schema.StringAttribute{Optional: true},
-								"type":             schema.StringAttribute{Optional: true},
-								"features":         schema.ListAttribute{Optional: true},
-								"dependent_fields": schema.MapAttribute{Optional: true},
+								"name": schema.StringAttribute{Optional: true},
+								"type": schema.StringAttribute{Optional: true},
+								"features": schema.ListAttribute{
+									Optional:    true,
+									ElementType: types.StringType,
+								},
+								//"dependent_fields": schema.MapAttribute{
+								//	Optional:    true,
+								//	ElementType: types.MapType{},
+								//#S},
 							},
 						},
 					},
@@ -231,13 +237,13 @@ func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string
 		for _, feature := range field.Features {
 			fieldMap["features"] = append(fieldMap["features"].([]string), feature.ValueString())
 		}
-		if len(field.DependentFields) > 0 {
-			dependentFields := make(map[string]float64)
-			for key, value := range field.DependentFields {
-				dependentFields[key] = value.ValueFloat64()
-			}
-			fieldMap["dependent_fields"] = dependentFields
-		}
+		//if len(field.DependentFields) > 0 {
+		//	dependentFields := make(map[string]float64)
+		//	for key, value := range field.DependentFields {
+		//		dependentFields[key] = value.ValueFloat64()
+		//	}
+		//	fieldMap["dependent_fields"] = dependentFields
+		//}
 		allFields = append(allFields, fieldMap)
 	}
 	return allFields, nil
@@ -260,13 +266,13 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 		fieldMap["features"] = features
 
 		// Convert DependentFields if necessary
-		dependentFieldsMap := make(map[string]float64)
-		for key, value := range field.DependentFields {
-			dependentFieldsMap[key] = value.ValueFloat64()
-		}
-		if len(dependentFieldsMap) > 0 {
-			fieldMap["dependent_fields"] = dependentFieldsMap
-		}
+		//dependentFieldsMap := make(map[string]float64)
+		//for key, value := range field.DependentFields {
+		//	dependentFieldsMap[key] = value.ValueFloat64()
+		//}
+		//if len(dependentFieldsMap) > 0 {
+		//	fieldMap["dependent_fields"] = dependentFieldsMap
+		//}
 
 		allFields = append(allFields, fieldMap)
 	}
