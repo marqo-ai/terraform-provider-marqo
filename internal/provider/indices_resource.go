@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// Ensure the implementation satisfies the expected interfaces.
 var (
 	_ resource.Resource              = &indicesResource{}
 	_ resource.ResourceWithConfigure = &indicesResource{}
@@ -301,9 +300,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	// Assuming you need to find a specific index based on the IndexName in the state
-	// and update the state with its settings. This is a simplification.
-	// In a real scenario, you might need to handle multiple indices or validate the existence.
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == state.IndexName.ValueString() {
 			// Update the state with the details from the indexDetail
