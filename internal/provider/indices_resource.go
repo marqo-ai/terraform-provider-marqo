@@ -309,10 +309,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	//found := false
+	found := false
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == state.IndexName.ValueString() {
-			//found = true
+			found = true
 			// Update the state with the details from the indexDetail
 			state.Settings = IndexSettingsModel{
 				Type:                         types.StringValue(indexDetail.Type),
@@ -350,6 +350,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// if index no longer exists in cloud, delete the state
+	if !found {
+		resp.Diagnostics.AddWarning("Resource Not Found", "The specified index does not exist in the cloud. The state will be deleted.")
+		state = IndexResourceModel{}
+	}
 
 	// Set the updated state
 	diags = resp.State.Set(ctx, &state)
