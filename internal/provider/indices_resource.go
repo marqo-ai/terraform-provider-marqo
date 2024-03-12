@@ -353,6 +353,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if !found {
 		resp.Diagnostics.AddWarning("Resource Not Found", "The specified index does not exist in the cloud. The state will be deleted.")
 		state = IndexResourceModel{}
+		// Then Totally Remove from terraform resources
+		resp.State.RemoveResource(ctx)
 	}
 
 	// Set the updated state
