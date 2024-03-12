@@ -56,10 +56,10 @@ type IndexSettingsModel struct {
 //             "dependentFields": {"image_field": 0.8, "text_field": 0.1},
 
 type AllFieldInput struct {
-	Name     types.String   `tfsdk:"name"`
-	Type     types.String   `tfsdk:"type"`
-	Features []types.String `tfsdk:"features"`
-	// DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
+	Name            types.String             `tfsdk:"name"`
+	Type            types.String             `tfsdk:"type"`
+	Features        []types.String           `tfsdk:"features"`
+	DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
 }
 
 type TextPreprocessingModelCreate struct {
@@ -141,10 +141,11 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 									Optional:    true,
 									ElementType: types.StringType,
 								},
-								//"dependent_fields": schema.MapAttribute{
-								//	Optional:    true,
-								//	ElementType: types.MapType{},
-								//#S},
+								// Sample:  "dependentFields": {"image_field": 0.8, "text_field": 0.1},
+								"dependent_fields": schema.MapAttribute{
+									Optional:    true,
+									ElementType: types.Int64Type,
+								},
 							},
 						},
 					},
@@ -233,10 +234,10 @@ func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string
 			"type":     field.Type.ValueString(),
 			"features": []string{}, // Convert types.String to string
 		}
-		// Safely assert the type of "features" before appending
+		// Assert the type of "features" before appending
 		features, ok := fieldMap["features"].([]string)
 		if !ok {
-			// Handle the error, perhaps by initializing features as an empty slice or logging an error
+			// Handle the error
 			features = []string{}
 		}
 		for _, feature := range field.Features {
@@ -286,10 +287,10 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 }
 
 // constructTensorFields constructs the tensorFields setting from the input.
-//func constructTensorFields(tensorFieldsInput []string) ([]string, error) {
-//	// Blank for now
-//	return tensorFieldsInput, nil
-//}
+func constructTensorFields(tensorFieldsInput []string) ([]string, error) {
+	// Blank for now
+	return tensorFieldsInput, nil
+}
 
 func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Initialize the state variable based on the IndexResourceModel
@@ -340,6 +341,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				},
 				FilterStringMaxLength: StringToInt64(indexDetail.FilterStringMaxLength),
 			}
+			fmt.Print("tensorFields: ", indexDetail.TensorFields)
 			break
 		}
 	}
@@ -449,12 +451,12 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		settings["allFields"] = allFields
 
 		//if len(model.Settings.TensorFields) > 0 {
-		//    tensorFields, err := constructTensorFields(model.Settings.TensorFields)
-		//    if err != nil {
-		//        resp.Diagnostics.AddError("Invalid tensorFields", "Error validating tensorFields: "+err.Error())
-		//        return
-		//    }
-		//    settings["tensorFields"] = tensorFields
+		//	tensorFields, err := constructTensorFields(model.Settings.TensorFields)
+		//	if err != nil {
+		//		resp.Diagnostics.AddError("Invalid tensorFields", "Error validating tensorFields: "+err.Error())
+		//		return
+		//	}
+		//	settings["tensorFields"] = tensorFields
 		//}
 	}
 
