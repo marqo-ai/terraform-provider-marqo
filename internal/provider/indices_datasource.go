@@ -279,11 +279,15 @@ func ConvertMarqoAllFieldInputs(marqoFields []marqo.AllFieldInput) []AllFieldInp
 		for j, feature := range field.Features {
 			featuresConverted[j] = types.StringValue(feature)
 		}
+		dependentFieldsConverted := make(map[string]types.Float64)
+		for key, value := range field.DependentFields {
+			dependentFieldsConverted[key] = types.Float64Value(value)
+		}
 		allFieldsConverted[i] = AllFieldInput{
-			Name:     types.StringValue(field.Name),
-			Type:     types.StringValue(field.Type),
-			Features: featuresConverted,
-			// DependentFields here
+			Name:            types.StringValue(field.Name),
+			Type:            types.StringValue(field.Type),
+			Features:        featuresConverted,
+			DependentFields: dependentFieldsConverted,
 		}
 	}
 	return allFieldsConverted
