@@ -308,6 +308,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 				TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
 				Model:                        types.StringValue(indexDetail.Model),
+				AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
+				TensorFields:                 indexDetail.TensorFields,
 				NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
 				InferenceType:                types.StringValue(indexDetail.InferenceType),
 				NumberOfInferences:           StringToInt64(indexDetail.NumberOfInferences),

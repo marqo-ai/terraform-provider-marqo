@@ -24,6 +24,8 @@ type IndexDetail struct {
 	NumberOfShards               string                       `json:"numberOfShards"`
 	NumberOfReplicas             string                       `json:"numberOfReplicas"`
 	IndexStatus                  string                       `json:"indexStatus"`
+	AllFields                    []AllFieldInput              `json:"allFields"`
+	TensorFields                 []string                     `json:"tensorFields"`
 	NumberOfInferences           string                       `json:"numberOfInferences"`
 	StorageClass                 string                       `json:"storageClass"`
 	InferenceType                string                       `json:"inferenceType"`
@@ -42,6 +44,13 @@ type IndexDetail struct {
 	AnnParameters                AnnParametersListIndices     `json:"annParameters"`
 	MarqoVersion                 string                       `json:"marqoVersion"`
 	FilterStringMaxLength        string                       `json:"filterStringMaxLength"`
+}
+
+type AllFieldInput struct {
+	Name     string   `tfsdk:"name"`
+	Type     string   `tfsdk:"type"`
+	Features []string `tfsdk:"features"`
+	// DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
 }
 
 type ImagePreprocessingModel struct {
