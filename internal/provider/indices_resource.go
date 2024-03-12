@@ -216,6 +216,11 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
 				Model:                        types.StringValue(indexDetail.Model),
 				NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
+				InferenceType:                types.StringValue(indexDetail.InferenceType),
+				NumberOfInferences:           StringToInt64(indexDetail.NumberOfInferences),
+				StorageClass:                 types.StringValue(indexDetail.StorageClass),
+				NumberOfShards:               StringToInt64(indexDetail.NumberOfShards),
+				NumberOfReplicas:             StringToInt64(indexDetail.NumberOfReplicas),
 				TextPreprocessing: TextPreprocessingModelCreate{
 					SplitLength:  StringToInt64(indexDetail.TextPreprocessing.SplitLength),
 					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
@@ -254,8 +259,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	//fmt.Println(model.Settings)
 
 	// Construct settings map
 	settings := map[string]interface{}{
