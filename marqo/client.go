@@ -47,10 +47,10 @@ type IndexDetail struct {
 }
 
 type AllFieldInput struct {
-	Name     string   `tfsdk:"name"`
-	Type     string   `tfsdk:"type"`
-	Features []string `tfsdk:"features"`
-	// DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
+	Name            string             `tfsdk:"name"`
+	Type            string             `tfsdk:"type"`
+	Features        []string           `tfsdk:"features"`
+	DependentFields map[string]float64 `tfsdk:"dependent_fields"`
 }
 
 type ImagePreprocessingModel struct {

@@ -149,10 +149,11 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 										Optional:    true,
 										ElementType: types.StringType,
 									},
-									//"dependent_fields": schema.MapAttribute{
-									//	Optional:    true,
-									//	ElementType: types.MapType{},
-									//#S},
+									// Sample:  "dependentFields": {"image_field": 0.8, "text_field": 0.1},
+									"dependent_fields": schema.MapAttribute{
+										Optional:    true,
+										ElementType: types.Float64Type,
+									},
 								},
 							},
 						},

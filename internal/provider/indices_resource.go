@@ -144,7 +144,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 								// Sample:  "dependentFields": {"image_field": 0.8, "text_field": 0.1},
 								"dependent_fields": schema.MapAttribute{
 									Optional:    true,
-									ElementType: types.Int64Type,
+									ElementType: types.Float64Type,
 								},
 							},
 						},
@@ -244,13 +244,14 @@ func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string
 			features = append(features, feature.ValueString())
 		}
 		fieldMap["features"] = features
-		//if len(field.DependentFields) > 0 {
-		//	dependentFields := make(map[string]float64)
-		//	for key, value := range field.DependentFields {
-		//		dependentFields[key] = value.ValueFloat64()
-		//	}
-		//	fieldMap["dependent_fields"] = dependentFields
-		//}
+		fieldMap["dependent_fields"] = map[string]float64{}
+		if len(field.DependentFields) > 0 {
+			dependentFields := make(map[string]float64)
+			for key, value := range field.DependentFields {
+				dependentFields[key] = value.ValueFloat64()
+			}
+			fieldMap["dependent_fields"] = dependentFields
+		}
 		allFields = append(allFields, fieldMap)
 	}
 	return allFields, nil
@@ -273,13 +274,13 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 		fieldMap["features"] = features
 
 		// Convert DependentFields if necessary
-		//dependentFieldsMap := make(map[string]float64)
-		//for key, value := range field.DependentFields {
-		//	dependentFieldsMap[key] = value.ValueFloat64()
-		//}
-		//if len(dependentFieldsMap) > 0 {
-		//	fieldMap["dependent_fields"] = dependentFieldsMap
-		//}
+		dependentFieldsMap := make(map[string]float64)
+		for key, value := range field.DependentFields {
+			dependentFieldsMap[key] = value.ValueFloat64()
+		}
+		if len(dependentFieldsMap) > 0 {
+			fieldMap["dependent_fields"] = dependentFieldsMap
+		}
 
 		allFields = append(allFields, fieldMap)
 	}
@@ -287,10 +288,10 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 }
 
 // constructTensorFields constructs the tensorFields setting from the input.
-func constructTensorFields(tensorFieldsInput []string) ([]string, error) {
-	// Blank for now
-	return tensorFieldsInput, nil
-}
+//func constructTensorFields(tensorFieldsInput []string) ([]string, error) {
+//	// Blank for now
+//	return tensorFieldsInput, nil
+//}
 
 func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Initialize the state variable based on the IndexResourceModel
@@ -308,8 +309,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
+	//found := false
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == state.IndexName.ValueString() {
+			//found = true
 			// Update the state with the details from the indexDetail
 			state.Settings = IndexSettingsModel{
 				Type:                         types.StringValue(indexDetail.Type),
@@ -346,7 +349,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 	}
 
-	// implement deletion of state if resource no longer exists in cloud
+	// if index no longer exists in cloud, delete the state
 
 	// Set the updated state
 	diags = resp.State.Set(ctx, &state)
@@ -438,6 +441,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if len(model.Settings.TensorFields) == 0 {
 		delete(settings, "tensorFields")
 	}
+	tflog.Debug(ctx, "Creating index with settings: %#v", settings)
 
 	//indexNameAsString := model.IndexName.
 
