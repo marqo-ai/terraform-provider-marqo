@@ -233,9 +233,16 @@ func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string
 			"type":     field.Type.ValueString(),
 			"features": []string{}, // Convert types.String to string
 		}
-		for _, feature := range field.Features {
-			fieldMap["features"] = append(fieldMap["features"].([]string), feature.ValueString())
+		// Safely assert the type of "features" before appending
+		features, ok := fieldMap["features"].([]string)
+		if !ok {
+			// Handle the error, perhaps by initializing features as an empty slice or logging an error
+			features = []string{}
 		}
+		for _, feature := range field.Features {
+			features = append(features, feature.ValueString())
+		}
+		fieldMap["features"] = features
 		//if len(field.DependentFields) > 0 {
 		//	dependentFields := make(map[string]float64)
 		//	for key, value := range field.DependentFields {
