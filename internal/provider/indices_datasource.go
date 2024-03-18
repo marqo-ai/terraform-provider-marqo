@@ -37,6 +37,8 @@ type indexModel struct {
 	NumberOfShards               types.String           `tfsdk:"number_of_shards"`
 	NumberOfReplicas             types.String           `tfsdk:"number_of_replicas"`
 	IndexStatus                  types.String           `tfsdk:"index_status"`
+	AllFields                    []AllFieldInput        `tfsdk:"all_fields"`
+	TensorFields                 []string               `tfsdk:"tensor_fields"`
 	NumberOfInferences           types.String           `tfsdk:"number_of_inferences"`
 	StorageClass                 types.String           `tfsdk:"storage_class"`
 	InferenceType                types.String           `tfsdk:"inference_type"`
@@ -136,6 +138,28 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 						"filter_string_max_length": schema.StringAttribute{
 							Computed:    true,
 							Description: "The filter string max length",
+						},
+						"all_fields": schema.ListNestedAttribute{
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{Optional: true},
+									"type": schema.StringAttribute{Optional: true},
+									"features": schema.ListAttribute{
+										Optional:    true,
+										ElementType: types.StringType,
+									},
+									// Sample:  "dependentFields": {"image_field": 0.8, "text_field": 0.1},
+									"dependent_fields": schema.MapAttribute{
+										Optional:    true,
+										ElementType: types.Float64Type,
+									},
+								},
+							},
+						},
+						"tensor_fields": schema.ListAttribute{
+							Optional:    true,
+							ElementType: types.StringType,
 						},
 						"created": schema.StringAttribute{
 							Computed:    true,
@@ -247,6 +271,28 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 	}
 }
 
+// ConvertMarqoAllFieldInputs converts a slice of marqo.AllFieldInput to a slice of AllFieldInput.
+func ConvertMarqoAllFieldInputs(marqoFields []marqo.AllFieldInput) []AllFieldInput {
+	allFieldsConverted := make([]AllFieldInput, len(marqoFields))
+	for i, field := range marqoFields {
+		featuresConverted := make([]types.String, len(field.Features))
+		for j, feature := range field.Features {
+			featuresConverted[j] = types.StringValue(feature)
+		}
+		dependentFieldsConverted := make(map[string]types.Float64)
+		for key, value := range field.DependentFields {
+			dependentFieldsConverted[key] = types.Float64Value(value)
+		}
+		allFieldsConverted[i] = AllFieldInput{
+			Name:            types.StringValue(field.Name),
+			Type:            types.StringValue(field.Type),
+			Features:        featuresConverted,
+			DependentFields: dependentFieldsConverted,
+		}
+	}
+	return allFieldsConverted
+}
+
 // Read refreshes the Terraform state with the latest data.
 func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tflog.Debug(context.TODO(), "Calling marqo client ListIndices")
@@ -267,6 +313,8 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			NumberOfShards:               types.StringValue(indexDetail.NumberOfShards),
 			NumberOfReplicas:             types.StringValue(indexDetail.NumberOfReplicas),
 			IndexStatus:                  types.StringValue(indexDetail.IndexStatus),
+			AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
+			TensorFields:                 indexDetail.TensorFields,
 			NumberOfInferences:           types.StringValue(indexDetail.NumberOfInferences),
 			StorageClass:                 types.StringValue(indexDetail.StorageClass),
 			InferenceType:                types.StringValue(indexDetail.InferenceType),
