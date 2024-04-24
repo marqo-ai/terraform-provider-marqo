@@ -29,10 +29,10 @@ type allIndicesResourceModel struct {
 type indexModel struct {
 	Created                      types.String           `tfsdk:"created"`
 	IndexName                    types.String           `tfsdk:"index_name"`
-	NumberOfShards               types.String           `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.String           `tfsdk:"number_of_replicas"`
+	NumberOfShards               types.Int64            `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.Int64            `tfsdk:"number_of_replicas"`
 	IndexStatus                  types.String           `tfsdk:"index_status"`
-	NumberOfInferences           types.String           `tfsdk:"number_of_inferences"`
+	NumberOfInferences           types.Int64            `tfsdk:"number_of_inferences"`
 	StorageClass                 types.String           `tfsdk:"storage_class"`
 	InferenceType                types.String           `tfsdk:"inference_type"`
 	DocsCount                    types.String           `tfsdk:"docs_count"`
@@ -49,7 +49,7 @@ type indexModel struct {
 	//ImagePreprocessing           types.Object           `tfsdk:"image_preprocessing"` // Assuming no specific structure
 	AnnParameters         AnnParametersModel `tfsdk:"ann_parameters"` // Assuming no specific structure
 	MarqoVersion          types.String       `tfsdk:"marqo_version"`
-	FilterStringMaxLength types.String       `tfsdk:"filter_string_max_length"`
+	FilterStringMaxLength types.Int64        `tfsdk:"filter_string_max_length"`
 }
 
 type TextPreprocessingModel struct {
@@ -308,10 +308,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		items[i] = indexModel{
 			Created:                      types.StringValue(indexDetail.Created),
 			IndexName:                    types.StringValue(indexDetail.IndexName),
-			NumberOfShards:               types.StringValue(indexDetail.NumberOfShards),
-			NumberOfReplicas:             types.StringValue(indexDetail.NumberOfReplicas),
+			NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
+			NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
 			IndexStatus:                  types.StringValue(indexDetail.IndexStatus),
-			NumberOfInferences:           types.StringValue(indexDetail.NumberOfInferences),
+			NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
 			StorageClass:                 types.StringValue(indexDetail.StorageClass),
 			InferenceType:                types.StringValue(indexDetail.InferenceType),
 			DocsCount:                    types.StringValue(indexDetail.DocsCount),
@@ -333,12 +333,12 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			AnnParameters: AnnParametersModel{
 				SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
 				Parameters: parametersModel{
-					EfConstruction: types.StringValue(indexDetail.AnnParameters.Parameters.EfConstruction),
-					M:              types.StringValue(indexDetail.AnnParameters.Parameters.M),
+					EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
+					M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
 				},
 			},
 			MarqoVersion:          types.StringValue(indexDetail.MarqoVersion),
-			FilterStringMaxLength: types.StringValue(indexDetail.FilterStringMaxLength),
+			FilterStringMaxLength: types.Int64Value(indexDetail.FilterStringMaxLength),
 		}
 	}
 

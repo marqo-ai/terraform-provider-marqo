@@ -21,12 +21,12 @@ type IndexResponse struct {
 type IndexDetail struct {
 	Created                      string                       `json:"Created"`
 	IndexName                    string                       `json:"indexName"`
-	NumberOfShards               string                       `json:"numberOfShards"`
-	NumberOfReplicas             string                       `json:"numberOfReplicas"`
+	NumberOfShards               int64                        `json:"numberOfShards"`
+	NumberOfReplicas             int64                        `json:"numberOfReplicas"`
 	IndexStatus                  string                       `json:"indexStatus"`
 	AllFields                    []AllFieldInput              `json:"allFields"`
 	TensorFields                 []string                     `json:"tensorFields"`
-	NumberOfInferences           string                       `json:"numberOfInferences"`
+	NumberOfInferences           int64                        `json:"numberOfInferences"`
 	StorageClass                 string                       `json:"storageClass"`
 	InferenceType                string                       `json:"inferenceType"`
 	DocsCount                    string                       `json:"docs.count"`
@@ -43,14 +43,14 @@ type IndexDetail struct {
 	ImagePreprocessing           ImagePreprocessingModel      `json:"imagePreprocessing"` // Assuming no specific structure
 	AnnParameters                AnnParametersListIndices     `json:"annParameters"`
 	MarqoVersion                 string                       `json:"marqoVersion"`
-	FilterStringMaxLength        string                       `json:"filterStringMaxLength"`
+	FilterStringMaxLength        int64                        `json:"filterStringMaxLength"`
 }
 
 type AllFieldInput struct {
 	Name            string             `tfsdk:"name"`
 	Type            string             `tfsdk:"type"`
 	Features        []string           `tfsdk:"features"`
-	DependentFields map[string]float64 `tfsdk:"dependent_fields"`
+	DependentFields map[string]float64 `tfsdk:"dependentFields"`
 }
 
 type ImagePreprocessingModel struct {
@@ -80,8 +80,8 @@ type AnnParameters struct {
 }
 
 type parametersModelListIndices struct {
-	EfConstruction string `json:"ef_construction"`
-	M              string `json:"m"`
+	EfConstruction int64 `json:"ef_construction"`
+	M              int64 `json:"m"`
 }
 
 // parametersModel maps the parameters part of ANN parameters.
