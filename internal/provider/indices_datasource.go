@@ -135,7 +135,7 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 							Computed:    true,
 							Description: "The Marqo endpoint used by the index",
 						},
-						"filter_string_max_length": schema.StringAttribute{
+						"filter_string_max_length": schema.Int64Attribute{
 							Computed:    true,
 							Description: "The filter string max length",
 						},
@@ -177,7 +177,7 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 							Computed:    true,
 							Description: "The status of the index",
 						},
-						"number_of_inferences": schema.StringAttribute{
+						"number_of_inferences": schema.Int64Attribute{
 							Computed:    true,
 							Description: "The number of inferences made by the index",
 						},
@@ -252,11 +252,11 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 								"parameters": schema.SingleNestedAttribute{
 									Computed: true,
 									Attributes: map[string]schema.Attribute{
-										"ef_construction": schema.StringAttribute{
+										"ef_construction": schema.Int64Attribute{
 											Computed:    true,
 											Description: "The efConstruction parameter for ANN",
 										},
-										"m": schema.StringAttribute{
+										"m": schema.Int64Attribute{
 											Computed:    true,
 											Description: "The m parameter for ANN",
 										},
