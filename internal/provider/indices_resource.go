@@ -225,7 +225,6 @@ func StringToInt64(str string) types.Int64 {
 func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string]interface{}, error) {
 	var allFields []map[string]interface{}
 	for _, field := range allFieldsInput {
-		// Basic validation example. Expand based on full Marqo documentation requirements.
 		if field.Name.IsNull() || field.Type.IsNull() {
 			return nil, fmt.Errorf("each field must have a name and type")
 		}
@@ -244,13 +243,13 @@ func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string
 			features = append(features, feature.ValueString())
 		}
 		fieldMap["features"] = features
-		fieldMap["dependent_fields"] = map[string]float64{}
+		fieldMap["dependentFields"] = map[string]float64{}
 		if len(field.DependentFields) > 0 {
 			dependentFields := make(map[string]float64)
 			for key, value := range field.DependentFields {
 				dependentFields[key] = value.ValueFloat64()
 			}
-			fieldMap["dependent_fields"] = dependentFields
+			fieldMap["dependentFields"] = dependentFields
 		}
 		allFields = append(allFields, fieldMap)
 	}
@@ -264,7 +263,6 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 		fieldMap := map[string]interface{}{
 			"name": field.Name.ValueString(),
 			"type": field.Type.ValueString(),
-			// Add other necessary fields from AllFieldInput struct
 		}
 		// Assuming Features is a slice of types.String and needs conversion
 		features := []string{}
@@ -279,7 +277,7 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 			dependentFieldsMap[key] = value.ValueFloat64()
 		}
 		if len(dependentFieldsMap) > 0 {
-			fieldMap["dependent_fields"] = dependentFieldsMap
+			fieldMap["dependentFields"] = dependentFieldsMap
 		}
 
 		allFields = append(allFields, fieldMap)
@@ -323,10 +321,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				TensorFields:                 indexDetail.TensorFields,
 				NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
 				InferenceType:                types.StringValue(indexDetail.InferenceType),
-				NumberOfInferences:           StringToInt64(indexDetail.NumberOfInferences),
+				NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
 				StorageClass:                 types.StringValue(indexDetail.StorageClass),
-				NumberOfShards:               StringToInt64(indexDetail.NumberOfShards),
-				NumberOfReplicas:             StringToInt64(indexDetail.NumberOfReplicas),
+				NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
+				NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
 				TextPreprocessing: TextPreprocessingModelCreate{
 					SplitLength:  StringToInt64(indexDetail.TextPreprocessing.SplitLength),
 					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
@@ -338,11 +336,11 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				AnnParameters: AnnParametersModelCreate{
 					SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
 					Parameters: ParametersModel{
-						EfConstruction: StringToInt64(indexDetail.AnnParameters.Parameters.EfConstruction),
-						M:              StringToInt64(indexDetail.AnnParameters.Parameters.M),
+						EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
+						M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
 					},
 				},
-				FilterStringMaxLength: StringToInt64(indexDetail.FilterStringMaxLength),
+				FilterStringMaxLength: types.Int64Value(indexDetail.FilterStringMaxLength),
 			}
 			fmt.Print("tensorFields: ", indexDetail.TensorFields)
 			break
