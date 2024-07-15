@@ -53,6 +53,8 @@ type IndexSettingsModel struct {
 	ImagePreprocessing           ImagePreprocessingModel      `tfsdk:"image_preprocessing"`
 	AnnParameters                AnnParametersModelCreate     `tfsdk:"ann_parameters"`
 	FilterStringMaxLength        types.Int64                  `tfsdk:"filter_string_max_length"`
+	TextChunkPrefix              types.String                 `tfsdk:"text_chunk_prefix"`
+	TextQueryPrefix              types.String                 `tfsdk:"text_query_prefix"`
 }
 
 //             "dependentFields": {"image_field": 0.8, "text_field": 0.1},
@@ -207,6 +209,12 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"filter_string_max_length": schema.Int64Attribute{
 						Optional: true,
 					},
+					"text_chunk_prefix": schema.StringAttribute{
+						Optional: true,
+					},
+					"text_query_prefix": schema.StringAttribute{
+						Optional: true,
+					},
 				},
 			},
 		},
@@ -330,6 +338,8 @@ func (r *indicesResource) findAndCreateState(indices []marqo.IndexDetail, indexN
 						},
 					},
 					FilterStringMaxLength: types.Int64Value(indexDetail.FilterStringMaxLength),
+					TextChunkPrefix:       types.StringValue(indexDetail.TextChunkPrefix),
+					TextQueryPrefix:       types.StringValue(indexDetail.TextQueryPrefix),
 				},
 			}, true
 		}
@@ -458,6 +468,8 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			},
 		},
 		"filterStringMaxLength": model.Settings.FilterStringMaxLength.ValueInt64(),
+		"textChunkPrefix":       model.Settings.TextChunkPrefix.ValueString(),
+		"textQueryPrefix":       model.Settings.TextQueryPrefix.ValueString(),
 	}
 
 	// Remove optional fields if they are not set
@@ -502,6 +514,12 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if len(model.Settings.TensorFields) == 0 {
 		delete(settings, "tensorFields")
+	}
+	if model.Settings.TextChunkPrefix.IsNull() {
+		delete(settings, "textChunkPrefix")
+	}
+	if model.Settings.TextQueryPrefix.IsNull() {
+		delete(settings, "textQueryPrefix")
 	}
 	tflog.Debug(ctx, "Creating index with settings: %#v", settings)
 

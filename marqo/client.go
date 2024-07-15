@@ -44,6 +44,8 @@ type IndexDetail struct {
 	AnnParameters                AnnParameters           `json:"annParameters"`
 	MarqoVersion                 string                  `json:"marqoVersion"`
 	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
+	TextChunkPrefix              string                  `json:"textChunkPrefix"`
+	TextQueryPrefix              string                  `json:"textQueryPrefix"`
 }
 
 type AllFieldInput struct {
@@ -105,6 +107,8 @@ type IndexSettings struct {
 	NumberOfReplicas             int64                   `json:"numberOfReplicas"`
 	TreatUrlsAndPointersAsImages bool                    `json:"treatUrlsAndPointersAsImages"`
 	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
+	TextChunkPrefix              string                  `json:"textChunkPrefix"`
+	TextQueryPrefix              string                  `json:"textQueryPrefix"`
 }
 
 // NewClient creates and returns a new API client or an error.
