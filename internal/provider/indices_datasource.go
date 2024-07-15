@@ -310,12 +310,12 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		items[i] = indexModel{
 			Created:                      types.StringValue(indexDetail.Created),
 			IndexName:                    types.StringValue(indexDetail.IndexName),
-			NumberOfShards:               types.StringValue(indexDetail.NumberOfShards),
-			NumberOfReplicas:             types.StringValue(indexDetail.NumberOfReplicas),
+			NumberOfShards:               types.StringValue(fmt.Sprintf("%d", indexDetail.NumberOfShards)),
+			NumberOfReplicas:             types.StringValue(fmt.Sprintf("%d", indexDetail.NumberOfReplicas)),
 			IndexStatus:                  types.StringValue(indexDetail.IndexStatus),
 			AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 			TensorFields:                 indexDetail.TensorFields,
-			NumberOfInferences:           types.StringValue(indexDetail.NumberOfInferences),
+			NumberOfInferences:           types.StringValue(fmt.Sprintf("%d", indexDetail.NumberOfInferences)),
 			StorageClass:                 types.StringValue(indexDetail.StorageClass),
 			InferenceType:                types.StringValue(indexDetail.InferenceType),
 			DocsCount:                    types.StringValue(indexDetail.DocsCount),
@@ -329,20 +329,20 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			Model:                        types.StringValue(indexDetail.Model),
 			NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
 			TextPreprocessing: TextPreprocessingModel{
-				SplitLength:  types.StringValue(indexDetail.TextPreprocessing.SplitLength),
+				SplitLength:  types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitLength)),
 				SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
-				SplitOverlap: types.StringValue(indexDetail.TextPreprocessing.SplitOverlap),
+				SplitOverlap: types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitOverlap)),
 			},
 			//ImagePreprocessing: types.ObjectValue(map[string]interface{}, indexDetail.ImagePreprocessing),
 			AnnParameters: AnnParametersModel{
 				SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
 				Parameters: parametersModel{
-					EfConstruction: types.StringValue(indexDetail.AnnParameters.Parameters.EfConstruction),
-					M:              types.StringValue(indexDetail.AnnParameters.Parameters.M),
+					EfConstruction: types.StringValue(fmt.Sprintf("%d", indexDetail.AnnParameters.Parameters.EfConstruction)),
+					M:              types.StringValue(fmt.Sprintf("%d", indexDetail.AnnParameters.Parameters.M)),
 				},
 			},
 			MarqoVersion:          types.StringValue(indexDetail.MarqoVersion),
-			FilterStringMaxLength: types.StringValue(indexDetail.FilterStringMaxLength),
+			FilterStringMaxLength: types.StringValue(fmt.Sprintf("%d", indexDetail.FilterStringMaxLength)),
 		}
 	}
 
