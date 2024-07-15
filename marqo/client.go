@@ -19,31 +19,31 @@ type IndexResponse struct {
 }
 
 type IndexDetail struct {
-	Created                      string                       `json:"Created"`
-	IndexName                    string                       `json:"indexName"`
-	NumberOfShards               string                       `json:"numberOfShards"`
-	NumberOfReplicas             string                       `json:"numberOfReplicas"`
-	IndexStatus                  string                       `json:"indexStatus"`
-	AllFields                    []AllFieldInput              `json:"allFields"`
-	TensorFields                 []string                     `json:"tensorFields"`
-	NumberOfInferences           string                       `json:"numberOfInferences"`
-	StorageClass                 string                       `json:"storageClass"`
-	InferenceType                string                       `json:"inferenceType"`
-	DocsCount                    string                       `json:"docs.count"`
-	StoreSize                    string                       `json:"store.size"`
-	DocsDeleted                  string                       `json:"docs.deleted"`
-	SearchQueryTotal             string                       `json:"search.queryTotal"`
-	TreatUrlsAndPointersAsImages bool                         `json:"treatUrlsAndPointersAsImages"`
-	MarqoEndpoint                string                       `json:"marqoEndpoint"`
-	Type                         string                       `json:"type"`
-	VectorNumericType            string                       `json:"vectorNumericType"`
-	Model                        string                       `json:"model"`
-	NormalizeEmbeddings          bool                         `json:"normalizeEmbeddings"`
-	TextPreprocessing            TextPreprocessingListIndices `json:"textPreprocessing"`
-	ImagePreprocessing           ImagePreprocessingModel      `json:"imagePreprocessing"` // Assuming no specific structure
-	AnnParameters                AnnParametersListIndices     `json:"annParameters"`
-	MarqoVersion                 string                       `json:"marqoVersion"`
-	FilterStringMaxLength        string                       `json:"filterStringMaxLength"`
+	Created                      string                  `json:"Created"`
+	IndexName                    string                  `json:"indexName"`
+	NumberOfShards               int64                   `json:"numberOfShards"`
+	NumberOfReplicas             int64                   `json:"numberOfReplicas"`
+	IndexStatus                  string                  `json:"indexStatus"`
+	AllFields                    []AllFieldInput         `json:"allFields"`
+	TensorFields                 []string                `json:"tensorFields"`
+	NumberOfInferences           int64                   `json:"numberOfInferences"`
+	StorageClass                 string                  `json:"storageClass"`
+	InferenceType                string                  `json:"inferenceType"`
+	DocsCount                    string                  `json:"docs.count"`
+	StoreSize                    string                  `json:"store.size"`
+	DocsDeleted                  string                  `json:"docs.deleted"`
+	SearchQueryTotal             string                  `json:"search.queryTotal"`
+	TreatUrlsAndPointersAsImages bool                    `json:"treatUrlsAndPointersAsImages"`
+	MarqoEndpoint                string                  `json:"marqoEndpoint"`
+	Type                         string                  `json:"type"`
+	VectorNumericType            string                  `json:"vectorNumericType"`
+	Model                        string                  `json:"model"`
+	NormalizeEmbeddings          bool                    `json:"normalizeEmbeddings"`
+	TextPreprocessing            TextPreprocessing       `json:"textPreprocessing"`
+	ImagePreprocessing           ImagePreprocessingModel `json:"imagePreprocessing"` // Assuming no specific structure
+	AnnParameters                AnnParameters           `json:"annParameters"`
+	MarqoVersion                 string                  `json:"marqoVersion"`
+	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
 }
 
 type AllFieldInput struct {
@@ -54,24 +54,13 @@ type AllFieldInput struct {
 }
 
 type ImagePreprocessingModel struct {
-	PatchMethod string `json:"patch_method"`
-}
-
-type TextPreprocessingListIndices struct {
-	SplitLength  string `json:"split_length"`
-	SplitMethod  string `json:"split_method"`
-	SplitOverlap string `json:"split_overlap"`
+	PatchMethod string `json:"patchMethod"`
 }
 
 type TextPreprocessing struct {
-	SplitLength  int64  `json:"split_length"`
-	SplitMethod  string `json:"split_method"`
-	SplitOverlap int64  `json:"split_overlap"`
-}
-
-type AnnParametersListIndices struct {
-	SpaceType  string                     `json:"spaceType"`
-	Parameters parametersModelListIndices `json:"parameters"`
+	SplitLength  int64  `json:"splitLength"`
+	SplitMethod  string `json:"splitMethod"`
+	SplitOverlap int64  `json:"splitOverlap"`
 }
 
 type AnnParameters struct {
@@ -79,21 +68,16 @@ type AnnParameters struct {
 	Parameters parametersModel `json:"parameters"`
 }
 
-type parametersModelListIndices struct {
-	EfConstruction string `json:"ef_construction"`
-	M              string `json:"m"`
-}
-
 // parametersModel maps the parameters part of ANN parameters.
 type parametersModel struct {
-	EfConstruction int64 `json:"ef_construction"`
+	EfConstruction int64 `json:"efConstruction"`
 	M              int64 `json:"m"`
 }
 
 // IndexStats represents the statistics of an index.
 type IndexStats struct {
-	NumberOfDocuments int64             `json:"number_of_documents"`
-	NumberOfVectors   int64             `json:"number_of_vectors"`
+	NumberOfDocuments int64             `json:"numberOfDocuments"`
+	NumberOfVectors   int64             `json:"numberOfVectors"`
 	Backend           IndexStatsBackend `json:"backend"`
 }
 
@@ -105,15 +89,22 @@ type IndexStatsBackend struct {
 
 // IndexSettings represents the settings of an index.
 type IndexSettings struct {
-	AnnParameters                AnnParameters          `json:"ann_parameters"`
-	FilterStringMaxLength        int64                  `json:"filter_string_max_length"`
-	ImagePreprocessing           map[string]interface{} `json:"image_preprocessing"` // Assuming no specific structure
-	Model                        string                 `json:"model"`
-	NormalizeEmbeddings          bool                   `json:"normalize_embeddings"`
-	TextPreprocessing            TextPreprocessing      `json:"text_preprocessing"`
-	TreatUrlsAndPointersAsImages bool                   `json:"treat_urls_and_pointers_as_images"`
-	Type                         string                 `json:"type"`
-	VectorNumericType            string                 `json:"vector_numeric_type"`
+	Type                         string                  `json:"type"`
+	VectorNumericType            string                  `json:"vectorNumericType"`
+	Model                        string                  `json:"model"`
+	NormalizeEmbeddings          bool                    `json:"normalizeEmbeddings"`
+	TextPreprocessing            TextPreprocessing       `json:"textPreprocessing"`
+	ImagePreprocessing           ImagePreprocessingModel `json:"imagePreprocessing"`
+	AnnParameters                AnnParameters           `json:"annParameters"`
+	TensorFields                 []string                `json:"tensorFields"`
+	AllFields                    []AllFieldInput         `json:"allFields"`
+	NumberOfInferences           int64                   `json:"numberOfInferences"`
+	InferenceType                string                  `json:"inferenceType"`
+	StorageClass                 string                  `json:"storageClass"`
+	NumberOfShards               int64                   `json:"numberOfShards"`
+	NumberOfReplicas             int64                   `json:"numberOfReplicas"`
+	TreatUrlsAndPointersAsImages bool                    `json:"treatUrlsAndPointersAsImages"`
+	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
 }
 
 // NewClient creates and returns a new API client or an error.

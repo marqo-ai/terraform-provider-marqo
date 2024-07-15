@@ -3,7 +3,9 @@ package provider
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 	"terraform-provider-marqo/marqo"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -29,7 +31,7 @@ type indicesResource struct {
 
 // IndexResourceModel maps the resource schema data.
 type IndexResourceModel struct {
-	ID        types.String       `tfsdk:"id"`
+	//ID        types.String       `tfsdk:"id"`
 	IndexName types.String       `tfsdk:"index_name"`
 	Settings  IndexSettingsModel `tfsdk:"settings"`
 }
@@ -110,10 +112,10 @@ func (r *indicesResource) Metadata(_ context.Context, req resource.MetadataReque
 func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed:    true,
-				Description: "The unique identifier for the index.",
-			},
+			//"id": schema.StringAttribute{
+			//	Computed:    true,
+			//	Description: "The unique identifier for the index.",
+			//},
 			"index_name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the index.",
@@ -293,6 +295,48 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 //	return tensorFieldsInput, nil
 //}
 
+func (r *indicesResource) findAndCreateState(indices []marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
+	for _, indexDetail := range indices {
+		if indexDetail.IndexName == indexName {
+			return &IndexResourceModel{
+				//ID:        types.StringValue(indexDetail.IndexName),
+				IndexName: types.StringValue(indexDetail.IndexName),
+				Settings: IndexSettingsModel{
+					Type:                         types.StringValue(indexDetail.Type),
+					VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
+					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
+					Model:                        types.StringValue(indexDetail.Model),
+					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
+					TensorFields:                 indexDetail.TensorFields,
+					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
+					InferenceType:                types.StringValue(indexDetail.InferenceType),
+					NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
+					StorageClass:                 types.StringValue(indexDetail.StorageClass),
+					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
+					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
+					TextPreprocessing: TextPreprocessingModelCreate{
+						SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
+						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
+						SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
+					},
+					ImagePreprocessing: ImagePreprocessingModel{
+						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
+					},
+					AnnParameters: AnnParametersModelCreate{
+						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
+						Parameters: ParametersModel{
+							EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
+							M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
+						},
+					},
+					FilterStringMaxLength: types.Int64Value(indexDetail.FilterStringMaxLength),
+				},
+			}, true
+		}
+	}
+	return nil, false
+}
+
 func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Initialize the state variable based on the IndexResourceModel
 	var state IndexResourceModel
@@ -309,60 +353,71 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	found := false
-	for _, indexDetail := range indices {
-		if indexDetail.IndexName == state.IndexName.ValueString() {
-			found = true
-			// Update the state with the details from the indexDetail
-			state.Settings = IndexSettingsModel{
-				Type:                         types.StringValue(indexDetail.Type),
-				VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
-				TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
-				Model:                        types.StringValue(indexDetail.Model),
-				AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
-				TensorFields:                 indexDetail.TensorFields,
-				NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
-				InferenceType:                types.StringValue(indexDetail.InferenceType),
-				NumberOfInferences:           StringToInt64(indexDetail.NumberOfInferences),
-				StorageClass:                 types.StringValue(indexDetail.StorageClass),
-				NumberOfShards:               StringToInt64(indexDetail.NumberOfShards),
-				NumberOfReplicas:             StringToInt64(indexDetail.NumberOfReplicas),
-				TextPreprocessing: TextPreprocessingModelCreate{
-					SplitLength:  StringToInt64(indexDetail.TextPreprocessing.SplitLength),
-					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
-					SplitOverlap: StringToInt64(indexDetail.TextPreprocessing.SplitOverlap),
-				},
-				ImagePreprocessing: ImagePreprocessingModel{
-					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
-				},
-				AnnParameters: AnnParametersModelCreate{
-					SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
-					Parameters: ParametersModel{
-						EfConstruction: StringToInt64(indexDetail.AnnParameters.Parameters.EfConstruction),
-						M:              StringToInt64(indexDetail.AnnParameters.Parameters.M),
-					},
-				},
-				FilterStringMaxLength: StringToInt64(indexDetail.FilterStringMaxLength),
+	newState, found := r.findAndCreateState(indices, state.IndexName.ValueString())
+
+	// Handle inference_type field
+	if newState != nil {
+		inferenceTypeMap := map[string]string{
+			"CPU.SMALL": "marqo.CPU.small",
+			"CPU.LARGE": "marqo.CPU.large",
+			"GPU":       "marqo.GPU",
+		}
+
+		storaceClassMap := map[string]string{
+			"BASIC":       "marqo.basic",
+			"BALANCED":    "marqo.balanced",
+			"PERFORMANCE": "marqo.performance",
+		}
+
+		if !newState.Settings.InferenceType.IsNull() {
+			currentValue := newState.Settings.InferenceType.ValueString()
+			if mappedValue, exists := inferenceTypeMap[currentValue]; exists {
+				newState.Settings.InferenceType = types.StringValue(mappedValue)
 			}
-			fmt.Print("tensorFields: ", indexDetail.TensorFields)
-			break
+		}
+
+		if !newState.Settings.StorageClass.IsNull() {
+			currentValue := newState.Settings.StorageClass.ValueString()
+			if mappedValue, exists := storaceClassMap[currentValue]; exists {
+				newState.Settings.StorageClass = types.StringValue(mappedValue)
+			}
+		}
+
+		// Handle image_preprocessing.patch_method
+		if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+		}
+
+		// Remove null fields
+		if newState.Settings.InferenceType.IsNull() {
+			newState.Settings.InferenceType = types.StringNull()
 		}
 	}
 
 	// if index no longer exists in cloud, delete the state
 	if !found {
-		resp.Diagnostics.AddWarning("Resource Not Found", "The specified index does not exist in the cloud. The state will be deleted.")
-		state = IndexResourceModel{}
+
+		resp.Diagnostics.AddWarning("Resource Not Found", "test The specified index does not exist in the cloud. The state will be deleted.")
+		//state = IndexResourceModel{}
 		// Then Totally Remove from terraform resources
 		resp.State.RemoveResource(ctx)
+		//resp.State.Set(ctx, &IndexResourceModel{})
+		return
 	}
 
 	// Set the updated state
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, &newState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+// Standalone function to compare states
+func statesAreEqual(existing *IndexResourceModel, desired *IndexResourceModel) bool {
+	// Implement a deep comparison between existing and desired states
+	// This is a basic implementation - you may need to adjust based on your specific needs
+	return reflect.DeepEqual(existing.Settings, desired.Settings)
 }
 
 func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -433,7 +488,8 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		delete(settings, "numberOfInferences")
 	}
 	if model.Settings.StorageClass.IsNull() {
-		delete(settings, "storageClass")
+		// Set storageClass to marqo.basic
+		settings["storageClass"] = "marqo.basic"
 	}
 	if model.Settings.NumberOfShards.IsNull() {
 		delete(settings, "numberOfShards")
@@ -472,12 +528,49 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 
 	err := r.marqoClient.CreateIndex(model.IndexName.ValueString(), settings)
 	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			tflog.Info(ctx, fmt.Sprintf("Index %s already exists. Checking if it needs to be updated.", model.IndexName.ValueString()))
+
+			indices, err := r.marqoClient.ListIndices()
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to List Indices", fmt.Sprintf("Could not list indices: %s", err.Error()))
+				return
+			}
+
+			existingState, found := r.findAndCreateState(indices, model.IndexName.ValueString())
+			if !found {
+				resp.Diagnostics.AddError("Failed to Find Index", fmt.Sprintf("Index %s not found after creation", model.IndexName.ValueString()))
+				return
+			}
+
+			// Compare existing state with desired state
+			if !statesAreEqual(existingState, &model) {
+				// Attempt to update the existing index
+				err = r.marqoClient.UpdateIndex(model.IndexName.ValueString(), settings)
+				if err != nil {
+					resp.Diagnostics.AddError("Failed to Update Existing Index",
+						fmt.Sprintf("Index %s exists but couldn't be updated to match the configuration: %s", model.IndexName.ValueString(), err.Error()))
+					return
+				}
+				tflog.Info(ctx, fmt.Sprintf("Index %s updated to match configuration.", model.IndexName.ValueString()))
+			} else {
+				tflog.Info(ctx, fmt.Sprintf("Existing index %s matches configuration. No update needed.", model.IndexName.ValueString()))
+			}
+
+			// Set state to the (potentially updated) existing index
+			diags = resp.State.Set(ctx, existingState)
+			resp.Diagnostics.Append(diags...)
+			resp.Diagnostics.AddWarning(fmt.Sprintf("Index %s already existed and has been imported into Terraform state.", model.IndexName.ValueString()),
+				"Any differences between the existing index and your configuration have been resolved by updating the index.")
+			return
+		}
+
 		resp.Diagnostics.AddError("Failed to Create Index", "Could not create index: "+err.Error())
 		return
 	}
 
 	// Set the index name as the ID in the Terraform state
-	model.ID = model.IndexName
+	//model.ID = model.IndexName
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 }
@@ -528,7 +621,7 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Set the index name as the ID in the Terraform state
-	model.ID = model.IndexName
+	//model.ID = model.IndexName
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 }
