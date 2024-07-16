@@ -50,7 +50,7 @@ type AllFieldInput struct {
 	Name            string             `tfsdk:"name"`
 	Type            string             `tfsdk:"type"`
 	Features        []string           `tfsdk:"features"`
-	DependentFields map[string]float64 `tfsdk:"dependent_fields"`
+	DependentFields map[string]float64 `tfsdk:"dependentFields"`
 }
 
 type ImagePreprocessingModel struct {
