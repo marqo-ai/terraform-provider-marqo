@@ -37,7 +37,9 @@ func TestAccDataSourceIndices(t *testing.T) {
 }
 
 const testAccDataSourceIndicesConfig = `
-data "marqo_read_indices" "test" {}
+data "marqo_read_indices" "test" {
+	id = "test_id_1"
+}
 `
 
 const testAccIndexResourceConfig = `

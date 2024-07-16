@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -112,7 +113,8 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed:    true,
+				Required: true,
+				//Computed:    true,
 				Description: "The unique identifier for the resource.",
 			},
 			"last_updated": schema.StringAttribute{
@@ -297,11 +299,22 @@ func ConvertMarqoAllFieldInputs(marqoFields []marqo.AllFieldInput) []AllFieldInp
 func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tflog.Debug(context.TODO(), "Calling marqo client ListIndices")
 	var model allIndicesResourceModel
+
+	// Retrieve the id from the Terraform configuration
+	diags := req.Config.GetAttribute(ctx, path.Root("id"), &model.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	indices, err := d.marqoClient.ListIndices()
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to List Indices", fmt.Sprintf("Could not list indices: %s", err.Error()))
 		return
 	}
+
+	// Use the id from the configuration
+	model.ID = types.StringValue(model.ID.ValueString())
 
 	fmt.Println("Indices: ", indices)
 

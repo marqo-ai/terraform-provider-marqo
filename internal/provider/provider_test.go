@@ -34,7 +34,7 @@ func TestAccProvider(t *testing.T) {
 			{
 				Config: testProviderConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "id", "marqo_read_indices"),
+					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "id", "test_id_1"),
 				),
 			},
 		},
@@ -44,5 +44,7 @@ func TestAccProvider(t *testing.T) {
 const testProviderConfig = `
 provider "marqo" {}
 
-data "marqo_read_indices" "test" {}
+data "marqo_read_indices" "test" {
+	id = "test_id_1"
+}
 `
