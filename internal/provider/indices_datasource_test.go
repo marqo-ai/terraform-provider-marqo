@@ -1,9 +1,11 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccDataSourceIndices(t *testing.T) {
@@ -12,19 +14,30 @@ func TestAccDataSourceIndices(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create an index to ensure we have data to read
-			// TODO: Find a way to create index only once and use it for all test cases outside of terraform
-			/*
-				{
-					Config: testAccIndexResourceConfig,
-					Check: resource.ComposeTestCheckFunc(
-						resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_3"),
-					),
-				},
-			*/
+			{
+				Config: testAccIndexResourceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Create index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_datasource_2"),
+					testAccCheckIndexIsReady("example_index_datasource_2"),
+					func(s *terraform.State) error {
+						fmt.Println("Finished Create index")
+						return nil
+					},
+				),
+			},
+
 			// Read indices
 			{
 				Config: testAccDataSourceIndicesConfig,
 				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Read indices")
+						return nil
+					},
 					resource.TestCheckResourceAttrSet("data.marqo_read_indices.test", "items.#"),
 					resource.TestCheckResourceAttrSet("data.marqo_read_indices.test", "items.0.index_name"),
 					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "items.0.type", "unstructured"),
@@ -33,6 +46,11 @@ func TestAccDataSourceIndices(t *testing.T) {
 					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "items.0.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
 					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "items.0.normalize_embeddings", "true"),
 					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "items.0.inference_type", "marqo.CPU.small"),
+					//testAccCheckIndexIsReady("example_index_datasource_2"),
+					func(s *terraform.State) error {
+						fmt.Println("Finished Read indices")
+						return nil
+					},
 				),
 			},
 		},
@@ -45,10 +63,9 @@ data "marqo_read_indices" "test" {
 }
 `
 
-/*
 const testAccIndexResourceConfig = `
 resource "marqo_index" "test" {
-  index_name = "example_index_3"
+  index_name = "example_index_datasource_2"
   settings = {
     type = "unstructured"
     vector_numeric_type = "float"
@@ -78,4 +95,3 @@ resource "marqo_index" "test" {
   }
 }
 `
-*/

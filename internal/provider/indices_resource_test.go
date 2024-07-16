@@ -18,13 +18,13 @@ func TestAccResourceIndex(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccResourceIndexConfig("example_index_2"),
+				Config: testAccResourceIndexConfig("example_index_1"),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						fmt.Println("Starting Create and Read testing")
 						return nil
 					},
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_2"),
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.vector_numeric_type", "float"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.treat_urls_and_pointers_as_images", "true"),
@@ -42,7 +42,7 @@ func TestAccResourceIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.ann_parameters.parameters.ef_construction", "512"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.ann_parameters.parameters.m", "16"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.filter_string_max_length", "20"),
-					testAccCheckIndexIsReady("example_index_2"),
+					testAccCheckIndexIsReady("example_index_1"),
 					func(s *terraform.State) error {
 						fmt.Println("Create and Read testing completed")
 						return nil
@@ -59,16 +59,16 @@ func TestAccResourceIndex(t *testing.T) {
 			*/
 			// Update and Read testing
 			{
-				Config: testAccResourceIndexConfigUpdated("example_index_2"),
+				Config: testAccResourceIndexConfigUpdated("example_index_1"),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						fmt.Println("Starting Update and Read testing")
 						return nil
 					},
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_2"),
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.large"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
-					testAccCheckIndexIsReady("example_index_2"),
+					testAccCheckIndexIsReady("example_index_1"),
 					func(s *terraform.State) error {
 						fmt.Println("Update and Read testing completed")
 						return nil

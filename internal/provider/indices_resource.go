@@ -358,6 +358,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Handle inference_type field
 	if newState != nil {
 		inferenceTypeMap := map[string]string{
+			"CPU":       "marqo.CPU.large", // verify this
 			"CPU.SMALL": "marqo.CPU.small",
 			"CPU.LARGE": "marqo.CPU.large",
 			"GPU":       "marqo.GPU",
