@@ -2,19 +2,10 @@ package provider
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
-
-func testAccPreCheck(t *testing.T) {
-	// Verify required environment variables are set
-	if v := os.Getenv("MARQO_API_KEY"); v == "" {
-		t.Fatal("MARQO_API_KEY must be set for acceptance tests")
-	}
-	// Add other required environment variables checks
-}
 
 func TestAccResourceIndex(t *testing.T) {
 	resource.Test(t, resource.TestCase{
