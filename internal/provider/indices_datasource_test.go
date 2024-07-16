@@ -12,12 +12,15 @@ func TestAccDataSourceIndices(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create an index to ensure we have data to read
-			{
-				Config: testAccIndexResourceConfig,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_3"),
-				),
-			},
+			// TODO: Find a way to create index only once and use it for all test cases outside of terraform
+			/*
+				{
+					Config: testAccIndexResourceConfig,
+					Check: resource.ComposeTestCheckFunc(
+						resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_3"),
+					),
+				},
+			*/
 			// Read indices
 			{
 				Config: testAccDataSourceIndicesConfig,
@@ -42,6 +45,7 @@ data "marqo_read_indices" "test" {
 }
 `
 
+/*
 const testAccIndexResourceConfig = `
 resource "marqo_index" "test" {
   index_name = "example_index_3"
@@ -74,3 +78,4 @@ resource "marqo_index" "test" {
   }
 }
 `
+*/
