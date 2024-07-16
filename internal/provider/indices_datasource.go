@@ -34,12 +34,12 @@ type allIndicesResourceModel struct {
 type indexModel struct {
 	Created                      types.String           `tfsdk:"created"`
 	IndexName                    types.String           `tfsdk:"index_name"`
-	NumberOfShards               types.Int64            `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.Int64            `tfsdk:"number_of_replicas"`
+	NumberOfShards               types.String           `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.String           `tfsdk:"number_of_replicas"`
 	IndexStatus                  types.String           `tfsdk:"index_status"`
 	AllFields                    []AllFieldInput        `tfsdk:"all_fields"`
 	TensorFields                 []string               `tfsdk:"tensor_fields"`
-	NumberOfInferences           types.Int64            `tfsdk:"number_of_inferences"`
+	NumberOfInferences           types.String           `tfsdk:"number_of_inferences"`
 	StorageClass                 types.String           `tfsdk:"storage_class"`
 	InferenceType                types.String           `tfsdk:"inference_type"`
 	DocsCount                    types.String           `tfsdk:"docs_count"`
@@ -56,13 +56,13 @@ type indexModel struct {
 	//ImagePreprocessing           types.Object           `tfsdk:"image_preprocessing"` // Assuming no specific structure
 	AnnParameters         AnnParametersModel `tfsdk:"ann_parameters"` // Assuming no specific structure
 	MarqoVersion          types.String       `tfsdk:"marqo_version"`
-	FilterStringMaxLength types.Int64        `tfsdk:"filter_string_max_length"`
+	FilterStringMaxLength types.String       `tfsdk:"filter_string_max_length"`
 }
 
 type TextPreprocessingModel struct {
-	SplitLength  types.Int64  `tfsdk:"split_length"`
+	SplitLength  types.String `tfsdk:"split_length"`
 	SplitMethod  types.String `tfsdk:"split_method"`
-	SplitOverlap types.Int64  `tfsdk:"split_overlap"`
+	SplitOverlap types.String `tfsdk:"split_overlap"`
 }
 
 type AnnParametersModel struct {
@@ -310,12 +310,12 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		items[i] = indexModel{
 			Created:                      types.StringValue(indexDetail.Created),
 			IndexName:                    types.StringValue(indexDetail.IndexName),
-			NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
-			NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
+			NumberOfShards:               types.StringValue(fmt.Sprintf("%d", indexDetail.NumberOfShards)),
+			NumberOfReplicas:             types.StringValue(fmt.Sprintf("%d", indexDetail.NumberOfReplicas)),
 			IndexStatus:                  types.StringValue(indexDetail.IndexStatus),
 			AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 			TensorFields:                 indexDetail.TensorFields,
-			NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
+			NumberOfInferences:           types.StringValue(fmt.Sprintf("%d", indexDetail.NumberOfInferences)),
 			StorageClass:                 types.StringValue(indexDetail.StorageClass),
 			InferenceType:                types.StringValue(indexDetail.InferenceType),
 			DocsCount:                    types.StringValue(indexDetail.DocsCount),
@@ -329,9 +329,9 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			Model:                        types.StringValue(indexDetail.Model),
 			NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
 			TextPreprocessing: TextPreprocessingModel{
-				SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
+				SplitLength:  types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitLength)),
 				SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
-				SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
+				SplitOverlap: types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitOverlap)),
 			},
 			//ImagePreprocessing: types.ObjectValue(map[string]interface{}, indexDetail.ImagePreprocessing),
 			AnnParameters: AnnParametersModel{
@@ -342,7 +342,7 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 				},
 			},
 			MarqoVersion:          types.StringValue(indexDetail.MarqoVersion),
-			FilterStringMaxLength: types.Int64Value(indexDetail.FilterStringMaxLength),
+			FilterStringMaxLength: types.StringValue(fmt.Sprintf("%d", indexDetail.FilterStringMaxLength)),
 		}
 	}
 

@@ -2,11 +2,15 @@ package marqo
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type Client struct {
@@ -143,36 +147,48 @@ func NewClient(baseURL, apiKey *string) (*Client, error) {
 // ListIndices lists all indices.
 func (c *Client) ListIndices() ([]IndexDetail, error) {
 	url := fmt.Sprintf("%s/indexes", c.BaseURL)
+	tflog.Debug(context.Background(), fmt.Sprintf("Sending request to: %s", url))
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating request: %v", err)
 	}
 
 	req.Header.Set("X-API-KEY", c.APIKey)
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error sending request: %v", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	tflog.Debug(context.Background(), fmt.Sprintf("Response status: %s", resp.Status))
+
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
 
-	// Log the full response for debugging
-	fmt.Printf("Response status: %s\n", resp.Status)
-	fmt.Printf("Response body: %s\n", string(body))
+	tflog.Debug(context.Background(), fmt.Sprintf("Response body length: %d", len(body)))
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request error: %s - %s", resp.Status, string(body))
+	// Log the response body in chunks
+	const chunkSize = 1000
+	for i := 0; i < len(body); i += chunkSize {
+		end := i + chunkSize
+		if end > len(body) {
+			end = len(body)
+		}
+		tflog.Debug(context.Background(), fmt.Sprintf("Response body part %d: %s", i/chunkSize, string(body[i:end])))
 	}
 
 	var response IndexResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, err
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
 	}
+
+	tflog.Debug(context.Background(), fmt.Sprintf("Number of indices in response: %d", len(response.Results)))
 
 	return response.Results, nil
 }
