@@ -4,9 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
 func TestProviderUnit(t *testing.T) {
@@ -34,26 +32,12 @@ func TestProviderUnit(t *testing.T) {
 		if len(resourcesFunc) == 0 {
 			t.Fatal("Provider should have at least one resource")
 		}
-
-		for _, rf := range resourcesFunc {
-			r := rf()
-			if _, ok := r.(resource.Resource); !ok {
-				t.Fatalf("Resource does not implement resource.Resource")
-			}
-		}
 	})
 
 	t.Run("data_sources", func(t *testing.T) {
 		dataSourcesFunc := p.DataSources(context.Background())
 		if len(dataSourcesFunc) == 0 {
 			t.Fatal("Provider should have at least one data source")
-		}
-
-		for _, dsf := range dataSourcesFunc {
-			ds := dsf()
-			if _, ok := ds.(datasource.DataSource); !ok {
-				t.Fatalf("Data source does not implement datasource.DataSource")
-			}
 		}
 	})
 }

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -165,7 +164,7 @@ func (c *Client) ListIndices() ([]IndexDetail, error) {
 
 	tflog.Debug(context.Background(), fmt.Sprintf("Response status: %s", resp.Status))
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
