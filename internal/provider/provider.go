@@ -12,26 +12,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// marqoProviderModel maps provider schema data to a Go type.
-type marqoProviderModel struct {
-	Host    types.String `tfsdk:"host"`
-	API_Key types.String `tfsdk:"api_key"`
-}
-
-// Ensure the implementation satisfies the expected interfaces.
+// Ensure the implementation satisfies the expected interfaces
 var (
 	_ provider.Provider = &marqoProvider{}
 )
 
-// New is a helper function to simplify provider server and testing implementation.
-func New(version string) func() provider.Provider {
-	return func() provider.Provider {
-		return &marqoProvider{
-			version: version,
-		}
-	}
+// marqoProviderModel maps provider schema data to a Go type.
+type marqoProviderModel struct {
+	Host   types.String `tfsdk:"host"`
+	APIKey types.String `tfsdk:"api_key"`
 }
 
 // marqoProvider is the provider implementation.
@@ -40,6 +32,15 @@ type marqoProvider struct {
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
+}
+
+// New is a helper function to simplify provider server and testing implementation.
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &marqoProvider{
+			version: version,
+		}
+	}
 }
 
 // Metadata returns the provider type name.
@@ -53,18 +54,22 @@ func (p *marqoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-				Optional: true,
+				Optional:    true,
+				Description: "The Marqo API host. Can be set with MARQO_HOST environment variable.",
 			},
 			"api_key": schema.StringAttribute{
-				Optional: true,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The Marqo API key. Can be set with MARQO_API_KEY environment variable.",
 			},
 		},
 	}
 }
 
-// Configure prepares a HashiCups API client for data sources and resources.
+// Configure prepares a Marqo API client for data sources and resources.
 func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	// Retrieve provider data from configuration
+	tflog.Info(ctx, "Configuring Marqo client")
+
 	var config marqoProviderModel
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
@@ -72,22 +77,19 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	// If practitioner provided a configuration value for any of the
-	// attributes, it must be a known value.
-
 	if config.Host.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("host"),
 			"Unknown Marqo API Host",
-			"The provider cannot create the Marqo API client as there is an unknown configuration value for the HashiCups API host. "+
+			"The provider cannot create the Marqo API client as there is an unknown configuration value for the Marqo API host. "+
 				"Either target apply the source of the value first, set the value statically in the configuration, or use the MARQO_HOST environment variable.",
 		)
 	}
 
-	if config.API_Key.IsUnknown() {
+	if config.APIKey.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("api_key"),
-			"Unknown HashiCups API Username",
+			"Unknown Marqo API Key",
 			"The provider cannot create the Marqo API client as there is an unknown configuration value for the Marqo API key. "+
 				"Either target apply the source of the value first, set the value statically in the configuration, or use the MARQO_API_KEY environment variable.",
 		)
@@ -97,22 +99,16 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	// Default values to environment variables, but override
-	// with Terraform configuration value if set.
-
 	host := os.Getenv("MARQO_HOST")
-	api_key := os.Getenv("MARQO_API")
+	apiKey := os.Getenv("MARQO_API_KEY")
 
 	if !config.Host.IsNull() {
 		host = config.Host.ValueString()
 	}
 
-	if !config.API_Key.IsNull() {
-		api_key = config.API_Key.ValueString()
+	if !config.APIKey.IsNull() {
+		apiKey = config.APIKey.ValueString()
 	}
-
-	// If any of the expected configurations are missing, return
-	// errors with provider-specific guidance.
 
 	if host == "" {
 		resp.Diagnostics.AddAttributeError(
@@ -124,12 +120,12 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		)
 	}
 
-	if api_key == "" {
+	if apiKey == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("api_key"),
 			"Missing Marqo API Key",
-			"The provider cannot create the Marqo API client as there is a missing or empty value for the Marqo API username. "+
-				"Set the username value in the configuration or use the MARQO_API environment variable. "+
+			"The provider cannot create the Marqo API client as there is a missing or empty value for the Marqo API key. "+
+				"Set the api_key value in the configuration or use the MARQO_API_KEY environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -138,22 +134,27 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	// Create a new HashiCups client using the configuration values
-	client, err := marqo.NewClient(&host, &api_key)
+	ctx = tflog.SetField(ctx, "marqo_host", host)
+	ctx = tflog.SetField(ctx, "marqo_api_key", apiKey)
+	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "marqo_api_key")
+
+	tflog.Debug(ctx, "Creating Marqo client")
+
+	client, err := marqo.NewClient(&host, &apiKey)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to Create HashiCups API Client",
-			"An unexpected error occurred when creating the HashiCups API client. "+
+			"Unable to Create Marqo API Client",
+			"An unexpected error occurred when creating the Marqo API client. "+
 				"If the error is not clear, please contact the provider developers.\n\n"+
 				"Marqo Client Error: "+err.Error(),
 		)
 		return
 	}
 
-	// Make the Marqo client available during DataSource and Resource
-	// type Configure methods.
 	resp.DataSourceData = client
 	resp.ResourceData = client
+
+	tflog.Info(ctx, "Configured Marqo client", map[string]any{"success": true})
 }
 
 // DataSources defines the data sources implemented in the provider.
@@ -168,5 +169,4 @@ func (p *marqoProvider) Resources(_ context.Context) []func() resource.Resource 
 	return []func() resource.Resource{
 		ManageIndicesResource,
 	}
-	//return []func() resource.Resource{}
 }
