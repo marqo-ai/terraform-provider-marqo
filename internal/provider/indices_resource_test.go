@@ -18,13 +18,13 @@ func TestAccResourceIndex(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccResourceIndexConfig("example_index_6"),
+				Config: testAccResourceIndexConfig("example_index_1"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_6"),
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.vector_numeric_type", "float"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.treat_urls_and_pointers_as_images", "true"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "hf/e5-small-v2"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.normalize_embeddings", "true"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.small"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
@@ -38,7 +38,7 @@ func TestAccResourceIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.ann_parameters.parameters.ef_construction", "512"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.ann_parameters.parameters.m", "16"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.filter_string_max_length", "20"),
-					testAccCheckIndexIsReady("example_index_6"),
+					testAccCheckIndexIsReady("example_index_1"),
 					func(s *terraform.State) error {
 						fmt.Println("Create and Read testing completed")
 						return nil
@@ -55,15 +55,16 @@ func TestAccResourceIndex(t *testing.T) {
 			*/
 			// Update and Read testing
 			{
-				Config: testAccResourceIndexConfig("example_index_6_updated"),
+				Config: testAccResourceIndexConfigUpdated("example_index_1"),
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
 						fmt.Println("Starting Update and Read testing")
 						return nil
 					},
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_6_updated"),
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.large"),
-					testAccCheckIndexIsReady("example_index_6_updated"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+					testAccCheckIndexIsReady("example_index_1"),
 					func(s *terraform.State) error {
 						fmt.Println("Update and Read testing completed")
 						return nil
@@ -77,37 +78,49 @@ func TestAccResourceIndex(t *testing.T) {
 
 func testAccResourceIndexConfig(name string) string {
 	return fmt.Sprintf(`
-resource "marqo_index" "test" {
-  index_name = "%s"
-  settings = {
-    type = "unstructured"
-    vector_numeric_type = "float"
-    treat_urls_and_pointers_as_images = true
-    model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
-    normalize_embeddings = true
-    inference_type = "marqo.CPU.small"
-    all_fields = []
-    number_of_inferences = 1
-    number_of_replicas = 0
-    number_of_shards = 1
-    storage_class = "marqo.basic"
-    text_preprocessing = {
-      split_length = 2
-      split_method = "sentence"
-      split_overlap = 0
-    }
-    image_preprocessing = {}
-    ann_parameters = {
-      space_type = "prenormalized-angular"
-      parameters = {
-        ef_construction = 512
-        m = 16
-      }
-    }
-    filter_string_max_length = 20
-  }
+		resource "marqo_index" "test" {
+		index_name = "%s"
+		settings = {
+				type = "unstructured"
+				vector_numeric_type = "float"
+				treat_urls_and_pointers_as_images = true
+				model = "hf/e5-small-v2"
+				normalize_embeddings = true
+				inference_type = "marqo.CPU.small"
+				number_of_inferences = 1
+				number_of_replicas = 0
+				number_of_shards = 1
+				storage_class = "marqo.basic"
+				all_fields = []
+				text_preprocessing = {
+					split_length = 2
+					split_method = "sentence"
+					split_overlap = 0
+				}
+				image_preprocessing = {}
+				ann_parameters = {
+					space_type = "prenormalized-angular"
+					parameters = {
+						ef_construction = 512
+						m = 16
+					}
+				}
+				filter_string_max_length = 20
+			}
+		}
+		`, name)
 }
-`, name)
+
+func testAccResourceIndexConfigUpdated(name string) string {
+	return fmt.Sprintf(`
+		resource "marqo_index" "test" {
+		index_name = "%s"
+		settings = {
+				inference_type = "marqo.CPU.large"
+				number_of_inferences = 2
+			}
+		}
+		`, name)
 }
 
 func testAccCheckIndexIsReady(name string) resource.TestCheckFunc {
