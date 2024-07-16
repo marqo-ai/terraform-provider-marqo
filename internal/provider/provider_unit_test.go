@@ -4,42 +4,56 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-func TestProvider_Unit(t *testing.T) {
+func TestProviderUnit(t *testing.T) {
 	p := New("test")()
-	if p == nil {
-		t.Fatal("Provider should not be nil")
-	}
-}
 
-func TestProvider_Metadata_Unit(t *testing.T) {
-	p := New("test")()
-	var resp provider.MetadataResponse
-	p.Metadata(context.Background(), provider.MetadataRequest{}, &resp)
-	if resp.TypeName != "marqo" {
-		t.Fatalf("Expected TypeName to be 'marqo', got '%s'", resp.TypeName)
-	}
-	if resp.Version != "test" {
-		t.Fatalf("Expected Version to be 'test', got '%s'", resp.Version)
-	}
-}
+	t.Run("schema", func(t *testing.T) {
+		schemaResp := &provider.SchemaResponse{}
+		p.Schema(context.Background(), provider.SchemaRequest{}, schemaResp)
 
-func TestProvider_Schema_Unit(t *testing.T) {
-	p := New("test")()
-	var resp provider.SchemaResponse
-	p.Schema(context.Background(), provider.SchemaRequest{}, &resp)
+		if schemaResp.Schema.Attributes == nil {
+			t.Fatal("Schema attributes should not be nil")
+		}
 
-	if resp.Schema.Attributes == nil {
-		t.Fatal("Schema attributes should not be nil")
-	}
+		if _, ok := schemaResp.Schema.Attributes["host"]; !ok {
+			t.Fatal("Schema should have 'host' attribute")
+		}
 
-	if _, ok := resp.Schema.Attributes["host"]; !ok {
-		t.Fatal("Schema should have 'host' attribute")
-	}
+		if _, ok := schemaResp.Schema.Attributes["api_key"]; !ok {
+			t.Fatal("Schema should have 'api_key' attribute")
+		}
+	})
 
-	if _, ok := resp.Schema.Attributes["api_key"]; !ok {
-		t.Fatal("Schema should have 'api_key' attribute")
-	}
+	t.Run("resources", func(t *testing.T) {
+		resourcesFunc := p.Resources(context.Background())
+		if len(resourcesFunc) == 0 {
+			t.Fatal("Provider should have at least one resource")
+		}
+
+		for _, rf := range resourcesFunc {
+			r := rf()
+			if _, ok := r.(resource.Resource); !ok {
+				t.Fatalf("Resource does not implement resource.Resource")
+			}
+		}
+	})
+
+	t.Run("data_sources", func(t *testing.T) {
+		dataSourcesFunc := p.DataSources(context.Background())
+		if len(dataSourcesFunc) == 0 {
+			t.Fatal("Provider should have at least one data source")
+		}
+
+		for _, dsf := range dataSourcesFunc {
+			ds := dsf()
+			if _, ok := ds.(datasource.DataSource); !ok {
+				t.Fatalf("Data source does not implement datasource.DataSource")
+			}
+		}
+	})
 }

@@ -156,8 +156,16 @@ func (c *Client) ListIndices() ([]IndexDetail, error) {
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %v", err)
+	}
+
+	// Log the full response for debugging
+	fmt.Printf("Response status: %s\n", resp.Status)
+	fmt.Printf("Response body: %s\n", string(body))
+
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API request error: %s - %s", resp.Status, string(body))
 	}
 
