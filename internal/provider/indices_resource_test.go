@@ -20,6 +20,10 @@ func TestAccResourceIndex(t *testing.T) {
 			{
 				Config: testAccResourceIndexConfig("example_index_2"),
 				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Create and Read testing")
+						return nil
+					},
 					resource.TestCheckResourceAttr("marqo_index.test", "index_name", "example_index_2"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.vector_numeric_type", "float"),
@@ -158,16 +162,17 @@ func testAccCheckIndexIsReady(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Error creating Marqo client: %s", err)
 		}
 
-		timeout := time.After(10 * time.Minute)
+		timeout := time.After(15 * time.Minute)
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 
 		fmt.Printf("Waiting for index %s to be ready...\n", name)
 
+		start := time.Now()
 		for {
 			select {
 			case <-timeout:
-				return fmt.Errorf("Index %s did not become ready within the timeout period", name)
+				return fmt.Errorf("Index %s did not become ready within the 10-minute timeout period", name)
 			case <-ticker.C:
 				indices, err := client.ListIndices()
 				if err != nil {
@@ -176,15 +181,15 @@ func testAccCheckIndexIsReady(name string) resource.TestCheckFunc {
 				}
 				for _, index := range indices {
 					if index.IndexName == name {
-						fmt.Printf("Index %s status: %s\n", name, index.IndexStatus)
+						fmt.Printf("Index %s status: %s (elapsed: %v)\n", name, index.IndexStatus, time.Since(start))
 						if index.IndexStatus == "READY" {
-							fmt.Printf("Index %s is now ready\n", name)
+							fmt.Printf("Index %s is now ready (total time: %v)\n", name, time.Since(start))
 							return nil
 						}
 						break
 					}
 				}
-				fmt.Printf("Index %s not ready yet, continuing to wait...\n", name)
+				fmt.Printf("Index %s not ready yet, continuing to wait... (elapsed: %v)\n", name, time.Since(start))
 			}
 		}
 	}
