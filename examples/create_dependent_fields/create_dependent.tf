@@ -8,7 +8,7 @@ terraform {
 
 provider "marqo" {
     host = "https://api.marqo.ai/api/v2"
-    api_key = ""
+    api_key = var.marqo_api_key
 }
 
 resource "marqo_index" "example" {
@@ -29,7 +29,6 @@ resource "marqo_index" "example" {
         },
     ],
     tensor_fields = ["multimodal_field"],
-    treat_urls_and_pointers_as_images = true
     model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
     normalize_embeddings = true
     inference_type = "marqo.CPU.small"
@@ -48,10 +47,14 @@ resource "marqo_index" "example" {
         m = 16
       }
     }
-    filter_string_max_length = 20
   }
 }
 
 output "created_index" {
   value = marqo_index.example
+}
+
+variable "marqo_api_key" {
+  type = string
+  description = "Marqo API key"
 }

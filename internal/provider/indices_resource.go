@@ -246,13 +246,13 @@ func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string
 			features = append(features, feature.ValueString())
 		}
 		fieldMap["features"] = features
-		fieldMap["dependent_fields"] = map[string]float64{}
+		fieldMap["dependentFields"] = map[string]float64{}
 		if len(field.DependentFields) > 0 {
 			dependentFields := make(map[string]float64)
 			for key, value := range field.DependentFields {
 				dependentFields[key] = value.ValueFloat64()
 			}
-			fieldMap["dependent_fields"] = dependentFields
+			fieldMap["dependentFields"] = dependentFields
 		}
 		allFields = append(allFields, fieldMap)
 	}
@@ -281,7 +281,7 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 			dependentFieldsMap[key] = value.ValueFloat64()
 		}
 		if len(dependentFieldsMap) > 0 {
-			fieldMap["dependent_fields"] = dependentFieldsMap
+			fieldMap["dependentFields"] = dependentFieldsMap
 		}
 
 		allFields = append(allFields, fieldMap)
@@ -502,6 +502,9 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if len(model.Settings.TensorFields) == 0 {
 		delete(settings, "tensorFields")
+	}
+	if model.Settings.FilterStringMaxLength.IsNull() {
+		delete(settings, "filterStringMaxLength")
 	}
 	tflog.Debug(ctx, "Creating index with settings: %#v", settings)
 
