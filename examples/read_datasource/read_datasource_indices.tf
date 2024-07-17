@@ -11,7 +11,9 @@ provider "marqo" {
     api_key = var.marqo_api_key
 }
 
-data "marqo_read_indices" "example" {}
+data "marqo_read_indices" "example" {
+  id = 1
+}
 
 output "indices_in_marqo_cloud" {
   value = data.marqo_read_indices.example

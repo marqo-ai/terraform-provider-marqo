@@ -13,7 +13,7 @@ provider "marqo" {
 }
 
 resource "marqo_index" "example" {
-  index_name = "example_index_4"
+  index_name = "example_index_3"
   settings = {
     type = "unstructured"
     vector_numeric_type = "float"

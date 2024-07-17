@@ -358,6 +358,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Handle inference_type field
 	if newState != nil {
 		inferenceTypeMap := map[string]string{
+			"CPU":       "marqo.CPU.large", // verify this
 			"CPU.SMALL": "marqo.CPU.small",
 			"CPU.LARGE": "marqo.CPU.large",
 			"GPU":       "marqo.GPU",
@@ -413,7 +414,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 }
 
-// Standalone function to compare states
+// Standalone function to compare states.
 func statesAreEqual(existing *IndexResourceModel, desired *IndexResourceModel) bool {
 	// Implement a deep comparison between existing and desired states
 	// This is a basic implementation - you may need to adjust based on your specific needs
