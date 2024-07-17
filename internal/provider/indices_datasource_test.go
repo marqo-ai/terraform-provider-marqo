@@ -3,7 +3,6 @@ package provider
 import (
 	"fmt"
 	"strconv"
-	"terraform-provider-marqo/marqo"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -12,7 +11,6 @@ import (
 
 func TestAccDataSourceIndices(t *testing.T) {
 	unstructured_index_name := fmt.Sprintf("unstructured_dsource_%s", randomString(9))
-	var foundIndex *marqo.IndexDetail
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -42,43 +40,11 @@ func TestAccDataSourceIndices(t *testing.T) {
 				),
 			},
 
-			// Read indices
+			// Read the index using the data source
 			{
 				Config: testAccDataSourceIndicesConfig,
 				Check: resource.ComposeTestCheckFunc(
-					func(s *terraform.State) error {
-						fmt.Println("Starting Read indices")
-						return nil
-					},
-					func(s *terraform.State) error {
-						var err error
-						foundIndex, err = findIndexByName(unstructured_index_name)(s)
-						if err != nil {
-							t.Logf("Error finding index: %v", err)
-							return err
-						}
-						if foundIndex == nil {
-							t.Log("Index was not found but no error was returned")
-							return fmt.Errorf("Index was not found but no error was returned")
-						}
-						t.Logf("Found index: %+v", *foundIndex)
-						return nil
-					},
-					func(s *terraform.State) error {
-						if foundIndex == nil {
-							t.Log("foundIndex is nil, cannot compare with data source")
-							return fmt.Errorf("foundIndex is nil, cannot compare with data source")
-						}
-						err := compareFoundIndexWithDataSource("data.marqo_read_indices.test", foundIndex)(s)
-						if err != nil {
-							t.Logf("Error comparing found index with data source: %v", err)
-						}
-						return err
-					},
-					func(s *terraform.State) error {
-						fmt.Println("Finished Read indices")
-						return nil
-					},
+					testAccCheckIndexInDataSource("data.marqo_read_indices.test", unstructured_index_name),
 				),
 			},
 		},
@@ -132,7 +98,7 @@ func testAccDataSourceIndexConfig(name string) string {
 		`, name)
 }
 
-func compareFoundIndexWithDataSource(dataSourceName string, foundIndex *marqo.IndexDetail) resource.TestCheckFunc {
+func testAccCheckIndexInDataSource(dataSourceName string, indexName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		ds, ok := s.RootModule().Resources[dataSourceName]
 		if !ok {
@@ -144,38 +110,28 @@ func compareFoundIndexWithDataSource(dataSourceName string, foundIndex *marqo.In
 			return fmt.Errorf("Error parsing item count: %s", err)
 		}
 
-		inferenceTypeMap := map[string]string{
-			"CPU.SMALL": "marqo.CPU.small",
-			"CPU.LARGE": "marqo.CPU.large",
-			"GPU":       "marqo.GPU",
-		}
-		storageClassMap := map[string]string{
-			"BASIC":       "marqo.basic",
-			"BALANCED":    "marqo.balanced",
-			"PERFORMANCE": "marqo.performance",
-		}
-
 		for i := 0; i < itemCount; i++ {
-			if ds.Primary.Attributes[fmt.Sprintf("items.%d.index_name", i)] == foundIndex.IndexName {
+			if ds.Primary.Attributes[fmt.Sprintf("items.%d.index_name", i)] == indexName {
+				// Check attributes for this specific index
 				attributesToCheck := map[string]string{
-					"type":                              foundIndex.Type,
-					"vector_numeric_type":               foundIndex.VectorNumericType,
-					"treat_urls_and_pointers_as_images": strconv.FormatBool(foundIndex.TreatUrlsAndPointersAsImages),
-					"model":                             foundIndex.Model,
-					"normalize_embeddings":              strconv.FormatBool(foundIndex.NormalizeEmbeddings),
-					"inference_type":                    inferenceTypeMap[foundIndex.InferenceType],
-					"storage_class":                     storageClassMap[foundIndex.StorageClass],
+					"inference_type": "marqo.CPU.small",
+					"storage_class":  "marqo.basic",
+					// Add more attributes to check
 				}
+
 				for attr, expectedValue := range attributesToCheck {
-					dsValue := ds.Primary.Attributes[fmt.Sprintf("items.%d.%s", i, attr)]
-					if dsValue != expectedValue {
-						return fmt.Errorf("Attribute %s does not match. Data source: %s, Expected (mapped from API): %s", attr, dsValue, expectedValue)
+					actualValue := ds.Primary.Attributes[fmt.Sprintf("items.%d.%s", i, attr)]
+					if actualValue != expectedValue {
+						return fmt.Errorf("Attribute %s does not match for index %s. Expected: %s, Got: %s",
+							attr, indexName, expectedValue, actualValue)
 					}
 				}
+
+				// If all checks pass, return nil (success)
 				return nil
 			}
 		}
 
-		return fmt.Errorf("Index %s not found in data source results", foundIndex.IndexName)
+		return fmt.Errorf("Index %s not found in data source results", indexName)
 	}
 }

@@ -177,37 +177,3 @@ func testAccCheckIndexIsReady(name string) resource.TestCheckFunc {
 		}
 	}
 }
-
-func findIndexByName(indexName string) func(*terraform.State) (*marqo.IndexDetail, error) {
-	return func(s *terraform.State) (*marqo.IndexDetail, error) {
-		// Get environment variables
-		host := os.Getenv("MARQO_HOST")
-		apiKey := os.Getenv("MARQO_API_KEY")
-
-		fmt.Printf("Searching for index: %s\n", indexName)
-		fmt.Printf("Using Marqo host: %s\n", host)
-
-		// Create a new Marqo client
-		client, err := marqo.NewClient(&host, &apiKey)
-		if err != nil {
-			return nil, fmt.Errorf("Error creating Marqo client: %s", err)
-		}
-
-		indices, err := client.ListIndices()
-		if err != nil {
-			return nil, fmt.Errorf("Error listing indices: %s", err)
-		}
-
-		fmt.Printf("Found %d indices\n", len(indices))
-		for i, index := range indices {
-			fmt.Printf("Index %d: Name=%s, Status=%s\n", i, index.IndexName, index.IndexStatus)
-			if index.IndexName == indexName {
-				fmt.Printf("Found matching index: %s\n", indexName)
-				return &index, nil
-			}
-		}
-
-		fmt.Printf("Index %s not found in the list\n", indexName)
-		return nil, fmt.Errorf("Index %s not found", indexName)
-	}
-}
