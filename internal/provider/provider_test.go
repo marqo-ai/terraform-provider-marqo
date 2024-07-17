@@ -47,7 +47,7 @@ func TestAccProvider(t *testing.T) {
 }
 
 const testProviderConfig = `
-provider "marqo" {}
+provider "marqo-terraform" {}
 
 data "marqo_read_indices" "test" {
 	id = "test_id_1"
