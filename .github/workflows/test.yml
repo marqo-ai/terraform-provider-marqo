@@ -60,7 +60,7 @@ jobs:
           terraform_wrapper: false
       - run: go mod download
       - name: Run acceptance tests
-        run: go test -v -cover ./...
+        run: go test -v -cover -timeout 50m ./...
         env:
           TF_ACC: "1"
           MARQO_HOST: ${{ secrets.MARQO_HOST }}
