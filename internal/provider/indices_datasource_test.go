@@ -31,7 +31,7 @@ func TestAccDataSourceIndices(t *testing.T) {
 						fmt.Println("Starting Create index")
 						return nil
 					},
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", unstructured_index_name),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "index_name", unstructured_index_name),
 					testAccCheckIndexIsReady(unstructured_index_name),
 					func(s *terraform.State) error {
 						fmt.Println("Finished Create index")
@@ -44,7 +44,7 @@ func TestAccDataSourceIndices(t *testing.T) {
 			{
 				Config: testAccDataSourceIndicesConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckIndexInDataSource("data.marqo_read_indices.test", unstructured_index_name),
+					testAccCheckIndexInDataSource("data.marqo-terraform_read_indices.test", unstructured_index_name),
 				),
 			},
 		},
