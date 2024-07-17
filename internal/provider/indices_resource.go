@@ -3,10 +3,10 @@ package provider
 import (
 	"context"
 	"fmt"
+	"marqo-terraform/go_marqo"
 	"reflect"
 	"strconv"
 	"strings"
-	"terraform-provider-marqo/marqo"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -26,7 +26,7 @@ func ManageIndicesResource() resource.Resource {
 
 // orderResource is the resource implementation.
 type indicesResource struct {
-	marqoClient *marqo.Client
+	marqoClient *go_marqo.Client
 }
 
 // IndexResourceModel maps the resource schema data.
@@ -90,7 +90,7 @@ func (r *indicesResource) Configure(_ context.Context, req resource.ConfigureReq
 		return
 	}
 
-	client, ok := req.ProviderData.(*marqo.Client)
+	client, ok := req.ProviderData.(*go_marqo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -295,7 +295,7 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 //	return tensorFieldsInput, nil
 //}
 
-func (r *indicesResource) findAndCreateState(indices []marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
+func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
 			return &IndexResourceModel{

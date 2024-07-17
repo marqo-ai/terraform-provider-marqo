@@ -29,24 +29,24 @@ func TestAccResourceIndex(t *testing.T) {
 						fmt.Println("Starting Create and Read testing")
 						return nil
 					},
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", unstructured_index_name),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.vector_numeric_type", "float"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.treat_urls_and_pointers_as_images", "true"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "hf/e5-small-v2"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.normalize_embeddings", "true"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.small"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.basic"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_length", "2"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_method", "sentence"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_overlap", "0"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.ann_parameters.space_type", "prenormalized-angular"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.ann_parameters.parameters.ef_construction", "512"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.ann_parameters.parameters.m", "16"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.filter_string_max_length", "20"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "index_name", unstructured_index_name),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.type", "unstructured"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.vector_numeric_type", "float"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.treat_urls_and_pointers_as_images", "true"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.model", "hf/e5-small-v2"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.normalize_embeddings", "true"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.inference_type", "marqo.CPU.small"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.number_of_inferences", "1"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.number_of_replicas", "0"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.number_of_shards", "1"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.storage_class", "marqo.basic"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.text_preprocessing.split_length", "2"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.text_preprocessing.split_method", "sentence"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.text_preprocessing.split_overlap", "0"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.ann_parameters.space_type", "prenormalized-angular"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.ann_parameters.parameters.ef_construction", "512"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.ann_parameters.parameters.m", "16"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.filter_string_max_length", "20"),
 					testAccCheckIndexIsReady(unstructured_index_name),
 					func(s *terraform.State) error {
 						fmt.Println("Create and Read testing completed")
@@ -57,7 +57,7 @@ func TestAccResourceIndex(t *testing.T) {
 			// ImportState testing
 			/*
 				{
-					ResourceName:      "marqo_index.test",
+					ResourceName:      "marqo-terraform_index.test",
 					ImportState:       true,
 					ImportStateVerify: true,
 				},
@@ -70,9 +70,9 @@ func TestAccResourceIndex(t *testing.T) {
 						fmt.Println("Starting Update and Read testing")
 						return nil
 					},
-					resource.TestCheckResourceAttr("marqo_index.test", "index_name", unstructured_index_name),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.large"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "index_name", unstructured_index_name),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.inference_type", "marqo.CPU.large"),
+					resource.TestCheckResourceAttr("marqo-terraform_index.test", "settings.number_of_inferences", "2"),
 					testAccCheckIndexIsReady(unstructured_index_name),
 					func(s *terraform.State) error {
 						fmt.Println("Update and Read testing completed")
@@ -87,7 +87,7 @@ func TestAccResourceIndex(t *testing.T) {
 
 func testAccResourceIndexConfig(name string) string {
 	return fmt.Sprintf(`
-		resource "marqo_index" "test" {
+		resource "marqo-terraform_index" "test" {
 		index_name = "%s"
 		settings = {
 				type = "unstructured"
@@ -122,7 +122,7 @@ func testAccResourceIndexConfig(name string) string {
 
 func testAccResourceIndexConfigUpdated(name string) string {
 	return fmt.Sprintf(`
-		resource "marqo_index" "test" {
+		resource "marqo-terraform_index" "test" {
 		index_name = "%s"
 		settings = {
 			type = "unstructured"

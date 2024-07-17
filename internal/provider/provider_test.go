@@ -2,9 +2,9 @@ package provider
 
 import (
 	"fmt"
+	"marqo-terraform/go_marqo"
 	"math/rand"
 	"os"
-	"terraform-provider-marqo/marqo"
 	"testing"
 	"time"
 
@@ -19,7 +19,7 @@ import (
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"marqo": providerserver.NewProtocol6WithError(New("test")()),
+	"marqo-terraform": providerserver.NewProtocol6WithError(New("test")()),
 }
 
 func testAccPreCheck(t *testing.T) {
@@ -39,7 +39,7 @@ func TestAccProvider(t *testing.T) {
 			{
 				Config: testProviderConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "id", "test_id_1"),
+					resource.TestCheckResourceAttr("data.marqo-terraform_read_indices.test", "id", "test_id_1"),
 				),
 			},
 		},
@@ -47,9 +47,9 @@ func TestAccProvider(t *testing.T) {
 }
 
 const testProviderConfig = `
-provider "marqo" {}
+provider "marqo-terraform" {}
 
-data "marqo_read_indices" "test" {
+data "marqo-terraform_read_indices" "test" {
 	id = "test_id_1"
 }
 `
@@ -70,7 +70,7 @@ func testAccCheckIndexExistsAndDelete(name string) resource.TestCheckFunc {
 		apiKey := os.Getenv("MARQO_API_KEY")
 
 		// Create a new Marqo client
-		client, err := marqo.NewClient(&host, &apiKey)
+		client, err := go_marqo.NewClient(&host, &apiKey)
 		if err != nil {
 			return fmt.Errorf("Error creating Marqo client: %s", err)
 		}
@@ -140,7 +140,7 @@ func testAccCheckIndexIsReady(name string) resource.TestCheckFunc {
 		apiKey := os.Getenv("MARQO_API_KEY")
 
 		// Create a new Marqo client
-		client, err := marqo.NewClient(&host, &apiKey)
+		client, err := go_marqo.NewClient(&host, &apiKey)
 		if err != nil {
 			return fmt.Errorf("Error creating Marqo client: %s", err)
 		}
