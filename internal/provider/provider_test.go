@@ -39,7 +39,7 @@ func TestAccProvider(t *testing.T) {
 			{
 				Config: testProviderConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "id", "test_id_1"),
+					resource.TestCheckResourceAttr("data.marqo-terraform_read_indices.test", "id", "test_id_1"),
 				),
 			},
 		},
