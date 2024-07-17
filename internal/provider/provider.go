@@ -2,7 +2,7 @@ package provider
 
 import (
 	"context"
-	"marqo-terraform-provider/go_marqo"
+	"marqo-terraform/go_marqo"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -44,7 +44,7 @@ func New(version string) func() provider.Provider {
 
 // Metadata returns the provider type name.
 func (p *marqoProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "marqo-terraform-provider"
+	resp.TypeName = "marqo-terraform"
 	resp.Version = p.version
 }
 

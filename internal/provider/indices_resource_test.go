@@ -87,7 +87,7 @@ func TestAccResourceIndex(t *testing.T) {
 
 func testAccResourceIndexConfig(name string) string {
 	return fmt.Sprintf(`
-		resource "marqo_index" "test" {
+		resource "marqo-terraform_index" "test" {
 		index_name = "%s"
 		settings = {
 				type = "unstructured"
@@ -122,7 +122,7 @@ func testAccResourceIndexConfig(name string) string {
 
 func testAccResourceIndexConfigUpdated(name string) string {
 	return fmt.Sprintf(`
-		resource "marqo_index" "test" {
+		resource "marqo-terraform_index" "test" {
 		index_name = "%s"
 		settings = {
 			type = "unstructured"

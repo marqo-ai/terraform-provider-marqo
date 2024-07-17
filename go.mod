@@ -1,4 +1,4 @@
-module marqo-terraform-provider
+module marqo-terraform
 
 go 1.21
 

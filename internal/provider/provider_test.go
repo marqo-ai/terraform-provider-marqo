@@ -2,7 +2,7 @@ package provider
 
 import (
 	"fmt"
-	"marqo-terraform-provider/go_marqo"
+	"marqo-terraform/go_marqo"
 	"math/rand"
 	"os"
 	"testing"

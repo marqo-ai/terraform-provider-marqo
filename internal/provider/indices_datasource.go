@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	"marqo-terraform-provider/go_marqo"
+	"marqo-terraform/go_marqo"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"

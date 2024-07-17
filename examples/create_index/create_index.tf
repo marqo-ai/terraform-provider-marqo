@@ -1,18 +1,18 @@
 terraform {
   required_providers {
-    marqo = {
+    marqo-terraform = {
       #source = "registry.terraform.io/marqo/marqo"
-      source = "registry.terraform.io/marqo/marqo"
+      source = "registry.terraform.io/marqo/marqo-terraform"
     }
   }
 }
 
-provider "marqo" {
+provider "marqo-terraform" {
   host    = "https://api.marqo.ai/api/v2"
   api_key = var.marqo_api_key
 }
 
-resource "marqo_index" "example" {
+resource "marqo-terraform_index" "example" {
   index_name = "example_index_3"
   settings = {
     type                              = "unstructured"
@@ -44,7 +44,7 @@ resource "marqo_index" "example" {
 }
 
 output "created_index" {
-  value = marqo_index.example
+  value = marqo-terraform_index.example
 }
 
 variable "marqo_api_key" {

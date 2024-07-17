@@ -52,7 +52,7 @@ func TestAccDataSourceIndices(t *testing.T) {
 }
 
 const testAccDataSourceIndicesConfig = `
-data "marqo_read_indices" "test" {
+data "marqo-terraform_read_indices" "test" {
 	id = "test_id_1"
 }
 `
@@ -65,7 +65,7 @@ func testAccEmptyConfig() string {
 
 func testAccDataSourceIndexConfig(name string) string {
 	return fmt.Sprintf(`
-		resource "marqo_index" "test" {
+		resource "marqo-terraform_index" "test" {
 		index_name = "%s"
 		settings = {
 				type = "unstructured"

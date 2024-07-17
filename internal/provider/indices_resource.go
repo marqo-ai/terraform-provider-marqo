@@ -3,7 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-	"marqo-terraform-provider/go_marqo"
+	"marqo-terraform/go_marqo"
 	"reflect"
 	"strconv"
 	"strings"
