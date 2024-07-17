@@ -3,8 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
-
-	"terraform-provider-marqo/marqo"
+	"marqo-terraform-provider/go_marqo"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -84,7 +83,7 @@ func (d *indicesDataSource) Configure(_ context.Context, req datasource.Configur
 		return
 	}
 
-	client, ok := req.ProviderData.(*marqo.Client)
+	client, ok := req.ProviderData.(*go_marqo.Client)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -100,7 +99,7 @@ func (d *indicesDataSource) Configure(_ context.Context, req datasource.Configur
 
 // orderResource is the resource implementation.
 type indicesDataSource struct {
-	marqoClient *marqo.Client
+	marqoClient *go_marqo.Client
 }
 
 // Metadata returns the resource type name.
@@ -273,8 +272,8 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 	}
 }
 
-// ConvertMarqoAllFieldInputs converts a slice of marqo.AllFieldInput to a slice of AllFieldInput.
-func ConvertMarqoAllFieldInputs(marqoFields []marqo.AllFieldInput) []AllFieldInput {
+// ConvertMarqoAllFieldInputs converts a slice of go_marqo.AllFieldInput to a slice of AllFieldInput.
+func ConvertMarqoAllFieldInputs(marqoFields []go_marqo.AllFieldInput) []AllFieldInput {
 	allFieldsConverted := make([]AllFieldInput, len(marqoFields))
 	for i, field := range marqoFields {
 		featuresConverted := make([]types.String, len(field.Features))

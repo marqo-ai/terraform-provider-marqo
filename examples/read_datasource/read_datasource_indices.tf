@@ -7,8 +7,8 @@ terraform {
 }
 
 provider "marqo" {
-    host = "https://api.marqo.ai/api/v2"
-    api_key = var.marqo_api_key
+  host    = "https://api.marqo.ai/api/v2"
+  api_key = var.marqo_api_key
 }
 
 data "marqo_read_indices" "example" {
@@ -20,6 +20,6 @@ output "indices_in_marqo_cloud" {
 }
 
 variable "marqo_api_key" {
-  type = string
+  type        = string
   description = "Marqo API key"
 }

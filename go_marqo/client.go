@@ -1,4 +1,4 @@
-package marqo
+package go_marqo
 
 import (
 	"bytes"

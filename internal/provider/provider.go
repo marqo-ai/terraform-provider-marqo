@@ -2,9 +2,8 @@ package provider
 
 import (
 	"context"
+	"marqo-terraform-provider/go_marqo"
 	"os"
-
-	"terraform-provider-marqo/marqo"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -45,7 +44,7 @@ func New(version string) func() provider.Provider {
 
 // Metadata returns the provider type name.
 func (p *marqoProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "marqo"
+	resp.TypeName = "marqo-terraform-provider"
 	resp.Version = p.version
 }
 
@@ -140,7 +139,7 @@ func (p *marqoProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 	tflog.Debug(ctx, "Creating Marqo client")
 
-	client, err := marqo.NewClient(&host, &apiKey)
+	client, err := go_marqo.NewClient(&host, &apiKey)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create Marqo API Client",

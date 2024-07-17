@@ -2,9 +2,9 @@ package provider
 
 import (
 	"fmt"
+	"marqo-terraform-provider/go_marqo"
 	"math/rand"
 	"os"
-	"terraform-provider-marqo/marqo"
 	"testing"
 	"time"
 
@@ -70,7 +70,7 @@ func testAccCheckIndexExistsAndDelete(name string) resource.TestCheckFunc {
 		apiKey := os.Getenv("MARQO_API_KEY")
 
 		// Create a new Marqo client
-		client, err := marqo.NewClient(&host, &apiKey)
+		client, err := go_marqo.NewClient(&host, &apiKey)
 		if err != nil {
 			return fmt.Errorf("Error creating Marqo client: %s", err)
 		}
@@ -140,7 +140,7 @@ func testAccCheckIndexIsReady(name string) resource.TestCheckFunc {
 		apiKey := os.Getenv("MARQO_API_KEY")
 
 		// Create a new Marqo client
-		client, err := marqo.NewClient(&host, &apiKey)
+		client, err := go_marqo.NewClient(&host, &apiKey)
 		if err != nil {
 			return fmt.Errorf("Error creating Marqo client: %s", err)
 		}
