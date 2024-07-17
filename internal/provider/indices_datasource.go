@@ -316,10 +316,34 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// Use the id from the configuration
 	model.ID = types.StringValue(model.ID.ValueString())
 
-	fmt.Println("Indices: ", indices)
+	// fmt.Println("Indices: ", indices)
+
+	inferenceTypeMap := map[string]string{
+		"CPU.SMALL": "marqo.CPU.small",
+		"CPU.LARGE": "marqo.CPU.large",
+		"GPU":       "marqo.GPU",
+	}
+
+	storaceClassMap := map[string]string{
+		"BASIC":       "marqo.basic",
+		"BALANCED":    "marqo.balanced",
+		"PERFORMANCE": "marqo.performance",
+	}
 
 	items := make([]indexModel, len(indices))
 	for i, indexDetail := range indices {
+		inferenceType := indexDetail.InferenceType
+		if mappedValue, exists := inferenceTypeMap[inferenceType]; exists {
+			inferenceType = mappedValue
+		}
+
+		storageClass := indexDetail.StorageClass
+		if mappedValue, exists := storaceClassMap[storageClass]; exists {
+			storageClass = mappedValue
+		}
+
+		// Handle image_preprocessing.patch_method
+
 		items[i] = indexModel{
 			Created:                      types.StringValue(indexDetail.Created),
 			IndexName:                    types.StringValue(indexDetail.IndexName),
@@ -329,8 +353,8 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 			TensorFields:                 indexDetail.TensorFields,
 			NumberOfInferences:           types.StringValue(fmt.Sprintf("%d", indexDetail.NumberOfInferences)),
-			StorageClass:                 types.StringValue(indexDetail.StorageClass),
-			InferenceType:                types.StringValue(indexDetail.InferenceType),
+			StorageClass:                 types.StringValue(storageClass),
+			InferenceType:                types.StringValue(inferenceType),
 			DocsCount:                    types.StringValue(indexDetail.DocsCount),
 			StoreSize:                    types.StringValue(indexDetail.StoreSize),
 			DocsDeleted:                  types.StringValue(indexDetail.DocsDeleted),
@@ -357,37 +381,6 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			MarqoVersion:          types.StringValue(indexDetail.MarqoVersion),
 			FilterStringMaxLength: types.StringValue(fmt.Sprintf("%d", indexDetail.FilterStringMaxLength)),
 		}
-
-		inferenceTypeMap := map[string]string{
-			"CPU.SMALL": "marqo.CPU.small",
-			"CPU.LARGE": "marqo.CPU.large",
-			"GPU":       "marqo.GPU",
-		}
-
-		storaceClassMap := map[string]string{
-			"BASIC":       "marqo.basic",
-			"BALANCED":    "marqo.balanced",
-			"PERFORMANCE": "marqo.performance",
-		}
-
-		if !items[i].InferenceType.IsNull() {
-			currentValue := items[i].InferenceType.ValueString()
-			if mappedValue, exists := inferenceTypeMap[currentValue]; exists {
-				items[i].InferenceType = types.StringValue(mappedValue)
-			}
-		}
-
-		if !items[i].StorageClass.IsNull() {
-			currentValue := items[i].StorageClass.ValueString()
-			if mappedValue, exists := storaceClassMap[currentValue]; exists {
-				items[i].StorageClass = types.StringValue(mappedValue)
-			}
-		}
-
-		// Handle image_preprocessing.patch_method
-		//if items[i].ImagePreprocessing.PatchMethod.ValueString() == "" {
-		//	items[i].ImagePreprocessing.PatchMethod = types.StringNull()
-		//}
 
 		// Remove null fields
 		if items[i].InferenceType.IsNull() {

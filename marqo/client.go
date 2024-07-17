@@ -162,24 +162,26 @@ func (c *Client) ListIndices() ([]IndexDetail, error) {
 	}
 	defer resp.Body.Close()
 
-	tflog.Debug(context.Background(), fmt.Sprintf("Response status: %s", resp.Status))
+	//tflog.Debug(context.Background(), fmt.Sprintf("Response status: %s", resp.Status))
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
 
-	tflog.Debug(context.Background(), fmt.Sprintf("Response body length: %d", len(body)))
+	//tflog.Debug(context.Background(), fmt.Sprintf("Response body length: %d", len(body)))
 
 	// Log the response body in chunks
-	const chunkSize = 1000
-	for i := 0; i < len(body); i += chunkSize {
-		end := i + chunkSize
-		if end > len(body) {
-			end = len(body)
+	/*
+		const chunkSize = 1000
+		for i := 0; i < len(body); i += chunkSize {
+			end := i + chunkSize
+			if end > len(body) {
+				end = len(body)
+			}
+			tflog.Debug(context.Background(), fmt.Sprintf("Response body part %d: %s", i/chunkSize, string(body[i:end])))
 		}
-		tflog.Debug(context.Background(), fmt.Sprintf("Response body part %d: %s", i/chunkSize, string(body[i:end])))
-	}
+	*/
 
 	var response IndexResponse
 	err = json.Unmarshal(body, &response)
