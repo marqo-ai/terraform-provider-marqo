@@ -152,7 +152,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						},
 					},
 					"tensor_fields": schema.ListAttribute{
-						Required:    true,
+						Optional:    true,
 						ElementType: types.StringType,
 					},
 
@@ -500,6 +500,9 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if len(model.Settings.AllFields) == 0 {
 		delete(settings, "allFields")
+	}
+	if len(model.Settings.TensorFields) == 0 {
+		delete(settings, "tensorFields")
 	}
 	if model.Settings.FilterStringMaxLength.IsNull() {
 		delete(settings, "filterStringMaxLength")
