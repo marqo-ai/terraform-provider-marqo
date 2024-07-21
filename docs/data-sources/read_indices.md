@@ -39,6 +39,7 @@ Read-Only:
 - `docs_count` (String) The number of documents in the index
 - `docs_deleted` (String) The number of documents deleted from the index
 - `filter_string_max_length` (String) The filter string max length
+- `image_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--image_preprocessing))
 - `index_name` (String) The name of the index
 - `index_status` (String) The status of the index
 - `inference_type` (String) The type of inference used by the index
@@ -84,6 +85,14 @@ Read-Only:
 - `ef_construction` (String) The efConstruction parameter for ANN
 - `m` (String) The m parameter for ANN
 
+
+
+<a id="nestedatt--items--image_preprocessing"></a>
+### Nested Schema for `items.image_preprocessing`
+
+Read-Only:
+
+- `patch_method` (String) The patch method for image preprocessing
 
 
 <a id="nestedatt--items--text_preprocessing"></a>

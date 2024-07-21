@@ -131,14 +131,14 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional: true,
 					},
 					"number_of_inferences": schema.Int64Attribute{
-						Optional: true,
+						Required: true,
 					},
 					"all_fields": schema.ListNestedAttribute{
-						Optional: true,
+						Required: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{Optional: true},
-								"type": schema.StringAttribute{Optional: true},
+								"name": schema.StringAttribute{Required: true},
+								"type": schema.StringAttribute{Required: true},
 								"features": schema.ListAttribute{
 									Optional:    true,
 									ElementType: types.StringType,
@@ -152,27 +152,27 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						},
 					},
 					"tensor_fields": schema.ListAttribute{
-						Optional:    true,
+						Required:    true,
 						ElementType: types.StringType,
 					},
 
 					"inference_type": schema.StringAttribute{
-						Optional: true,
+						Required: true,
 					},
 					"storage_class": schema.StringAttribute{
-						Optional: true,
+						Required: true,
 					},
 					"number_of_shards": schema.Int64Attribute{
-						Optional: true,
+						Required: true,
 					},
 					"number_of_replicas": schema.Int64Attribute{
-						Optional: true,
+						Required: true,
 					},
 					"treat_urls_and_pointers_as_images": schema.BoolAttribute{
 						Optional: true,
 					},
 					"model": schema.StringAttribute{
-						Optional: true,
+						Required: true,
 					},
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,

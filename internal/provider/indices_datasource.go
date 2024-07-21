@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"marqo-terraform/go_marqo"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -32,31 +33,31 @@ type allIndicesResourceModel struct {
 
 // indexModel maps index detail data.
 type indexModel struct {
-	Created                      types.String           `tfsdk:"created"`
-	IndexName                    types.String           `tfsdk:"index_name"`
-	NumberOfShards               types.String           `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.String           `tfsdk:"number_of_replicas"`
-	IndexStatus                  types.String           `tfsdk:"index_status"`
-	AllFields                    []AllFieldInput        `tfsdk:"all_fields"`
-	TensorFields                 []string               `tfsdk:"tensor_fields"`
-	NumberOfInferences           types.String           `tfsdk:"number_of_inferences"`
-	StorageClass                 types.String           `tfsdk:"storage_class"`
-	InferenceType                types.String           `tfsdk:"inference_type"`
-	DocsCount                    types.String           `tfsdk:"docs_count"`
-	StoreSize                    types.String           `tfsdk:"store_size"`
-	DocsDeleted                  types.String           `tfsdk:"docs_deleted"`
-	SearchQueryTotal             types.String           `tfsdk:"search_query_total"`
-	TreatUrlsAndPointersAsImages types.Bool             `tfsdk:"treat_urls_and_pointers_as_images"`
-	MarqoEndpoint                types.String           `tfsdk:"marqo_endpoint"`
-	Type                         types.String           `tfsdk:"type"`
-	VectorNumericType            types.String           `tfsdk:"vector_numeric_type"`
-	Model                        types.String           `tfsdk:"model"`
-	NormalizeEmbeddings          types.Bool             `tfsdk:"normalize_embeddings"`
-	TextPreprocessing            TextPreprocessingModel `tfsdk:"text_preprocessing"` // Assuming no specific structure
-	//ImagePreprocessing           types.Object           `tfsdk:"image_preprocessing"` // Assuming no specific structure
-	AnnParameters         AnnParametersModel `tfsdk:"ann_parameters"` // Assuming no specific structure
-	MarqoVersion          types.String       `tfsdk:"marqo_version"`
-	FilterStringMaxLength types.String       `tfsdk:"filter_string_max_length"`
+	Created                      types.String            `tfsdk:"created"`
+	IndexName                    types.String            `tfsdk:"index_name"`
+	NumberOfShards               types.String            `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.String            `tfsdk:"number_of_replicas"`
+	IndexStatus                  types.String            `tfsdk:"index_status"`
+	AllFields                    []AllFieldInput         `tfsdk:"all_fields"`
+	TensorFields                 []string                `tfsdk:"tensor_fields"`
+	NumberOfInferences           types.String            `tfsdk:"number_of_inferences"`
+	StorageClass                 types.String            `tfsdk:"storage_class"`
+	InferenceType                types.String            `tfsdk:"inference_type"`
+	DocsCount                    types.String            `tfsdk:"docs_count"`
+	StoreSize                    types.String            `tfsdk:"store_size"`
+	DocsDeleted                  types.String            `tfsdk:"docs_deleted"`
+	SearchQueryTotal             types.String            `tfsdk:"search_query_total"`
+	TreatUrlsAndPointersAsImages types.Bool              `tfsdk:"treat_urls_and_pointers_as_images"`
+	MarqoEndpoint                types.String            `tfsdk:"marqo_endpoint"`
+	Type                         types.String            `tfsdk:"type"`
+	VectorNumericType            types.String            `tfsdk:"vector_numeric_type"`
+	Model                        types.String            `tfsdk:"model"`
+	NormalizeEmbeddings          types.Bool              `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            TextPreprocessingModel  `tfsdk:"text_preprocessing"`
+	ImagePreprocessing           ImagePreprocessingModel `tfsdk:"image_preprocessing"`
+	AnnParameters                AnnParametersModel      `tfsdk:"ann_parameters"`
+	MarqoVersion                 types.String            `tfsdk:"marqo_version"`
+	FilterStringMaxLength        types.String            `tfsdk:"filter_string_max_length"`
 }
 
 type TextPreprocessingModel struct {
@@ -112,8 +113,7 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Required: true,
-				//Computed:    true,
+				Required:    true,
 				Description: "The unique identifier for the resource.",
 			},
 			"last_updated": schema.StringAttribute{
@@ -240,6 +240,15 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 								"split_overlap": schema.StringAttribute{
 									Computed:    true,
 									Description: "The split overlap for text preprocessing",
+								},
+							},
+						},
+						"image_preprocessing": schema.SingleNestedAttribute{
+							Computed: true,
+							Attributes: map[string]schema.Attribute{
+								"patch_method": schema.StringAttribute{
+									Computed:    true,
+									Description: "The patch method for image preprocessing",
 								},
 							},
 						},
@@ -387,6 +396,8 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		}
 	}
 
+	// Set the last_updated field
+	model.LastUpdated = types.StringValue(time.Now().Format(time.RFC3339))
 	model.Items = items
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }

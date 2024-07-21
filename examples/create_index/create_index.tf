@@ -1,7 +1,6 @@
 terraform {
   required_providers {
     marqo-terraform = {
-      #source = "registry.terraform.io/marqo/marqo"
       source = "registry.terraform.io/marqo/marqo-terraform"
     }
   }
