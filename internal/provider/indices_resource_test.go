@@ -99,6 +99,7 @@ func testAccResourceIndexConfig(name string) string {
 				number_of_inferences = 1
 				number_of_replicas = 0
 				number_of_shards = 1
+				tensor_fields = []
 				storage_class = "marqo.basic"
 				all_fields = []
 				text_preprocessing = {
@@ -136,6 +137,7 @@ func testAccResourceIndexConfigUpdated(name string) string {
 			number_of_shards = 1
 			storage_class = "marqo.basic"
 			all_fields = []
+			tensor_fields = []
 			text_preprocessing = {
 				split_length = 2
 				split_method = "sentence"
