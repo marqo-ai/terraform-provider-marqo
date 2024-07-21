@@ -134,11 +134,11 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Required: true,
 					},
 					"all_fields": schema.ListNestedAttribute{
-						Required: true,
+						Optional: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{Required: true},
-								"type": schema.StringAttribute{Required: true},
+								"name": schema.StringAttribute{Optional: true},
+								"type": schema.StringAttribute{Optional: true},
 								"features": schema.ListAttribute{
 									Optional:    true,
 									ElementType: types.StringType,
@@ -497,6 +497,9 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if model.Settings.NumberOfReplicas.IsNull() {
 		delete(settings, "numberOfReplicas")
+	}
+	if len(model.Settings.AllFields) == 0 {
+		delete(settings, "allFields")
 	}
 	if model.Settings.FilterStringMaxLength.IsNull() {
 		delete(settings, "filterStringMaxLength")
