@@ -498,12 +498,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.NumberOfReplicas.IsNull() {
 		delete(settings, "numberOfReplicas")
 	}
-	if len(model.Settings.AllFields) == 0 {
-		delete(settings, "allFields")
-	}
-	if len(model.Settings.TensorFields) == 0 {
-		delete(settings, "tensorFields")
-	}
 	if model.Settings.FilterStringMaxLength.IsNull() {
 		delete(settings, "filterStringMaxLength")
 	}
