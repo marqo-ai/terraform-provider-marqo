@@ -75,7 +75,7 @@ func testAccDataSourceIndexConfig(name string) string {
 				normalize_embeddings = true
 				inference_type = "marqo.CPU.small"
 				all_fields = []
-				tensor_fields = []s
+				tensor_fields = []
 				number_of_inferences = 1
 				number_of_replicas = 0
 				number_of_shards = 1
