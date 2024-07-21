@@ -25,6 +25,12 @@ description: |-
 
 Required:
 
+- `inference_type` (String)
+- `model` (String)
+- `number_of_inferences` (Number)
+- `number_of_replicas` (Number)
+- `number_of_shards` (Number)
+- `storage_class` (String)
 - `type` (String)
 
 Optional:
@@ -33,13 +39,7 @@ Optional:
 - `ann_parameters` (Attributes) (see [below for nested schema](#nestedatt--settings--ann_parameters))
 - `filter_string_max_length` (Number)
 - `image_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--image_preprocessing))
-- `inference_type` (String)
-- `model` (String)
 - `normalize_embeddings` (Boolean)
-- `number_of_inferences` (Number)
-- `number_of_replicas` (Number)
-- `number_of_shards` (Number)
-- `storage_class` (String)
 - `tensor_fields` (List of String)
 - `text_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--text_preprocessing))
 - `treat_urls_and_pointers_as_images` (Boolean)

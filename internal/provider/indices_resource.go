@@ -131,7 +131,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional: true,
 					},
 					"number_of_inferences": schema.Int64Attribute{
-						Optional: true,
+						Required: true,
 					},
 					"all_fields": schema.ListNestedAttribute{
 						Optional: true,
@@ -157,22 +157,22 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 
 					"inference_type": schema.StringAttribute{
-						Optional: true,
+						Required: true,
 					},
 					"storage_class": schema.StringAttribute{
-						Optional: true,
+						Required: true,
 					},
 					"number_of_shards": schema.Int64Attribute{
-						Optional: true,
+						Required: true,
 					},
 					"number_of_replicas": schema.Int64Attribute{
-						Optional: true,
+						Required: true,
 					},
 					"treat_urls_and_pointers_as_images": schema.BoolAttribute{
 						Optional: true,
 					},
 					"model": schema.StringAttribute{
-						Optional: true,
+						Required: true,
 					},
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,

@@ -12,7 +12,7 @@ provider "marqo-terraform" {
 }
 
 resource "marqo-terraform_index" "example" {
-  index_name = "example_index_dependent"
+  index_name = "example_index_dependent_1"
   settings = {
     type                = "structured"
     vector_numeric_type = "float"
@@ -28,6 +28,10 @@ resource "marqo-terraform_index" "example" {
         },
       },
     ],
+    number_of_inferences = 1
+    storage_class        = "marqo.basic"
+    number_of_replicas   = 0
+    number_of_shards     = 2
     tensor_fields        = ["multimodal_field"],
     model                = "open_clip/ViT-L-14/laion2b_s32b_b82k"
     normalize_embeddings = true
