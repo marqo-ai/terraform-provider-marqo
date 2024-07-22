@@ -2,7 +2,7 @@ package provider
 
 import (
 	"fmt"
-	"marqo-terraform/go_marqo"
+	"marqo/go_marqo"
 	"math/rand"
 	"os"
 	"testing"
@@ -19,7 +19,7 @@ import (
 // CLI command executed to create a provider server to which the CLI can
 // reattach.
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"marqo-terraform": providerserver.NewProtocol6WithError(New("test")()),
+	"marqo": providerserver.NewProtocol6WithError(New("test")()),
 }
 
 func testAccPreCheck(t *testing.T) {
@@ -39,7 +39,7 @@ func TestAccProvider(t *testing.T) {
 			{
 				Config: testProviderConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.marqo-terraform_read_indices.test", "id", "test_id_1"),
+					resource.TestCheckResourceAttr("data.marqo_read_indices.test", "id", "test_id_1"),
 				),
 			},
 		},
@@ -47,9 +47,9 @@ func TestAccProvider(t *testing.T) {
 }
 
 const testProviderConfig = `
-provider "marqo-terraform" {}
+provider "marqo" {}
 
-data "marqo-terraform_read_indices" "test" {
+data "marqo_read_indices" "test" {
 	id = "test_id_1"
 }
 `
