@@ -12,7 +12,7 @@ provider "marqo" {
 }
 
 resource "marqo_index" "example" {
-  index_name = "example_index_dependent_10"
+  index_name = "example_index_dependent_1"
   settings = {
     type                = "structured"
     vector_numeric_type = "float"
