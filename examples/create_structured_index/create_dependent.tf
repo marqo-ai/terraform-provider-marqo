@@ -23,8 +23,8 @@ resource "marqo_index" "example" {
         "name" : "multimodal_field",
         "type" : "multimodal_combination",
         "dependent_fields" : {
-          "image_field" : 0.8,
-          "text_field" : 0.1
+          "imageField" : 0.8,
+          "textField" : 0.1
         },
       },
     ],

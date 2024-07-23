@@ -227,26 +227,24 @@ func StringToInt64(str string) types.Int64 {
 func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string]interface{}, error) {
 	var allFields []map[string]interface{}
 	for _, field := range allFieldsInput {
-		// Basic validation example. Expand based on full Marqo documentation requirements.
 		if field.Name.IsNull() || field.Type.IsNull() {
 			return nil, fmt.Errorf("each field must have a name and type")
 		}
 		fieldMap := map[string]interface{}{
-			"name":     field.Name.ValueString(),
-			"type":     field.Type.ValueString(),
-			"features": []string{}, // Convert types.String to string
+			"name":            field.Name.ValueString(),
+			"type":            field.Type.ValueString(),
+			"features":        []string{},
+			"dependentFields": map[string]float64{},
 		}
-		// Assert the type of "features" before appending
-		features, ok := fieldMap["features"].([]string)
-		if !ok {
-			// Handle the error
-			features = []string{}
+
+		if len(field.Features) > 0 {
+			features := []string{}
+			for _, feature := range field.Features {
+				features = append(features, feature.ValueString())
+			}
+			fieldMap["features"] = features
 		}
-		for _, feature := range field.Features {
-			features = append(features, feature.ValueString())
-		}
-		fieldMap["features"] = features
-		fieldMap["dependentFields"] = map[string]float64{}
+
 		if len(field.DependentFields) > 0 {
 			dependentFields := make(map[string]float64)
 			for key, value := range field.DependentFields {
@@ -254,6 +252,7 @@ func validateAndConstructAllFields(allFieldsInput []AllFieldInput) ([]map[string
 			}
 			fieldMap["dependentFields"] = dependentFields
 		}
+
 		allFields = append(allFields, fieldMap)
 	}
 	return allFields, nil
@@ -264,23 +263,25 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 	allFields := []map[string]interface{}{}
 	for _, field := range allFieldsInput {
 		fieldMap := map[string]interface{}{
-			"name": field.Name.ValueString(),
-			"type": field.Type.ValueString(),
-			// Add other necessary fields from AllFieldInput struct
+			"name":            field.Name.ValueString(),
+			"type":            field.Type.ValueString(),
+			"features":        []string{},
+			"dependentFields": map[string]float64{},
 		}
-		// Assuming Features is a slice of types.String and needs conversion
-		features := []string{}
-		for _, feature := range field.Features {
-			features = append(features, feature.ValueString())
-		}
-		fieldMap["features"] = features
 
-		// Convert DependentFields if necessary
-		dependentFieldsMap := make(map[string]float64)
-		for key, value := range field.DependentFields {
-			dependentFieldsMap[key] = value.ValueFloat64()
+		if len(field.Features) > 0 {
+			features := []string{}
+			for _, feature := range field.Features {
+				features = append(features, feature.ValueString())
+			}
+			fieldMap["features"] = features
 		}
-		if len(dependentFieldsMap) > 0 {
+
+		if len(field.DependentFields) > 0 {
+			dependentFieldsMap := make(map[string]float64)
+			for key, value := range field.DependentFields {
+				dependentFieldsMap[key] = value.ValueFloat64()
+			}
 			fieldMap["dependentFields"] = dependentFieldsMap
 		}
 
@@ -382,6 +383,22 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			if mappedValue, exists := storaceClassMap[currentValue]; exists {
 				newState.Settings.StorageClass = types.StringValue(mappedValue)
 			}
+		}
+
+		// Ensure features and dependent_fields are always set
+		for i := range newState.Settings.AllFields {
+			if len(newState.Settings.AllFields[i].Features) == 0 {
+				newState.Settings.AllFields[i].Features = nil
+			}
+			if len(newState.Settings.AllFields[i].DependentFields) == 0 {
+				newState.Settings.AllFields[i].DependentFields = nil
+			}
+		}
+
+		// Ignore these fields for structured indexes
+		if newState.Settings.Type.ValueString() == "structured" {
+			newState.Settings.FilterStringMaxLength = types.Int64Null()
+			newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
 		}
 
 		// Handle image_preprocessing.patch_method

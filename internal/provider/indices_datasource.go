@@ -285,9 +285,9 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 func ConvertMarqoAllFieldInputs(marqoFields []go_marqo.AllFieldInput) []AllFieldInput {
 	allFieldsConverted := make([]AllFieldInput, len(marqoFields))
 	for i, field := range marqoFields {
-		featuresConverted := make([]types.String, len(field.Features))
-		for j, feature := range field.Features {
-			featuresConverted[j] = types.StringValue(feature)
+		featuresConverted := make([]types.String, 0)
+		for _, feature := range field.Features {
+			featuresConverted = append(featuresConverted, types.StringValue(feature))
 		}
 		dependentFieldsConverted := make(map[string]types.Float64)
 		for key, value := range field.DependentFields {
