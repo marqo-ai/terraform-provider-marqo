@@ -12,7 +12,7 @@ provider "marqo" {
 }
 
 resource "marqo_index" "example" {
-  index_name = "example_index_dependent_1"
+  index_name = "example_index_dependent_10"
   settings = {
     type                = "structured"
     vector_numeric_type = "float"
@@ -23,8 +23,8 @@ resource "marqo_index" "example" {
         "name" : "multimodal_field",
         "type" : "multimodal_combination",
         "dependent_fields" : {
-          "image_field" : 0.8,
-          "text_field" : 0.1
+          "imageField" : 0.8,
+          "textField" : 0.1
         },
       },
     ],
