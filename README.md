@@ -11,6 +11,8 @@ If you wish to use the terraform provider instead, please note the following
 - replace the provider source with `marqo-ai/marqo`
 - replace all `tofu` commands in the guide below with `terraform`
 
+Detailed documentation can be found in marqodocs [here](https://docs.marqo.ai/2.11/Cloud-Reference/opentofu_provider/).
+
 ---
 
 ## Installation Instructions
