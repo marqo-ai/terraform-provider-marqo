@@ -11,7 +11,6 @@ If you wish to use the terraform provider instead, please note the following
 - replace the provider source with `marqo-ai/marqo`
 - replace all `tofu` commands in the guide below with `terraform`
 
-The source code for the OpenTofu/Terraform provider is located at [`https://github.com/marqo-ai/terraform-provider-marqo`](https://github.com/marqo-ai/terraform-provider-marqo).
 ---
 
 ## Installation Instructions
