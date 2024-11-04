@@ -37,6 +37,7 @@ type IndexDetail struct {
 	DocsDeleted                  string                  `json:"docs.deleted"`
 	SearchQueryTotal             string                  `json:"search.queryTotal"`
 	TreatUrlsAndPointersAsImages bool                    `json:"treatUrlsAndPointersAsImages"`
+	TreatUrlsAndPointersAsMedia  bool                    `json:"treatUrlsAndPointersAsMedia"`
 	MarqoEndpoint                string                  `json:"marqoEndpoint"`
 	Type                         string                  `json:"type"`
 	VectorNumericType            string                  `json:"vectorNumericType"`
@@ -44,6 +45,8 @@ type IndexDetail struct {
 	NormalizeEmbeddings          bool                    `json:"normalizeEmbeddings"`
 	TextPreprocessing            TextPreprocessing       `json:"textPreprocessing"`
 	ImagePreprocessing           ImagePreprocessingModel `json:"imagePreprocessing"` // Assuming no specific structure
+	VideoPreprocessing           VideoPreprocessingModel `json:"videoPreprocessing"`
+	AudioPreprocessing           AudioPreprocessingModel `json:"audioPreprocessing"`
 	AnnParameters                AnnParameters           `json:"annParameters"`
 	MarqoVersion                 string                  `json:"marqoVersion"`
 	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
@@ -64,6 +67,16 @@ type TextPreprocessing struct {
 	SplitLength  int64  `json:"splitLength"`
 	SplitMethod  string `json:"splitMethod"`
 	SplitOverlap int64  `json:"splitOverlap"`
+}
+
+type VideoPreprocessingModel struct {
+	SplitLength  int64 `json:"splitLength"`
+	SplitOverlap int64 `json:"splitOverlap"`
+}
+
+type AudioPreprocessingModel struct {
+	SplitLength  int64 `json:"splitLength"`
+	SplitOverlap int64 `json:"splitOverlap"`
 }
 
 type AnnParameters struct {

@@ -47,10 +47,13 @@ type IndexSettingsModel struct {
 	NumberOfShards               types.Int64                  `tfsdk:"number_of_shards"`
 	NumberOfReplicas             types.Int64                  `tfsdk:"number_of_replicas"`
 	TreatUrlsAndPointersAsImages types.Bool                   `tfsdk:"treat_urls_and_pointers_as_images"`
+	TreatUrlsAndPointersAsMedia  types.Bool                   `tfsdk:"treat_urls_and_pointers_as_media"`
 	Model                        types.String                 `tfsdk:"model"`
 	NormalizeEmbeddings          types.Bool                   `tfsdk:"normalize_embeddings"`
 	TextPreprocessing            TextPreprocessingModelCreate `tfsdk:"text_preprocessing"`
 	ImagePreprocessing           ImagePreprocessingModel      `tfsdk:"image_preprocessing"`
+	VideoPreprocessing           VideoPreprocessingModel      `tfsdk:"video_preprocessing"`
+	AudioPreprocessing           AudioPreprocessingModel      `tfsdk:"audio_preprocessing"`
 	AnnParameters                AnnParametersModelCreate     `tfsdk:"ann_parameters"`
 	FilterStringMaxLength        types.Int64                  `tfsdk:"filter_string_max_length"`
 }
@@ -72,6 +75,16 @@ type TextPreprocessingModelCreate struct {
 
 type ImagePreprocessingModel struct {
 	PatchMethod types.String `tfsdk:"patch_method"`
+}
+
+type VideoPreprocessingModel struct {
+	SplitLength  types.Int64 `tfsdk:"split_length"`
+	SplitOverlap types.Int64 `tfsdk:"split_overlap"`
+}
+
+type AudioPreprocessingModel struct {
+	SplitLength  types.Int64 `tfsdk:"split_length"`
+	SplitOverlap types.Int64 `tfsdk:"split_overlap"`
 }
 
 type AnnParametersModelCreate struct {
@@ -191,6 +204,20 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							"patch_method": schema.StringAttribute{Optional: true},
 						},
 					},
+					"video_preprocessing": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"split_length":  schema.Int64Attribute{Optional: true},
+							"split_overlap": schema.Int64Attribute{Optional: true},
+						},
+					},
+					"audio_preprocessing": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"split_length":  schema.Int64Attribute{Optional: true},
+							"split_overlap": schema.Int64Attribute{Optional: true},
+						},
+					},
 					"ann_parameters": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
@@ -306,6 +333,7 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					Type:                         types.StringValue(indexDetail.Type),
 					VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
+					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
 					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 					TensorFields:                 indexDetail.TensorFields,
@@ -322,6 +350,14 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					},
 					ImagePreprocessing: ImagePreprocessingModel{
 						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
+					},
+					VideoPreprocessing: VideoPreprocessingModel{
+						SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
+						SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
+					},
+					AudioPreprocessing: AudioPreprocessingModel{
+						SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
+						SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
 					},
 					AnnParameters: AnnParametersModelCreate{
 						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
@@ -399,6 +435,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if newState.Settings.Type.ValueString() == "structured" {
 			newState.Settings.FilterStringMaxLength = types.Int64Null()
 			newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+			newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
 		}
 
 		// Handle image_preprocessing.patch_method
@@ -451,6 +488,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"type":                         model.Settings.Type.ValueString(),
 		"vectorNumericType":            model.Settings.VectorNumericType.ValueString(),
 		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
+		"treatUrlsAndPointersAsMedia":  model.Settings.TreatUrlsAndPointersAsMedia.ValueBool(),
 		"model":                        model.Settings.Model.ValueString(),
 		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
 		"allFields":                    convertAllFieldsToMap(model.Settings.AllFields),
@@ -467,6 +505,14 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		},
 		"imagePreprocessing": map[string]interface{}{
 			"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
+		},
+		"videoPreprocessing": map[string]interface{}{
+			"splitLength":  model.Settings.VideoPreprocessing.SplitLength.ValueInt64(),
+			"splitOverlap": model.Settings.VideoPreprocessing.SplitOverlap.ValueInt64(),
+		},
+		"audioPreprocessing": map[string]interface{}{
+			"splitLength":  model.Settings.AudioPreprocessing.SplitLength.ValueInt64(),
+			"splitOverlap": model.Settings.AudioPreprocessing.SplitOverlap.ValueInt64(),
 		},
 		"annParameters": map[string]interface{}{
 			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
@@ -485,6 +531,9 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
 		delete(settings, "treatUrlsAndPointersAsImages")
 	}
+	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+		delete(settings, "treatUrlsAndPointersAsMedia")
+	}
 	if model.Settings.Model.IsNull() {
 		delete(settings, "model")
 	}
@@ -497,6 +546,28 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 		if len(imagePreprocessing) == 0 {
 			delete(settings, "imagePreprocessing")
+		}
+	}
+	if videoPreprocessing, ok := settings["videoPreprocessing"].(map[string]interface{}); ok {
+		if model.Settings.VideoPreprocessing.SplitLength.IsNull() {
+			delete(videoPreprocessing, "splitLength")
+		}
+		if model.Settings.VideoPreprocessing.SplitOverlap.IsNull() {
+			delete(videoPreprocessing, "splitOverlap")
+		}
+		if len(videoPreprocessing) == 0 {
+			delete(settings, "videoPreprocessing")
+		}
+	}
+	if audioPreprocessing, ok := settings["audioPreprocessing"].(map[string]interface{}); ok {
+		if model.Settings.AudioPreprocessing.SplitLength.IsNull() {
+			delete(audioPreprocessing, "splitLength")
+		}
+		if model.Settings.AudioPreprocessing.SplitOverlap.IsNull() {
+			delete(audioPreprocessing, "splitOverlap")
+		}
+		if len(audioPreprocessing) == 0 {
+			delete(settings, "audioPreprocessing")
 		}
 	}
 	if model.Settings.InferenceType.IsNull() {
