@@ -9,7 +9,7 @@ import (
 )
 
 func TestAccResourceIndex(t *testing.T) {
-	unstructured_index_name := fmt.Sprintf("unstructured_resource_%s", randomString(8))
+	unstructured_index_name := fmt.Sprintf("donotdelete_unstr_resrc_%s", randomString(6))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -87,7 +87,7 @@ func TestAccResourceIndex(t *testing.T) {
 }
 
 func TestAccResourceStructuredIndex(t *testing.T) {
-	structured_index_name := fmt.Sprintf("structured_resource_%s", randomString(8))
+	structured_index_name := fmt.Sprintf("donotdelete_str_rsrc_%s", randomString(7))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
