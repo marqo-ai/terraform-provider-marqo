@@ -154,8 +154,6 @@ func NewClient(baseURL, apiKey *string) (*Client, error) {
 	//	else:
 	//		instance_mappings = DefaultInstanceMappings(url, main_user, main_password)
 	// Print the input parameters
-	fmt.Println(baseURL)
-	fmt.Println(apiKey)
 
 	// Create the client instance
 	client := &Client{
@@ -269,7 +267,6 @@ func (c *Client) GetIndexStats(indexName string) (IndexStats, error) {
 // CreateIndex creates a new index with the given settings.
 func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) error {
 	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
-	//fmt.Printf("%T\n", settings)
 
 	jsonData, err := json.Marshal(settings)
 	if err != nil {
@@ -280,9 +277,6 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	fmt.Println("Settings: ", settings)
-	fmt.Println("Request: ", req)
-	//fmt.Println("JSON Body: ", jsonData)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-KEY", c.APIKey)
@@ -291,7 +285,7 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	fmt.Println("Response: ", resp)
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -340,8 +334,6 @@ func (c *Client) UpdateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	//fmt.Println("Settings: ", settings)
-	//fmt.Println("Request: ", req)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-KEY", c.APIKey)
