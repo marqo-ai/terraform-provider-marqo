@@ -37,25 +37,25 @@ type IndexResourceModel struct {
 }
 
 type IndexSettingsModel struct {
-	Type                         types.String                 `tfsdk:"type"`
-	VectorNumericType            types.String                 `tfsdk:"vector_numeric_type"`
-	NumberOfInferences           types.Int64                  `tfsdk:"number_of_inferences"`
-	AllFields                    []AllFieldInput              `tfsdk:"all_fields"`
-	TensorFields                 []string                     `tfsdk:"tensor_fields"`
-	InferenceType                types.String                 `tfsdk:"inference_type"`
-	StorageClass                 types.String                 `tfsdk:"storage_class"`
-	NumberOfShards               types.Int64                  `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.Int64                  `tfsdk:"number_of_replicas"`
-	TreatUrlsAndPointersAsImages types.Bool                   `tfsdk:"treat_urls_and_pointers_as_images"`
-	TreatUrlsAndPointersAsMedia  types.Bool                   `tfsdk:"treat_urls_and_pointers_as_media"`
-	Model                        types.String                 `tfsdk:"model"`
-	NormalizeEmbeddings          types.Bool                   `tfsdk:"normalize_embeddings"`
-	TextPreprocessing            TextPreprocessingModelCreate `tfsdk:"text_preprocessing"`
-	ImagePreprocessing           ImagePreprocessingModel      `tfsdk:"image_preprocessing"`
-	VideoPreprocessing           *VideoPreprocessingModel     `tfsdk:"video_preprocessing"`
-	AudioPreprocessing           *AudioPreprocessingModel     `tfsdk:"audio_preprocessing"`
-	AnnParameters                AnnParametersModelCreate     `tfsdk:"ann_parameters"`
-	FilterStringMaxLength        types.Int64                  `tfsdk:"filter_string_max_length"`
+	Type                         types.String                  `tfsdk:"type"`
+	VectorNumericType            types.String                  `tfsdk:"vector_numeric_type"`
+	NumberOfInferences           types.Int64                   `tfsdk:"number_of_inferences"`
+	AllFields                    []AllFieldInput               `tfsdk:"all_fields"`
+	TensorFields                 []string                      `tfsdk:"tensor_fields"`
+	InferenceType                types.String                  `tfsdk:"inference_type"`
+	StorageClass                 types.String                  `tfsdk:"storage_class"`
+	NumberOfShards               types.Int64                   `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.Int64                   `tfsdk:"number_of_replicas"`
+	TreatUrlsAndPointersAsImages types.Bool                    `tfsdk:"treat_urls_and_pointers_as_images"`
+	TreatUrlsAndPointersAsMedia  types.Bool                    `tfsdk:"treat_urls_and_pointers_as_media"`
+	Model                        types.String                  `tfsdk:"model"`
+	NormalizeEmbeddings          types.Bool                    `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            *TextPreprocessingModelCreate `tfsdk:"text_preprocessing"`
+	ImagePreprocessing           *ImagePreprocessingModel      `tfsdk:"image_preprocessing"`
+	VideoPreprocessing           *VideoPreprocessingModel      `tfsdk:"video_preprocessing"`
+	AudioPreprocessing           *AudioPreprocessingModel      `tfsdk:"audio_preprocessing"`
+	AnnParameters                *AnnParametersModelCreate     `tfsdk:"ann_parameters"`
+	FilterStringMaxLength        types.Int64                   `tfsdk:"filter_string_max_length"`
 }
 
 //             "dependentFields": {"image_field": 0.8, "text_field": 0.1},
@@ -346,12 +346,12 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					StorageClass:                 types.StringValue(indexDetail.StorageClass),
 					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
 					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
-					TextPreprocessing: TextPreprocessingModelCreate{
+					TextPreprocessing: &TextPreprocessingModelCreate{
 						SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
 						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
 						SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
 					},
-					ImagePreprocessing: ImagePreprocessingModel{
+					ImagePreprocessing: &ImagePreprocessingModel{
 						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 					},
 					VideoPreprocessing: &VideoPreprocessingModel{
@@ -362,7 +362,7 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 						SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
 						SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
 					},
-					AnnParameters: AnnParametersModelCreate{
+					AnnParameters: &AnnParametersModelCreate{
 						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
 						Parameters: ParametersModel{
 							EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
@@ -501,22 +501,20 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"storageClass":                 model.Settings.StorageClass.ValueString(),
 		"numberOfShards":               model.Settings.NumberOfShards.ValueInt64(),
 		"numberOfReplicas":             model.Settings.NumberOfReplicas.ValueInt64(),
-		"textPreprocessing": map[string]interface{}{
+		"filterStringMaxLength":        model.Settings.FilterStringMaxLength.ValueInt64(),
+	}
+	// Optional dictionary fields
+	if model.Settings.TextPreprocessing != nil {
+		settings["textPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
 			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod.ValueString(),
 			"splitOverlap": model.Settings.TextPreprocessing.SplitOverlap.ValueInt64(),
-		},
-		"imagePreprocessing": map[string]interface{}{
+		}
+	}
+	if model.Settings.ImagePreprocessing != nil {
+		settings["imagePreprocessing"] = map[string]interface{}{
 			"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
-		},
-		"annParameters": map[string]interface{}{
-			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
-			"parameters": map[string]interface{}{
-				"efConstruction": model.Settings.AnnParameters.Parameters.EfConstruction.ValueInt64(),
-				"m":              model.Settings.AnnParameters.Parameters.M.ValueInt64(),
-			},
-		},
-		"filterStringMaxLength": model.Settings.FilterStringMaxLength.ValueInt64(),
+		}
 	}
 	if model.Settings.VideoPreprocessing != nil {
 		settings["videoPreprocessing"] = map[string]interface{}{
@@ -524,13 +522,22 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			"splitOverlap": model.Settings.VideoPreprocessing.SplitOverlap.ValueInt64(),
 		}
 	}
-
 	if model.Settings.AudioPreprocessing != nil {
 		settings["audioPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.AudioPreprocessing.SplitLength.ValueInt64(),
 			"splitOverlap": model.Settings.AudioPreprocessing.SplitOverlap.ValueInt64(),
 		}
 	}
+	if model.Settings.AnnParameters != nil {
+		settings["annParameters"] = map[string]interface{}{
+			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
+			"parameters": map[string]interface{}{
+				"efConstruction": model.Settings.AnnParameters.Parameters.EfConstruction.ValueInt64(),
+				"m":              model.Settings.AnnParameters.Parameters.M.ValueInt64(),
+			},
+		}
+	}
+
 	// Remove optional fields if they are not set
 	if model.Settings.VectorNumericType.IsNull() {
 		delete(settings, "vectorNumericType")
@@ -547,9 +554,10 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.NormalizeEmbeddings.IsNull() {
 		delete(settings, "normalizeEmbeddings")
 	}
-	if model.Settings.TextPreprocessing.SplitLength.IsNull() &&
-		model.Settings.TextPreprocessing.SplitMethod.IsNull() &&
-		model.Settings.TextPreprocessing.SplitOverlap.IsNull() {
+	if model.Settings.TextPreprocessing == nil ||
+		(model.Settings.TextPreprocessing.SplitLength.IsNull() &&
+			model.Settings.TextPreprocessing.SplitMethod.IsNull() &&
+			model.Settings.TextPreprocessing.SplitOverlap.IsNull()) {
 		delete(settings, "textPreprocessing")
 	}
 	if model.Settings.VideoPreprocessing == nil ||
@@ -557,19 +565,20 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			model.Settings.VideoPreprocessing.SplitOverlap.IsNull()) {
 		delete(settings, "videoPreprocessing")
 	}
-
 	if model.Settings.AudioPreprocessing == nil ||
 		(model.Settings.AudioPreprocessing.SplitLength.IsNull() &&
 			model.Settings.AudioPreprocessing.SplitOverlap.IsNull()) {
 		delete(settings, "audioPreprocessing")
 	}
-	if imagePreprocessing, ok := settings["imagePreprocessing"].(map[string]interface{}); ok {
-		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
-			delete(imagePreprocessing, "patchMethod")
-		}
-		if len(imagePreprocessing) == 0 {
-			delete(settings, "imagePreprocessing")
-		}
+	if model.Settings.ImagePreprocessing == nil ||
+		(model.Settings.ImagePreprocessing.PatchMethod.IsNull()) {
+		delete(settings, "imagePreprocessing")
+	}
+	if model.Settings.AnnParameters == nil ||
+		(model.Settings.AnnParameters.SpaceType.IsNull() &&
+			model.Settings.AnnParameters.Parameters.EfConstruction.IsNull() &&
+			model.Settings.AnnParameters.Parameters.M.IsNull()) {
+		delete(settings, "annParameters")
 	}
 	if model.Settings.InferenceType.IsNull() {
 		delete(settings, "inferenceType")

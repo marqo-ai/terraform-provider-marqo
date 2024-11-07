@@ -42,6 +42,7 @@ type IndexDetail struct {
 	Type                         string                  `json:"type"`
 	VectorNumericType            string                  `json:"vectorNumericType"`
 	Model                        string                  `json:"model"`
+	ModelProperties              ModelProperties         `json:"modelProperties"`
 	NormalizeEmbeddings          bool                    `json:"normalizeEmbeddings"`
 	TextPreprocessing            TextPreprocessing       `json:"textPreprocessing"`
 	ImagePreprocessing           ImagePreprocessingModel `json:"imagePreprocessing"` // Assuming no specific structure
@@ -57,6 +58,15 @@ type AllFieldInput struct {
 	Type            string             `tfsdk:"type"`
 	Features        []string           `tfsdk:"features"`
 	DependentFields map[string]float64 `tfsdk:"dependentFields"`
+}
+
+type ModelProperties struct {
+	Name          string `json:"name"`           // Required: Name of model in library
+	Dimensions    int    `json:"dimensions"`     // Required: Dimensions of model
+	Type          string `json:"type"`           // Required: Type of model loader
+	Tokens        int    `json:"tokens"`         // Optional: Number of tokens, default is 128
+	ModelLocation string `json:"model_location"` // Optional: Location of the model
+	Url           string `json:"url"`            // Optional: URL of the model
 }
 
 type ImagePreprocessingModel struct {
@@ -182,7 +192,7 @@ func (c *Client) ListIndices() ([]IndexDetail, error) {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
 
-	//tflog.Debug(context.Background(), fmt.Sprintf("Response body length: %d", len(body)))
+	tflog.Debug(context.Background(), fmt.Sprintf("Response body length: %d", len(body)))
 
 	// Log the response body in chunks
 	/*

@@ -52,12 +52,22 @@ type indexModel struct {
 	Type                         types.String            `tfsdk:"type"`
 	VectorNumericType            types.String            `tfsdk:"vector_numeric_type"`
 	Model                        types.String            `tfsdk:"model"`
+	ModelProperties              ModelPropertiesModel    `tfsdk:"model_properties"`
 	NormalizeEmbeddings          types.Bool              `tfsdk:"normalize_embeddings"`
 	TextPreprocessing            TextPreprocessingModel  `tfsdk:"text_preprocessing"`
 	ImagePreprocessing           ImagePreprocessingModel `tfsdk:"image_preprocessing"`
 	AnnParameters                AnnParametersModel      `tfsdk:"ann_parameters"`
 	MarqoVersion                 types.String            `tfsdk:"marqo_version"`
 	FilterStringMaxLength        types.String            `tfsdk:"filter_string_max_length"`
+}
+
+type ModelPropertiesModel struct {
+	Name          types.String `tfsdk:"name"`
+	Dimensions    types.String `tfsdk:"dimensions"`
+	Type          types.String `tfsdk:"type"`
+	Tokens        types.String `tfsdk:"tokens"`
+	ModelLocation types.String `tfsdk:"model_location"`
+	Url           types.String `tfsdk:"url"`
 }
 
 type TextPreprocessingModel struct {
@@ -222,6 +232,17 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 							Computed:    true,
 							Description: "The model used by the index",
 						},
+						"model_properties": schema.SingleNestedAttribute{
+							Computed: true,
+							Attributes: map[string]schema.Attribute{
+								"name":           schema.StringAttribute{Computed: true},
+								"dimensions":     schema.StringAttribute{Computed: true},
+								"type":           schema.StringAttribute{Computed: true},
+								"tokens":         schema.StringAttribute{Computed: true},
+								"model_location": schema.StringAttribute{Computed: true},
+								"url":            schema.StringAttribute{Computed: true},
+							},
+						},
 						"normalize_embeddings": schema.BoolAttribute{
 							Computed:    true,
 							Description: "Indicates if embeddings should be normalized",
@@ -372,7 +393,15 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			Type:                         types.StringValue(indexDetail.Type),
 			VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 			Model:                        types.StringValue(indexDetail.Model),
-			NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
+			ModelProperties: ModelPropertiesModel{
+				Name:          types.StringValue(indexDetail.ModelProperties.Name),
+				Dimensions:    types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Dimensions)),
+				Type:          types.StringValue(indexDetail.ModelProperties.Type),
+				Tokens:        types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Tokens)),
+				ModelLocation: types.StringValue(indexDetail.ModelProperties.ModelLocation),
+				Url:           types.StringValue(indexDetail.ModelProperties.Url),
+			},
+			NormalizeEmbeddings: types.BoolValue(indexDetail.NormalizeEmbeddings),
 			TextPreprocessing: TextPreprocessingModel{
 				SplitLength:  types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitLength)),
 				SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
