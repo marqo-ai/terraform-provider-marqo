@@ -37,34 +37,43 @@ type IndexResourceModel struct {
 }
 
 type IndexSettingsModel struct {
-	Type                         types.String                  `tfsdk:"type"`
-	VectorNumericType            types.String                  `tfsdk:"vector_numeric_type"`
-	NumberOfInferences           types.Int64                   `tfsdk:"number_of_inferences"`
-	AllFields                    []AllFieldInput               `tfsdk:"all_fields"`
-	TensorFields                 []string                      `tfsdk:"tensor_fields"`
-	InferenceType                types.String                  `tfsdk:"inference_type"`
-	StorageClass                 types.String                  `tfsdk:"storage_class"`
-	NumberOfShards               types.Int64                   `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.Int64                   `tfsdk:"number_of_replicas"`
-	TreatUrlsAndPointersAsImages types.Bool                    `tfsdk:"treat_urls_and_pointers_as_images"`
-	TreatUrlsAndPointersAsMedia  types.Bool                    `tfsdk:"treat_urls_and_pointers_as_media"`
-	Model                        types.String                  `tfsdk:"model"`
-	NormalizeEmbeddings          types.Bool                    `tfsdk:"normalize_embeddings"`
-	TextPreprocessing            *TextPreprocessingModelCreate `tfsdk:"text_preprocessing"`
-	ImagePreprocessing           *ImagePreprocessingModel      `tfsdk:"image_preprocessing"`
-	VideoPreprocessing           *VideoPreprocessingModel      `tfsdk:"video_preprocessing"`
-	AudioPreprocessing           *AudioPreprocessingModel      `tfsdk:"audio_preprocessing"`
-	AnnParameters                *AnnParametersModelCreate     `tfsdk:"ann_parameters"`
-	FilterStringMaxLength        types.Int64                   `tfsdk:"filter_string_max_length"`
+	Type                         types.String                   `tfsdk:"type"`
+	VectorNumericType            types.String                   `tfsdk:"vector_numeric_type"`
+	NumberOfInferences           types.Int64                    `tfsdk:"number_of_inferences"`
+	AllFields                    []AllFieldInput                `tfsdk:"all_fields"`
+	TensorFields                 []string                       `tfsdk:"tensor_fields"`
+	InferenceType                types.String                   `tfsdk:"inference_type"`
+	StorageClass                 types.String                   `tfsdk:"storage_class"`
+	NumberOfShards               types.Int64                    `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.Int64                    `tfsdk:"number_of_replicas"`
+	TreatUrlsAndPointersAsImages types.Bool                     `tfsdk:"treat_urls_and_pointers_as_images"`
+	TreatUrlsAndPointersAsMedia  types.Bool                     `tfsdk:"treat_urls_and_pointers_as_media"`
+	Model                        types.String                   `tfsdk:"model"`
+	ModelProperties              *ModelPropertiesModelCreate    `tfsdk:"model_properties"`
+	NormalizeEmbeddings          types.Bool                     `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            *TextPreprocessingModelCreate  `tfsdk:"text_preprocessing"`
+	ImagePreprocessing           *ImagePreprocessingModel       `tfsdk:"image_preprocessing"`
+	VideoPreprocessing           *VideoPreprocessingModelCreate `tfsdk:"video_preprocessing"`
+	AudioPreprocessing           *AudioPreprocessingModelCreate `tfsdk:"audio_preprocessing"`
+	AnnParameters                *AnnParametersModelCreate      `tfsdk:"ann_parameters"`
+	FilterStringMaxLength        types.Int64                    `tfsdk:"filter_string_max_length"`
 }
-
-//             "dependentFields": {"image_field": 0.8, "text_field": 0.1},
 
 type AllFieldInput struct {
 	Name            types.String             `tfsdk:"name"`
 	Type            types.String             `tfsdk:"type"`
 	Features        []types.String           `tfsdk:"features"`
 	DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
+}
+
+type ModelPropertiesModelCreate struct {
+	Name            types.String `tfsdk:"name"`
+	Dimensions      types.Int64  `tfsdk:"dimensions"`
+	Type            types.String `tfsdk:"type"`
+	Tokens          types.Int64  `tfsdk:"tokens"`
+	ModelLocation   types.String `tfsdk:"model_location"`
+	Url             types.String `tfsdk:"url"`
+	TrustRemoteCode types.Bool   `tfsdk:"trust_remote_code"`
 }
 
 type TextPreprocessingModelCreate struct {
@@ -77,12 +86,12 @@ type ImagePreprocessingModel struct {
 	PatchMethod types.String `tfsdk:"patch_method"`
 }
 
-type VideoPreprocessingModel struct {
+type VideoPreprocessingModelCreate struct {
 	SplitLength  types.Int64 `tfsdk:"split_length"`
 	SplitOverlap types.Int64 `tfsdk:"split_overlap"`
 }
 
-type AudioPreprocessingModel struct {
+type AudioPreprocessingModelCreate struct {
 	SplitLength  types.Int64 `tfsdk:"split_length"`
 	SplitOverlap types.Int64 `tfsdk:"split_overlap"`
 }
@@ -189,6 +198,18 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"model": schema.StringAttribute{
 						Required: true,
+					},
+					"model_properties": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"name":              schema.StringAttribute{Optional: true},
+							"dimensions":        schema.Int64Attribute{Optional: true},
+							"type":              schema.StringAttribute{Optional: true},
+							"tokens":            schema.Int64Attribute{Optional: true},
+							"model_location":    schema.StringAttribute{Optional: true},
+							"url":               schema.StringAttribute{Optional: true},
+							"trust_remote_code": schema.BoolAttribute{Optional: true},
+						},
 					},
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,
@@ -338,14 +359,23 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
 					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
-					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
-					TensorFields:                 indexDetail.TensorFields,
-					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
-					InferenceType:                types.StringValue(indexDetail.InferenceType),
-					NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
-					StorageClass:                 types.StringValue(indexDetail.StorageClass),
-					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
-					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
+					ModelProperties: &ModelPropertiesModelCreate{
+						Name:            types.StringValue(indexDetail.ModelProperties.Name),
+						Dimensions:      types.Int64Value(indexDetail.ModelProperties.Dimensions),
+						Type:            types.StringValue(indexDetail.ModelProperties.Type),
+						Tokens:          types.Int64Value(indexDetail.ModelProperties.Tokens),
+						ModelLocation:   types.StringValue(indexDetail.ModelProperties.ModelLocation),
+						Url:             types.StringValue(indexDetail.ModelProperties.Url),
+						TrustRemoteCode: types.BoolValue(indexDetail.ModelProperties.TrustRemoteCode),
+					},
+					AllFields:           ConvertMarqoAllFieldInputs(indexDetail.AllFields),
+					TensorFields:        indexDetail.TensorFields,
+					NormalizeEmbeddings: types.BoolValue(indexDetail.NormalizeEmbeddings),
+					InferenceType:       types.StringValue(indexDetail.InferenceType),
+					NumberOfInferences:  types.Int64Value(indexDetail.NumberOfInferences),
+					StorageClass:        types.StringValue(indexDetail.StorageClass),
+					NumberOfShards:      types.Int64Value(indexDetail.NumberOfShards),
+					NumberOfReplicas:    types.Int64Value(indexDetail.NumberOfReplicas),
 					TextPreprocessing: &TextPreprocessingModelCreate{
 						SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
 						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
@@ -354,11 +384,11 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					ImagePreprocessing: &ImagePreprocessingModel{
 						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 					},
-					VideoPreprocessing: &VideoPreprocessingModel{
+					VideoPreprocessing: &VideoPreprocessingModelCreate{
 						SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
 						SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
 					},
-					AudioPreprocessing: &AudioPreprocessingModel{
+					AudioPreprocessing: &AudioPreprocessingModelCreate{
 						SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
 						SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
 					},
@@ -493,6 +523,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
 		"treatUrlsAndPointersAsMedia":  model.Settings.TreatUrlsAndPointersAsMedia.ValueBool(),
 		"model":                        model.Settings.Model.ValueString(),
+		"modelProperties":              model.Settings.ModelProperties,
 		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
 		"allFields":                    convertAllFieldsToMap(model.Settings.AllFields),
 		"tensorFields":                 model.Settings.TensorFields,
@@ -504,6 +535,17 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"filterStringMaxLength":        model.Settings.FilterStringMaxLength.ValueInt64(),
 	}
 	// Optional dictionary fields
+	if model.Settings.ModelProperties != nil {
+		settings["modelProperties"] = map[string]interface{}{
+			"url":             model.Settings.ModelProperties.Url.ValueString(),
+			"dimensions":      model.Settings.ModelProperties.Dimensions.ValueInt64(),
+			"type":            model.Settings.ModelProperties.Type.ValueString(),
+			"tokens":          model.Settings.ModelProperties.Tokens.ValueInt64(),
+			"modelLocation":   model.Settings.ModelProperties.ModelLocation.ValueString(),
+			"name":            model.Settings.ModelProperties.Name.ValueString(),
+			"trustRemoteCode": model.Settings.ModelProperties.TrustRemoteCode.ValueBool(),
+		}
+	}
 	if model.Settings.TextPreprocessing != nil {
 		settings["textPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
@@ -554,6 +596,16 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.NormalizeEmbeddings.IsNull() {
 		delete(settings, "normalizeEmbeddings")
 	}
+	if model.Settings.ModelProperties == nil ||
+		(model.Settings.ModelProperties.Name.IsNull() &&
+			model.Settings.ModelProperties.Dimensions.IsNull() &&
+			model.Settings.ModelProperties.Type.IsNull() &&
+			model.Settings.ModelProperties.Tokens.IsNull() &&
+			model.Settings.ModelProperties.ModelLocation.IsNull() &&
+			model.Settings.ModelProperties.Url.IsNull() &&
+			model.Settings.ModelProperties.TrustRemoteCode.IsNull()) {
+		delete(settings, "modelProperties")
+	}
 	if model.Settings.TextPreprocessing == nil ||
 		(model.Settings.TextPreprocessing.SplitLength.IsNull() &&
 			model.Settings.TextPreprocessing.SplitMethod.IsNull() &&
@@ -587,7 +639,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		delete(settings, "numberOfInferences")
 	}
 	if model.Settings.StorageClass.IsNull() {
-		// Set storageClass to marqo.basic
 		settings["storageClass"] = "marqo.basic"
 	}
 	if model.Settings.NumberOfShards.IsNull() {
