@@ -1,7 +1,8 @@
 terraform {
   required_providers {
     marqo = {
-      source = "registry.terraform.io/marqo/marqo"
+      source = "marqo/marqo"
+      #version = "1.0.1"
     }
   }
 }

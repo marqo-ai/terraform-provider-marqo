@@ -33,6 +33,7 @@ func TestAccResourceIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.vector_numeric_type", "float"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.treat_urls_and_pointers_as_images", "true"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.treat_urls_and_pointers_as_media", "true"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "hf/e5-small-v2"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.normalize_embeddings", "true"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.small"),
