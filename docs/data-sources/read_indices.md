@@ -46,6 +46,7 @@ Read-Only:
 - `marqo_endpoint` (String) The Marqo endpoint used by the index
 - `marqo_version` (String) The version of Marqo used by the index
 - `model` (String) The model used by the index
+- `model_properties` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties))
 - `normalize_embeddings` (Boolean) Indicates if embeddings should be normalized
 - `number_of_inferences` (String) The number of inferences made by the index
 - `number_of_replicas` (String) The number of replicas for the index
@@ -93,6 +94,20 @@ Read-Only:
 Read-Only:
 
 - `patch_method` (String) The patch method for image preprocessing
+
+
+<a id="nestedatt--items--model_properties"></a>
+### Nested Schema for `items.model_properties`
+
+Read-Only:
+
+- `dimensions` (String)
+- `model_location` (String)
+- `name` (String)
+- `tokens` (String)
+- `trust_remote_code` (String)
+- `type` (String)
+- `url` (String)
 
 
 <a id="nestedatt--items--text_preprocessing"></a>
