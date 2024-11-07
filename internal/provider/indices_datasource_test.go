@@ -10,9 +10,6 @@ import (
 )
 
 func TestAccDataSourceIndices(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping acceptance test in short mode")
-	}
 	unstructured_index_name := fmt.Sprintf("donotdelete_unstr_dsrc_%s", randomString(7))
 
 	resource.Test(t, resource.TestCase{
