@@ -27,7 +27,10 @@ func TestListIndices(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/indexes", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"results": [{"indexName": "test-index"}]}`))
+		_, err := w.Write([]byte(`{"results": [{"indexName": "test-index"}]}`))
+		if err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 
@@ -47,7 +50,10 @@ func TestGetIndexSettings(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/indexes/test-index/settings", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"type": "test-type"}`))
+		_, err := w.Write([]byte(`{"type": "test-type"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 
@@ -84,7 +90,10 @@ func TestCreateIndex(t *testing.T) {
 
 		// Return success response
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "Index created successfully"}`))
+		_, err = w.Write([]byte(`{"message": "Index created successfully"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
 	}))
 	defer server.Close()
 
