@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "marqo" {
-  host    = "https://controller.marqo-staging.com/api/v2"
+  host    = "https://api.marqo.ai/api/v2"
   api_key = var.marqo_api_key
 }
 
