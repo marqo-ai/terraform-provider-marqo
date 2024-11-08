@@ -31,7 +31,6 @@ type indicesResource struct {
 
 // IndexResourceModel maps the resource schema data.
 type IndexResourceModel struct {
-	//ID        types.String       `tfsdk:"id"`
 	IndexName types.String       `tfsdk:"index_name"`
 	Settings  IndexSettingsModel `tfsdk:"settings"`
 }
@@ -134,10 +133,6 @@ func (r *indicesResource) Metadata(_ context.Context, req resource.MetadataReque
 func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			//"id": schema.StringAttribute{
-			//	Computed:    true,
-			//	Description: "The unique identifier for the index.",
-			//},
 			"index_name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the index.",
@@ -341,12 +336,6 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 	return allFields
 }
 
-// constructTensorFields constructs the tensorFields setting from the input.
-//func constructTensorFields(tensorFieldsInput []string) ([]string, error) {
-//	// Blank for now
-//	return tensorFieldsInput, nil
-//}
-
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
@@ -485,11 +474,9 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// if index no longer exists in cloud, delete the state
 	if !found {
 
-		resp.Diagnostics.AddWarning("Resource Not Found", "test The specified index does not exist in the cloud. The state will be deleted.")
-		//state = IndexResourceModel{}
+		resp.Diagnostics.AddWarning("Resource Not Found", "The specified index does not exist in the cloud. The state will be deleted.")
 		// Then Totally Remove from terraform resources
 		resp.State.RemoveResource(ctx)
-		//resp.State.Set(ctx, &IndexResourceModel{})
 		return
 	}
 
@@ -503,8 +490,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 // Standalone function to compare states.
 func statesAreEqual(existing *IndexResourceModel, desired *IndexResourceModel) bool {
-	// Implement a deep comparison between existing and desired states
-	// This is a basic implementation - you may need to adjust based on your specific needs
+	// A deep comparison between existing and desired states
 	return reflect.DeepEqual(existing.Settings, desired.Settings)
 }
 
@@ -658,8 +644,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	tflog.Debug(ctx, "Creating index with settings: %#v", settings)
 
-	//indexNameAsString := model.IndexName.
-
 	// Adjust settings for structured index
 	if model.Settings.Type.ValueString() == "structured" {
 		allFields, err := validateAndConstructAllFields(model.Settings.AllFields)
@@ -723,7 +707,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Set the index name as the ID in the Terraform state
-	//model.ID = model.IndexName
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 }
@@ -765,8 +748,6 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		delete(settings, "numberOfInferences")
 	}
 
-	//indexNameAsString := model.IndexName.
-
 	err := r.marqoClient.UpdateIndex(model.IndexName.ValueString(), settings)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to Update Index", "Could not create index: "+err.Error())
@@ -774,7 +755,6 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Set the index name as the ID in the Terraform state
-	//model.ID = model.IndexName
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 }

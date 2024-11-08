@@ -347,8 +347,6 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// Use the id from the configuration
 	model.ID = types.StringValue(model.ID.ValueString())
 
-	// fmt.Println("Indices: ", indices)
-
 	inferenceTypeMap := map[string]string{
 		"CPU.SMALL": "marqo.CPU.small",
 		"CPU.LARGE": "marqo.CPU.large",
