@@ -61,13 +61,13 @@ type AllFieldInput struct {
 }
 
 type ModelProperties struct {
-	Name            string `json:"name"`            // Required: Name of model in library
-	Dimensions      int64  `json:"dimensions"`      // Required: Dimensions of model
-	Type            string `json:"type"`            // Required: Type of model loader
-	Tokens          int64  `json:"tokens"`          // Optional: Number of tokens, default is 128
-	ModelLocation   string `json:"model_location"`  // Optional: Location of the model
-	Url             string `json:"url"`             // Optional: URL of the model
-	TrustRemoteCode bool   `json:"trustRemoteCode"` // Optional: Trust remote code
+	Name            string `json:"name"`
+	Dimensions      int64  `json:"dimensions"`
+	Type            string `json:"type"`
+	Tokens          int64  `json:"tokens"`
+	ModelLocation   string `json:"model_location"`
+	Url             string `json:"url"`
+	TrustRemoteCode bool   `json:"trustRemoteCode"`
 }
 
 type ImagePreprocessingModel struct {
