@@ -102,12 +102,44 @@ Read-Only:
 Read-Only:
 
 - `dimensions` (String)
-- `model_location` (String)
+- `is_marqtuned_model` (Boolean)
+- `model_location` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties--model_location))
 - `name` (String)
 - `tokens` (String)
 - `trust_remote_code` (String)
 - `type` (String)
 - `url` (String)
+
+<a id="nestedatt--items--model_properties--model_location"></a>
+### Nested Schema for `items.model_properties.model_location`
+
+Optional:
+
+- `hf` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties--model_location--hf))
+- `s3` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties--model_location--s3))
+
+Read-Only:
+
+- `auth_required` (Boolean)
+
+<a id="nestedatt--items--model_properties--model_location--hf"></a>
+### Nested Schema for `items.model_properties.model_location.auth_required`
+
+Read-Only:
+
+- `filename` (String)
+- `repo_id` (String)
+
+
+<a id="nestedatt--items--model_properties--model_location--s3"></a>
+### Nested Schema for `items.model_properties.model_location.auth_required`
+
+Read-Only:
+
+- `bucket` (String)
+- `key` (String)
+
+
 
 
 <a id="nestedatt--items--text_preprocessing"></a>

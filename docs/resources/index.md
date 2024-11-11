@@ -101,12 +101,41 @@ Optional:
 Optional:
 
 - `dimensions` (Number)
-- `model_location` (String)
+- `is_marqtuned_model` (Boolean)
+- `model_location` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties--model_location))
 - `name` (String)
 - `tokens` (Number)
 - `trust_remote_code` (Boolean)
 - `type` (String)
 - `url` (String)
+
+<a id="nestedatt--settings--model_properties--model_location"></a>
+### Nested Schema for `settings.model_properties.model_location`
+
+Optional:
+
+- `auth_required` (Boolean)
+- `hf` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties--model_location--hf))
+- `s3` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties--model_location--s3))
+
+<a id="nestedatt--settings--model_properties--model_location--hf"></a>
+### Nested Schema for `settings.model_properties.model_location.s3`
+
+Optional:
+
+- `filename` (String)
+- `repo_id` (String)
+
+
+<a id="nestedatt--settings--model_properties--model_location--s3"></a>
+### Nested Schema for `settings.model_properties.model_location.s3`
+
+Optional:
+
+- `bucket` (String)
+- `key` (String)
+
+
 
 
 <a id="nestedatt--settings--text_preprocessing"></a>
