@@ -66,13 +66,14 @@ type AllFieldInput struct {
 }
 
 type ModelPropertiesModelCreate struct {
-	Name            types.String `tfsdk:"name"`
-	Dimensions      types.Int64  `tfsdk:"dimensions"`
-	Type            types.String `tfsdk:"type"`
-	Tokens          types.Int64  `tfsdk:"tokens"`
-	ModelLocation   types.String `tfsdk:"model_location"`
-	Url             types.String `tfsdk:"url"`
-	TrustRemoteCode types.Bool   `tfsdk:"trust_remote_code"`
+	Name             types.String        `tfsdk:"name"`
+	Dimensions       types.Int64         `tfsdk:"dimensions"`
+	Type             types.String        `tfsdk:"type"`
+	Tokens           types.Int64         `tfsdk:"tokens"`
+	ModelLocation    *ModelLocationModel `tfsdk:"model_location"`
+	Url              types.String        `tfsdk:"url"`
+	TrustRemoteCode  types.Bool          `tfsdk:"trust_remote_code"`
+	IsMarqtunedModel types.Bool          `tfsdk:"is_marqtuned_model"`
 }
 
 type TextPreprocessingModelCreate struct {
@@ -197,13 +198,33 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"model_properties": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"name":              schema.StringAttribute{Optional: true},
-							"dimensions":        schema.Int64Attribute{Optional: true},
-							"type":              schema.StringAttribute{Optional: true},
-							"tokens":            schema.Int64Attribute{Optional: true},
-							"model_location":    schema.StringAttribute{Optional: true},
-							"url":               schema.StringAttribute{Optional: true},
-							"trust_remote_code": schema.BoolAttribute{Optional: true},
+							"name":       schema.StringAttribute{Optional: true},
+							"dimensions": schema.Int64Attribute{Optional: true},
+							"type":       schema.StringAttribute{Optional: true},
+							"tokens":     schema.Int64Attribute{Optional: true},
+							"model_location": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"s3": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"bucket": schema.StringAttribute{Optional: true},
+											"key":    schema.StringAttribute{Optional: true},
+										},
+									},
+									"hf": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"repo_id":  schema.StringAttribute{Optional: true},
+											"filename": schema.StringAttribute{Optional: true},
+										},
+									},
+									"auth_required": schema.BoolAttribute{Optional: true},
+								},
+							},
+							"url":                schema.StringAttribute{Optional: true},
+							"trust_remote_code":  schema.BoolAttribute{Optional: true},
+							"is_marqtuned_model": schema.BoolAttribute{Optional: true},
 						},
 					},
 					"normalize_embeddings": schema.BoolAttribute{
@@ -336,9 +357,53 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 	return allFields
 }
 
+func convertModelLocationToAPI(modelLocation *ModelLocationModel) map[string]interface{} {
+	if modelLocation == nil {
+		return nil
+	}
+
+	result := map[string]interface{}{
+		"authRequired": modelLocation.AuthRequired.ValueBool(),
+	}
+
+	if modelLocation.S3 != nil {
+		result["s3"] = map[string]interface{}{
+			"bucket": modelLocation.S3.Bucket.ValueString(),
+			"key":    modelLocation.S3.Key.ValueString(),
+		}
+	}
+
+	if modelLocation.Hf != nil {
+		result["hf"] = map[string]interface{}{
+			"repoId":   modelLocation.Hf.RepoId.ValueString(),
+			"filename": modelLocation.Hf.Filename.ValueString(),
+		}
+	}
+
+	return result
+}
+
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
+			modelLocation := &ModelLocationModel{
+				AuthRequired: types.BoolValue(indexDetail.ModelProperties.ModelLocation.AuthRequired),
+			}
+
+			if indexDetail.ModelProperties.ModelLocation.S3 != nil {
+				modelLocation.S3 = &S3LocationModel{
+					Bucket: types.StringValue(indexDetail.ModelProperties.ModelLocation.S3.Bucket),
+					Key:    types.StringValue(indexDetail.ModelProperties.ModelLocation.S3.Key),
+				}
+			}
+
+			if indexDetail.ModelProperties.ModelLocation.Hf != nil {
+				modelLocation.Hf = &HfLocationModel{
+					RepoId:   types.StringValue(indexDetail.ModelProperties.ModelLocation.Hf.RepoId),
+					Filename: types.StringValue(indexDetail.ModelProperties.ModelLocation.Hf.Filename),
+				}
+			}
+
 			return &IndexResourceModel{
 				//ID:        types.StringValue(indexDetail.IndexName),
 				IndexName: types.StringValue(indexDetail.IndexName),
@@ -349,13 +414,14 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
 					ModelProperties: &ModelPropertiesModelCreate{
-						Name:            types.StringValue(indexDetail.ModelProperties.Name),
-						Dimensions:      types.Int64Value(indexDetail.ModelProperties.Dimensions),
-						Type:            types.StringValue(indexDetail.ModelProperties.Type),
-						Tokens:          types.Int64Value(indexDetail.ModelProperties.Tokens),
-						ModelLocation:   types.StringValue(indexDetail.ModelProperties.ModelLocation),
-						Url:             types.StringValue(indexDetail.ModelProperties.Url),
-						TrustRemoteCode: types.BoolValue(indexDetail.ModelProperties.TrustRemoteCode),
+						Name:             types.StringValue(indexDetail.ModelProperties.Name),
+						Dimensions:       types.Int64Value(indexDetail.ModelProperties.Dimensions),
+						Type:             types.StringValue(indexDetail.ModelProperties.Type),
+						Tokens:           types.Int64Value(indexDetail.ModelProperties.Tokens),
+						ModelLocation:    modelLocation,
+						Url:              types.StringValue(indexDetail.ModelProperties.Url),
+						TrustRemoteCode:  types.BoolValue(indexDetail.ModelProperties.TrustRemoteCode),
+						IsMarqtunedModel: types.BoolValue(indexDetail.ModelProperties.IsMarqtunedModel),
 					},
 					AllFields:           ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 					TensorFields:        indexDetail.TensorFields,
@@ -522,15 +588,21 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	// Optional dictionary fields
 	if model.Settings.ModelProperties != nil {
-		settings["modelProperties"] = map[string]interface{}{
-			"url":             model.Settings.ModelProperties.Url.ValueString(),
-			"dimensions":      model.Settings.ModelProperties.Dimensions.ValueInt64(),
-			"type":            model.Settings.ModelProperties.Type.ValueString(),
-			"tokens":          model.Settings.ModelProperties.Tokens.ValueInt64(),
-			"modelLocation":   model.Settings.ModelProperties.ModelLocation.ValueString(),
-			"name":            model.Settings.ModelProperties.Name.ValueString(),
-			"trustRemoteCode": model.Settings.ModelProperties.TrustRemoteCode.ValueBool(),
+		modelPropertiesMap := map[string]interface{}{
+			"name":             model.Settings.ModelProperties.Name.ValueString(),
+			"dimensions":       model.Settings.ModelProperties.Dimensions.ValueInt64(),
+			"type":             model.Settings.ModelProperties.Type.ValueString(),
+			"tokens":           model.Settings.ModelProperties.Tokens.ValueInt64(),
+			"url":              model.Settings.ModelProperties.Url.ValueString(),
+			"trustRemoteCode":  model.Settings.ModelProperties.TrustRemoteCode.ValueBool(),
+			"isMarqtunedModel": model.Settings.ModelProperties.IsMarqtunedModel.ValueBool(),
 		}
+
+		if model.Settings.ModelProperties.ModelLocation != nil {
+			modelPropertiesMap["modelLocation"] = convertModelLocationToAPI(model.Settings.ModelProperties.ModelLocation)
+		}
+
+		settings["modelProperties"] = modelPropertiesMap
 	}
 	if model.Settings.TextPreprocessing != nil {
 		settings["textPreprocessing"] = map[string]interface{}{
@@ -587,7 +659,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			model.Settings.ModelProperties.Dimensions.IsNull() &&
 			model.Settings.ModelProperties.Type.IsNull() &&
 			model.Settings.ModelProperties.Tokens.IsNull() &&
-			model.Settings.ModelProperties.ModelLocation.IsNull() &&
+			model.Settings.ModelProperties.ModelLocation == nil &&
 			model.Settings.ModelProperties.Url.IsNull() &&
 			model.Settings.ModelProperties.TrustRemoteCode.IsNull()) {
 		delete(settings, "modelProperties")

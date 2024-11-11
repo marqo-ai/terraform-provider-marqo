@@ -62,13 +62,30 @@ type indexModel struct {
 }
 
 type ModelPropertiesModel struct {
-	Name            types.String `tfsdk:"name"`
-	Dimensions      types.String `tfsdk:"dimensions"`
-	Type            types.String `tfsdk:"type"`
-	Tokens          types.String `tfsdk:"tokens"`
-	ModelLocation   types.String `tfsdk:"model_location"`
-	Url             types.String `tfsdk:"url"`
-	TrustRemoteCode types.String `tfsdk:"trust_remote_code"`
+	Name             types.String       `tfsdk:"name"`
+	Dimensions       types.String       `tfsdk:"dimensions"`
+	Type             types.String       `tfsdk:"type"`
+	Tokens           types.String       `tfsdk:"tokens"`
+	ModelLocation    ModelLocationModel `tfsdk:"model_location"`
+	Url              types.String       `tfsdk:"url"`
+	TrustRemoteCode  types.String       `tfsdk:"trust_remote_code"`
+	IsMarqtunedModel types.Bool         `tfsdk:"is_marqtuned_model"`
+}
+
+type ModelLocationModel struct {
+	S3           *S3LocationModel `tfsdk:"s3"`
+	Hf           *HfLocationModel `tfsdk:"hf"`
+	AuthRequired types.Bool       `tfsdk:"auth_required"`
+}
+
+type S3LocationModel struct {
+	Bucket types.String `tfsdk:"bucket"`
+	Key    types.String `tfsdk:"key"`
+}
+
+type HfLocationModel struct {
+	RepoId   types.String `tfsdk:"repo_id"`
+	Filename types.String `tfsdk:"filename"`
 }
 
 type TextPreprocessingModel struct {
@@ -236,13 +253,35 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 						"model_properties": schema.SingleNestedAttribute{
 							Computed: true,
 							Attributes: map[string]schema.Attribute{
-								"name":              schema.StringAttribute{Computed: true},
-								"dimensions":        schema.StringAttribute{Computed: true},
-								"type":              schema.StringAttribute{Computed: true},
-								"tokens":            schema.StringAttribute{Computed: true},
-								"model_location":    schema.StringAttribute{Computed: true},
-								"url":               schema.StringAttribute{Computed: true},
-								"trust_remote_code": schema.StringAttribute{Computed: true},
+								"name":       schema.StringAttribute{Computed: true},
+								"dimensions": schema.StringAttribute{Computed: true},
+								"type":       schema.StringAttribute{Computed: true},
+								"tokens":     schema.StringAttribute{Computed: true},
+								"model_location": schema.SingleNestedAttribute{
+									Computed: true,
+									Attributes: map[string]schema.Attribute{
+										"s3": schema.SingleNestedAttribute{
+											Computed: true,
+											Optional: true,
+											Attributes: map[string]schema.Attribute{
+												"bucket": schema.StringAttribute{Computed: true},
+												"key":    schema.StringAttribute{Computed: true},
+											},
+										},
+										"hf": schema.SingleNestedAttribute{
+											Computed: true,
+											Optional: true,
+											Attributes: map[string]schema.Attribute{
+												"repo_id":  schema.StringAttribute{Computed: true},
+												"filename": schema.StringAttribute{Computed: true},
+											},
+										},
+										"auth_required": schema.BoolAttribute{Computed: true},
+									},
+								},
+								"url":                schema.StringAttribute{Computed: true},
+								"trust_remote_code":  schema.StringAttribute{Computed: true},
+								"is_marqtuned_model": schema.BoolAttribute{Computed: true},
 							},
 						},
 						"normalize_embeddings": schema.BoolAttribute{
@@ -326,6 +365,28 @@ func ConvertMarqoAllFieldInputs(marqoFields []go_marqo.AllFieldInput) []AllField
 	return allFieldsConverted
 }
 
+func convertModelLocation(location go_marqo.ModelLocation) ModelLocationModel {
+	modelLocation := ModelLocationModel{
+		AuthRequired: types.BoolValue(location.AuthRequired),
+	}
+
+	if location.S3 != nil {
+		modelLocation.S3 = &S3LocationModel{
+			Bucket: types.StringValue(location.S3.Bucket),
+			Key:    types.StringValue(location.S3.Key),
+		}
+	}
+
+	if location.Hf != nil {
+		modelLocation.Hf = &HfLocationModel{
+			RepoId:   types.StringValue(location.Hf.RepoId),
+			Filename: types.StringValue(location.Hf.Filename),
+		}
+	}
+
+	return modelLocation
+}
+
 // Read refreshes the Terraform state with the latest data.
 func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tflog.Debug(context.TODO(), "Calling marqo client ListIndices")
@@ -394,13 +455,14 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 			Model:                        types.StringValue(indexDetail.Model),
 			ModelProperties: ModelPropertiesModel{
-				Name:            types.StringValue(indexDetail.ModelProperties.Name),
-				Dimensions:      types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Dimensions)),
-				Type:            types.StringValue(indexDetail.ModelProperties.Type),
-				Tokens:          types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Tokens)),
-				ModelLocation:   types.StringValue(indexDetail.ModelProperties.ModelLocation),
-				Url:             types.StringValue(indexDetail.ModelProperties.Url),
-				TrustRemoteCode: types.StringValue(fmt.Sprintf("%t", indexDetail.ModelProperties.TrustRemoteCode)),
+				Name:             types.StringValue(indexDetail.ModelProperties.Name),
+				Dimensions:       types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Dimensions)),
+				Type:             types.StringValue(indexDetail.ModelProperties.Type),
+				Tokens:           types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Tokens)),
+				ModelLocation:    convertModelLocation(indexDetail.ModelProperties.ModelLocation),
+				Url:              types.StringValue(indexDetail.ModelProperties.Url),
+				TrustRemoteCode:  types.StringValue(fmt.Sprintf("%t", indexDetail.ModelProperties.TrustRemoteCode)),
+				IsMarqtunedModel: types.BoolValue(indexDetail.ModelProperties.IsMarqtunedModel),
 			},
 			NormalizeEmbeddings: types.BoolValue(indexDetail.NormalizeEmbeddings),
 			TextPreprocessing: TextPreprocessingModel{

@@ -61,13 +61,30 @@ type AllFieldInput struct {
 }
 
 type ModelProperties struct {
-	Name            string `json:"name"`
-	Dimensions      int64  `json:"dimensions"`
-	Type            string `json:"type"`
-	Tokens          int64  `json:"tokens"`
-	ModelLocation   string `json:"model_location"`
-	Url             string `json:"url"`
-	TrustRemoteCode bool   `json:"trustRemoteCode"`
+	Name             string        `json:"name"`
+	Dimensions       int64         `json:"dimensions"`
+	Type             string        `json:"type"`
+	Tokens           int64         `json:"tokens"`
+	ModelLocation    ModelLocation `json:"modelLocation"`
+	Url              string        `json:"url"`
+	TrustRemoteCode  bool          `json:"trustRemoteCode"`
+	IsMarqtunedModel bool          `json:"isMarqtunedModel"`
+}
+
+type ModelLocation struct {
+	S3           *S3Location `json:"s3,omitempty"`
+	Hf           *HfLocation `json:"hf,omitempty"`
+	AuthRequired bool        `json:"authRequired"`
+}
+
+type S3Location struct {
+	Bucket string `json:"bucket"`
+	Key    string `json:"key"`
+}
+
+type HfLocation struct {
+	RepoId   string `json:"repoId"`
+	Filename string `json:"filename"`
 }
 
 type ImagePreprocessingModel struct {
