@@ -34,7 +34,7 @@ func TestAccResourceIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "index_name", unstructured_custom_model_index_name),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "custom-model"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.url", "https://example-model.com/model.zip"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.url", "https://marqo-ecs-50-audio-test-dataset.s3.us-east-1.amazonaws.com/test-hf.zip"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.dimensions", "384"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.type", "hf"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.trust_remote_code", "false"),

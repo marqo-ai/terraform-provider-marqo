@@ -33,42 +33,44 @@ type allIndicesResourceModel struct {
 
 // indexModel maps index detail data.
 type indexModel struct {
-	Created                      types.String            `tfsdk:"created"`
-	IndexName                    types.String            `tfsdk:"index_name"`
-	NumberOfShards               types.String            `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.String            `tfsdk:"number_of_replicas"`
-	IndexStatus                  types.String            `tfsdk:"index_status"`
-	AllFields                    []AllFieldInput         `tfsdk:"all_fields"`
-	TensorFields                 []string                `tfsdk:"tensor_fields"`
-	NumberOfInferences           types.String            `tfsdk:"number_of_inferences"`
-	StorageClass                 types.String            `tfsdk:"storage_class"`
-	InferenceType                types.String            `tfsdk:"inference_type"`
-	DocsCount                    types.String            `tfsdk:"docs_count"`
-	StoreSize                    types.String            `tfsdk:"store_size"`
-	DocsDeleted                  types.String            `tfsdk:"docs_deleted"`
-	SearchQueryTotal             types.String            `tfsdk:"search_query_total"`
-	TreatUrlsAndPointersAsImages types.Bool              `tfsdk:"treat_urls_and_pointers_as_images"`
-	MarqoEndpoint                types.String            `tfsdk:"marqo_endpoint"`
-	Type                         types.String            `tfsdk:"type"`
-	VectorNumericType            types.String            `tfsdk:"vector_numeric_type"`
-	Model                        types.String            `tfsdk:"model"`
-	ModelProperties              ModelPropertiesModel    `tfsdk:"model_properties"`
-	NormalizeEmbeddings          types.Bool              `tfsdk:"normalize_embeddings"`
-	TextPreprocessing            TextPreprocessingModel  `tfsdk:"text_preprocessing"`
-	ImagePreprocessing           ImagePreprocessingModel `tfsdk:"image_preprocessing"`
-	AnnParameters                AnnParametersModel      `tfsdk:"ann_parameters"`
-	MarqoVersion                 types.String            `tfsdk:"marqo_version"`
-	FilterStringMaxLength        types.String            `tfsdk:"filter_string_max_length"`
+	Created                      types.String                  `tfsdk:"created"`
+	IndexName                    types.String                  `tfsdk:"index_name"`
+	NumberOfShards               types.String                  `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.String                  `tfsdk:"number_of_replicas"`
+	IndexStatus                  types.String                  `tfsdk:"index_status"`
+	AllFields                    []AllFieldInput               `tfsdk:"all_fields"`
+	TensorFields                 []string                      `tfsdk:"tensor_fields"`
+	NumberOfInferences           types.String                  `tfsdk:"number_of_inferences"`
+	StorageClass                 types.String                  `tfsdk:"storage_class"`
+	InferenceType                types.String                  `tfsdk:"inference_type"`
+	DocsCount                    types.String                  `tfsdk:"docs_count"`
+	StoreSize                    types.String                  `tfsdk:"store_size"`
+	DocsDeleted                  types.String                  `tfsdk:"docs_deleted"`
+	SearchQueryTotal             types.String                  `tfsdk:"search_query_total"`
+	TreatUrlsAndPointersAsImages types.Bool                    `tfsdk:"treat_urls_and_pointers_as_images"`
+	MarqoEndpoint                types.String                  `tfsdk:"marqo_endpoint"`
+	Type                         types.String                  `tfsdk:"type"`
+	VectorNumericType            types.String                  `tfsdk:"vector_numeric_type"`
+	Model                        types.String                  `tfsdk:"model"`
+	ModelProperties              ModelPropertiesModel          `tfsdk:"model_properties"`
+	NormalizeEmbeddings          types.Bool                    `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            TextPreprocessingModel        `tfsdk:"text_preprocessing"`
+	ImagePreprocessing           ImagePreprocessingModel       `tfsdk:"image_preprocessing"`
+	VideoPreprocessing           VideoPreprocessingModelCreate `tfsdk:"video_preprocessing"`
+	AudioPreprocessing           AudioPreprocessingModelCreate `tfsdk:"audio_preprocessing"`
+	AnnParameters                AnnParametersModel            `tfsdk:"ann_parameters"`
+	MarqoVersion                 types.String                  `tfsdk:"marqo_version"`
+	FilterStringMaxLength        types.String                  `tfsdk:"filter_string_max_length"`
 }
 
 type ModelPropertiesModel struct {
 	Name             types.String       `tfsdk:"name"`
-	Dimensions       types.String       `tfsdk:"dimensions"`
+	Dimensions       types.Int64        `tfsdk:"dimensions"`
 	Type             types.String       `tfsdk:"type"`
-	Tokens           types.String       `tfsdk:"tokens"`
+	Tokens           types.Int64        `tfsdk:"tokens"`
 	ModelLocation    ModelLocationModel `tfsdk:"model_location"`
 	Url              types.String       `tfsdk:"url"`
-	TrustRemoteCode  types.String       `tfsdk:"trust_remote_code"`
+	TrustRemoteCode  types.Bool         `tfsdk:"trust_remote_code"`
 	IsMarqtunedModel types.Bool         `tfsdk:"is_marqtuned_model"`
 }
 
@@ -252,6 +254,7 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 						},
 						"model_properties": schema.SingleNestedAttribute{
 							Computed: true,
+							Optional: true,
 							Attributes: map[string]schema.Attribute{
 								"name":       schema.StringAttribute{Computed: true},
 								"dimensions": schema.StringAttribute{Computed: true},
@@ -312,6 +315,22 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 									Computed:    true,
 									Description: "The patch method for image preprocessing",
 								},
+							},
+						},
+						"video_preprocessing": schema.SingleNestedAttribute{
+							Computed: true,
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"split_length":  schema.StringAttribute{Computed: true, Optional: true},
+								"split_overlap": schema.StringAttribute{Computed: true, Optional: true},
+							},
+						},
+						"audio_preprocessing": schema.SingleNestedAttribute{
+							Computed: true,
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"split_length":  schema.StringAttribute{Computed: true, Optional: true},
+								"split_overlap": schema.StringAttribute{Computed: true, Optional: true},
 							},
 						},
 						"ann_parameters": schema.SingleNestedAttribute{
@@ -433,7 +452,6 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		}
 
 		// Handle image_preprocessing.patch_method
-
 		items[i] = indexModel{
 			Created:                      types.StringValue(indexDetail.Created),
 			IndexName:                    types.StringValue(indexDetail.IndexName),
@@ -456,12 +474,12 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			Model:                        types.StringValue(indexDetail.Model),
 			ModelProperties: ModelPropertiesModel{
 				Name:             types.StringValue(indexDetail.ModelProperties.Name),
-				Dimensions:       types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Dimensions)),
+				Dimensions:       types.Int64Value(indexDetail.ModelProperties.Dimensions),
 				Type:             types.StringValue(indexDetail.ModelProperties.Type),
-				Tokens:           types.StringValue(fmt.Sprintf("%d", indexDetail.ModelProperties.Tokens)),
+				Tokens:           types.Int64Value(indexDetail.ModelProperties.Tokens),
 				ModelLocation:    convertModelLocation(indexDetail.ModelProperties.ModelLocation),
 				Url:              types.StringValue(indexDetail.ModelProperties.Url),
-				TrustRemoteCode:  types.StringValue(fmt.Sprintf("%t", indexDetail.ModelProperties.TrustRemoteCode)),
+				TrustRemoteCode:  types.BoolValue(indexDetail.ModelProperties.TrustRemoteCode),
 				IsMarqtunedModel: types.BoolValue(indexDetail.ModelProperties.IsMarqtunedModel),
 			},
 			NormalizeEmbeddings: types.BoolValue(indexDetail.NormalizeEmbeddings),
