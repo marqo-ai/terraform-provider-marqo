@@ -215,9 +215,10 @@ func testAccResourceIndexConfig(name string) string {
 				type = "unstructured"
 				vector_numeric_type = "float"
 				treat_urls_and_pointers_as_images = true
-				model = "hf/e5-small-v2"
+				treat_urls_and_pointers_as_media = true
+				model = "LanguageBind/Video_V1.5_FT_Audio_FT_Image"
 				normalize_embeddings = true
-				inference_type = "marqo.CPU.small"
+				inference_type = "marqo.GPU"
 				number_of_inferences = 1
 				number_of_replicas = 0
 				number_of_shards = 1
@@ -228,7 +229,17 @@ func testAccResourceIndexConfig(name string) string {
 					split_method = "sentence"
 					split_overlap = 0
 				}
-				image_preprocessing = {}
+				image_preprocessing = {
+					patch_method = "null"
+				}
+				video_preprocessing = {
+					split_length = 5
+					split_overlap = 1
+				}
+				audio_preprocessing = {
+					split_length = 5
+					split_overlap = 1
+				}
 				ann_parameters = {
 					space_type = "prenormalized-angular"
 					parameters = {
@@ -247,33 +258,44 @@ func testAccResourceIndexConfigUpdated(name string) string {
 		resource "marqo_index" "test" {
 		index_name = "%s"
 		settings = {
-			type = "unstructured"
-			vector_numeric_type = "float"
-			treat_urls_and_pointers_as_images = true
-			model = "hf/e5-small-v2"
-			normalize_embeddings = true
-			inference_type = "marqo.CPU.large"
-			number_of_inferences = 2
-			number_of_replicas = 0
-			number_of_shards = 1
-			storage_class = "marqo.basic"
-			all_fields = []
-			text_preprocessing = {
-				split_length = 2
-				split_method = "sentence"
-				split_overlap = 0
-			}
-			image_preprocessing = {}
-			ann_parameters = {
-				space_type = "prenormalized-angular"
-				parameters = {
-					ef_construction = 512
-					m = 16
+				type = "unstructured"
+				vector_numeric_type = "float"
+				treat_urls_and_pointers_as_images = true
+				treat_urls_and_pointers_as_media = true
+				model = "LanguageBind/Video_V1.5_FT_Audio_FT_Image"
+				normalize_embeddings = true
+				inference_type = "marqo.GPU"
+				number_of_inferences = 2
+				number_of_replicas = 0
+				number_of_shards = 1
+				storage_class = "marqo.basic"
+				all_fields = []
+				text_preprocessing = {
+					split_length = 2
+					split_method = "sentence"
+					split_overlap = 0
 				}
+				image_preprocessing = {
+					patch_method = "null"
+				}
+				video_preprocessing = {
+					split_length = 5
+					split_overlap = 1
+				}
+				audio_preprocessing = {
+					split_length = 5
+					split_overlap = 1
+				}
+				ann_parameters = {
+					space_type = "prenormalized-angular"
+					parameters = {
+						ef_construction = 512
+						m = 16
+					}
+				}
+				filter_string_max_length = 20
 			}
-			filter_string_max_length = 20
 		}
-	}
 		`, name)
 }
 

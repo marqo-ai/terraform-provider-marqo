@@ -531,6 +531,32 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 		}
 
+		// Handle video and audio preprocessing fields
+		if newState.Settings.VideoPreprocessing != nil &&
+			newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
+			newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+			newState.Settings.VideoPreprocessing = nil
+		}
+
+		if newState.Settings.AudioPreprocessing != nil &&
+			newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
+			newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+			newState.Settings.AudioPreprocessing = nil
+		}
+
+		// Handle model properties
+		if newState.Settings.ModelProperties != nil {
+			if newState.Settings.ModelProperties.Name.ValueString() == "" &&
+				newState.Settings.ModelProperties.Dimensions.ValueInt64() == 0 &&
+				newState.Settings.ModelProperties.Type.ValueString() == "" &&
+				newState.Settings.ModelProperties.Tokens.ValueInt64() == 0 &&
+				newState.Settings.ModelProperties.Url.ValueString() == "" &&
+				!newState.Settings.ModelProperties.TrustRemoteCode.ValueBool() &&
+				!newState.Settings.ModelProperties.IsMarqtunedModel.ValueBool() {
+				newState.Settings.ModelProperties = nil
+			}
+		}
+
 		// Remove null fields
 		if newState.Settings.InferenceType.IsNull() {
 			newState.Settings.InferenceType = types.StringNull()
@@ -659,7 +685,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			model.Settings.ModelProperties.Dimensions.IsNull() &&
 			model.Settings.ModelProperties.Type.IsNull() &&
 			model.Settings.ModelProperties.Tokens.IsNull() &&
-			model.Settings.ModelProperties.ModelLocation == nil &&
 			model.Settings.ModelProperties.Url.IsNull() &&
 			model.Settings.ModelProperties.TrustRemoteCode.IsNull()) {
 		delete(settings, "modelProperties")

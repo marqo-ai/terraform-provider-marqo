@@ -33,34 +33,32 @@ type allIndicesResourceModel struct {
 
 // indexModel maps index detail data.
 type indexModel struct {
-	Created                      types.String                  `tfsdk:"created"`
-	IndexName                    types.String                  `tfsdk:"index_name"`
-	NumberOfShards               types.String                  `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.String                  `tfsdk:"number_of_replicas"`
-	IndexStatus                  types.String                  `tfsdk:"index_status"`
-	AllFields                    []AllFieldInput               `tfsdk:"all_fields"`
-	TensorFields                 []string                      `tfsdk:"tensor_fields"`
-	NumberOfInferences           types.String                  `tfsdk:"number_of_inferences"`
-	StorageClass                 types.String                  `tfsdk:"storage_class"`
-	InferenceType                types.String                  `tfsdk:"inference_type"`
-	DocsCount                    types.String                  `tfsdk:"docs_count"`
-	StoreSize                    types.String                  `tfsdk:"store_size"`
-	DocsDeleted                  types.String                  `tfsdk:"docs_deleted"`
-	SearchQueryTotal             types.String                  `tfsdk:"search_query_total"`
-	TreatUrlsAndPointersAsImages types.Bool                    `tfsdk:"treat_urls_and_pointers_as_images"`
-	MarqoEndpoint                types.String                  `tfsdk:"marqo_endpoint"`
-	Type                         types.String                  `tfsdk:"type"`
-	VectorNumericType            types.String                  `tfsdk:"vector_numeric_type"`
-	Model                        types.String                  `tfsdk:"model"`
-	ModelProperties              ModelPropertiesModel          `tfsdk:"model_properties"`
-	NormalizeEmbeddings          types.Bool                    `tfsdk:"normalize_embeddings"`
-	TextPreprocessing            TextPreprocessingModel        `tfsdk:"text_preprocessing"`
-	ImagePreprocessing           ImagePreprocessingModel       `tfsdk:"image_preprocessing"`
-	VideoPreprocessing           VideoPreprocessingModelCreate `tfsdk:"video_preprocessing"`
-	AudioPreprocessing           AudioPreprocessingModelCreate `tfsdk:"audio_preprocessing"`
-	AnnParameters                AnnParametersModel            `tfsdk:"ann_parameters"`
-	MarqoVersion                 types.String                  `tfsdk:"marqo_version"`
-	FilterStringMaxLength        types.String                  `tfsdk:"filter_string_max_length"`
+	Created                      types.String            `tfsdk:"created"`
+	IndexName                    types.String            `tfsdk:"index_name"`
+	NumberOfShards               types.String            `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.String            `tfsdk:"number_of_replicas"`
+	IndexStatus                  types.String            `tfsdk:"index_status"`
+	AllFields                    []AllFieldInput         `tfsdk:"all_fields"`
+	TensorFields                 []string                `tfsdk:"tensor_fields"`
+	NumberOfInferences           types.String            `tfsdk:"number_of_inferences"`
+	StorageClass                 types.String            `tfsdk:"storage_class"`
+	InferenceType                types.String            `tfsdk:"inference_type"`
+	DocsCount                    types.String            `tfsdk:"docs_count"`
+	StoreSize                    types.String            `tfsdk:"store_size"`
+	DocsDeleted                  types.String            `tfsdk:"docs_deleted"`
+	SearchQueryTotal             types.String            `tfsdk:"search_query_total"`
+	TreatUrlsAndPointersAsImages types.Bool              `tfsdk:"treat_urls_and_pointers_as_images"`
+	MarqoEndpoint                types.String            `tfsdk:"marqo_endpoint"`
+	Type                         types.String            `tfsdk:"type"`
+	VectorNumericType            types.String            `tfsdk:"vector_numeric_type"`
+	Model                        types.String            `tfsdk:"model"`
+	ModelProperties              ModelPropertiesModel    `tfsdk:"model_properties"`
+	NormalizeEmbeddings          types.Bool              `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            TextPreprocessingModel  `tfsdk:"text_preprocessing"`
+	ImagePreprocessing           ImagePreprocessingModel `tfsdk:"image_preprocessing"`
+	AnnParameters                AnnParametersModel      `tfsdk:"ann_parameters"`
+	MarqoVersion                 types.String            `tfsdk:"marqo_version"`
+	FilterStringMaxLength        types.String            `tfsdk:"filter_string_max_length"`
 }
 
 type ModelPropertiesModel struct {
@@ -498,6 +496,18 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			},
 			MarqoVersion:          types.StringValue(indexDetail.MarqoVersion),
 			FilterStringMaxLength: types.StringValue(fmt.Sprintf("%d", indexDetail.FilterStringMaxLength)),
+		}
+
+		// Handle model properties
+		if items[i].ModelProperties.Name.IsNull() &&
+			items[i].ModelProperties.Dimensions.IsNull() &&
+			items[i].ModelProperties.Type.IsNull() &&
+			items[i].ModelProperties.Tokens.IsNull() &&
+			items[i].ModelProperties.Url.IsNull() &&
+			items[i].ModelProperties.TrustRemoteCode.IsNull() &&
+			items[i].ModelProperties.IsMarqtunedModel.IsNull() {
+			// Set to zero value if all fields are null/empty
+			items[i].ModelProperties = ModelPropertiesModel{}
 		}
 
 		// Remove null fields

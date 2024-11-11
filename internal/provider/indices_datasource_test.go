@@ -86,8 +86,6 @@ func testAccDataSourceIndexConfig(name string) string {
 						split_overlap = 0
 					}
 				image_preprocessing = {}
-				video_preprocessing = {}
-				audio_preprocessing = {}
 				ann_parameters = {
 				space_type = "prenormalized-angular"
 					parameters = {

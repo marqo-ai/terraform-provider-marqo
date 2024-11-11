@@ -30,7 +30,10 @@ description: |-
 Optional:
 
 - `all_fields` (Attributes List) (see [below for nested schema](#nestedatt--items--all_fields))
+- `audio_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--audio_preprocessing))
+- `model_properties` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties))
 - `tensor_fields` (List of String)
+- `video_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--video_preprocessing))
 
 Read-Only:
 
@@ -46,7 +49,6 @@ Read-Only:
 - `marqo_endpoint` (String) The Marqo endpoint used by the index
 - `marqo_version` (String) The version of Marqo used by the index
 - `model` (String) The model used by the index
-- `model_properties` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties))
 - `normalize_embeddings` (Boolean) Indicates if embeddings should be normalized
 - `number_of_inferences` (String) The number of inferences made by the index
 - `number_of_replicas` (String) The number of replicas for the index
@@ -70,30 +72,13 @@ Optional:
 - `type` (String)
 
 
-<a id="nestedatt--items--ann_parameters"></a>
-### Nested Schema for `items.ann_parameters`
+<a id="nestedatt--items--audio_preprocessing"></a>
+### Nested Schema for `items.audio_preprocessing`
 
-Read-Only:
+Optional:
 
-- `parameters` (Attributes) (see [below for nested schema](#nestedatt--items--ann_parameters--parameters))
-- `space_type` (String) The space type for ANN parameters
-
-<a id="nestedatt--items--ann_parameters--parameters"></a>
-### Nested Schema for `items.ann_parameters.parameters`
-
-Read-Only:
-
-- `ef_construction` (String) The efConstruction parameter for ANN
-- `m` (String) The m parameter for ANN
-
-
-
-<a id="nestedatt--items--image_preprocessing"></a>
-### Nested Schema for `items.image_preprocessing`
-
-Read-Only:
-
-- `patch_method` (String) The patch method for image preprocessing
+- `split_length` (String)
+- `split_overlap` (String)
 
 
 <a id="nestedatt--items--model_properties"></a>
@@ -140,6 +125,41 @@ Read-Only:
 - `key` (String)
 
 
+
+
+<a id="nestedatt--items--video_preprocessing"></a>
+### Nested Schema for `items.video_preprocessing`
+
+Optional:
+
+- `split_length` (String)
+- `split_overlap` (String)
+
+
+<a id="nestedatt--items--ann_parameters"></a>
+### Nested Schema for `items.ann_parameters`
+
+Read-Only:
+
+- `parameters` (Attributes) (see [below for nested schema](#nestedatt--items--ann_parameters--parameters))
+- `space_type` (String) The space type for ANN parameters
+
+<a id="nestedatt--items--ann_parameters--parameters"></a>
+### Nested Schema for `items.ann_parameters.parameters`
+
+Read-Only:
+
+- `ef_construction` (String) The efConstruction parameter for ANN
+- `m` (String) The m parameter for ANN
+
+
+
+<a id="nestedatt--items--image_preprocessing"></a>
+### Nested Schema for `items.image_preprocessing`
+
+Read-Only:
+
+- `patch_method` (String) The patch method for image preprocessing
 
 
 <a id="nestedatt--items--text_preprocessing"></a>
