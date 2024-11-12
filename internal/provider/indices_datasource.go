@@ -435,7 +435,7 @@ func (m *ModelPropertiesModel) IsEmpty() bool {
 		(m.ModelLocation == nil || m.ModelLocation.IsEmpty())
 }
 
-// Convert ModelProperties from the API response to our schema model
+// Convert ModelProperties from the API response to our schema model.
 func convertModelProperties(props *go_marqo.ModelProperties) *ModelPropertiesModel {
 	if props == nil {
 		return nil
