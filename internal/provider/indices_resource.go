@@ -48,7 +48,7 @@ type IndexSettingsModel struct {
 	TreatUrlsAndPointersAsImages types.Bool                     `tfsdk:"treat_urls_and_pointers_as_images"`
 	TreatUrlsAndPointersAsMedia  types.Bool                     `tfsdk:"treat_urls_and_pointers_as_media"`
 	Model                        types.String                   `tfsdk:"model"`
-	ModelProperties              *ModelPropertiesModelCreate    `tfsdk:"model_properties"`
+	ModelProperties              *ModelPropertiesModel          `tfsdk:"model_properties"`
 	NormalizeEmbeddings          types.Bool                     `tfsdk:"normalize_embeddings"`
 	TextPreprocessing            *TextPreprocessingModelCreate  `tfsdk:"text_preprocessing"`
 	ImagePreprocessing           *ImagePreprocessingModel       `tfsdk:"image_preprocessing"`
@@ -63,17 +63,6 @@ type AllFieldInput struct {
 	Type            types.String             `tfsdk:"type"`
 	Features        []types.String           `tfsdk:"features"`
 	DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
-}
-
-type ModelPropertiesModelCreate struct {
-	Name             types.String        `tfsdk:"name"`
-	Dimensions       types.Int64         `tfsdk:"dimensions"`
-	Type             types.String        `tfsdk:"type"`
-	Tokens           types.Int64         `tfsdk:"tokens"`
-	ModelLocation    *ModelLocationModel `tfsdk:"model_location"`
-	Url              types.String        `tfsdk:"url"`
-	TrustRemoteCode  types.Bool          `tfsdk:"trust_remote_code"`
-	IsMarqtunedModel types.Bool          `tfsdk:"is_marqtuned_model"`
 }
 
 type TextPreprocessingModelCreate struct {
@@ -383,27 +372,32 @@ func convertModelLocationToAPI(modelLocation *ModelLocationModel) map[string]int
 	return result
 }
 
+func (m *ModelPropertiesModel) IsEmpty() bool {
+	if m == nil {
+		return true
+	}
+	return m.Name.IsNull() &&
+		m.Dimensions.IsNull() &&
+		m.Type.IsNull() &&
+		m.Tokens.IsNull() &&
+		m.Url.IsNull() &&
+		!m.TrustRemoteCode.ValueBool() &&
+		!m.IsMarqtunedModel.ValueBool() &&
+		(m.ModelLocation == nil || m.ModelLocation.IsEmpty())
+}
+
+func (m *ModelLocationModel) IsEmpty() bool {
+	if m == nil {
+		return true
+	}
+	return !m.AuthRequired.ValueBool() &&
+		(m.S3 == nil || (m.S3.Bucket.IsNull() && m.S3.Key.IsNull())) &&
+		(m.Hf == nil || (m.Hf.RepoId.IsNull() && m.Hf.Filename.IsNull()))
+}
+
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
-			modelLocation := &ModelLocationModel{
-				AuthRequired: types.BoolValue(indexDetail.ModelProperties.ModelLocation.AuthRequired),
-			}
-
-			if indexDetail.ModelProperties.ModelLocation.S3 != nil {
-				modelLocation.S3 = &S3LocationModel{
-					Bucket: types.StringValue(indexDetail.ModelProperties.ModelLocation.S3.Bucket),
-					Key:    types.StringValue(indexDetail.ModelProperties.ModelLocation.S3.Key),
-				}
-			}
-
-			if indexDetail.ModelProperties.ModelLocation.Hf != nil {
-				modelLocation.Hf = &HfLocationModel{
-					RepoId:   types.StringValue(indexDetail.ModelProperties.ModelLocation.Hf.RepoId),
-					Filename: types.StringValue(indexDetail.ModelProperties.ModelLocation.Hf.Filename),
-				}
-			}
-
 			return &IndexResourceModel{
 				//ID:        types.StringValue(indexDetail.IndexName),
 				IndexName: types.StringValue(indexDetail.IndexName),
@@ -413,12 +407,12 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
 					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
-					ModelProperties: &ModelPropertiesModelCreate{
+					ModelProperties: &ModelPropertiesModel{
 						Name:             types.StringValue(indexDetail.ModelProperties.Name),
 						Dimensions:       types.Int64Value(indexDetail.ModelProperties.Dimensions),
 						Type:             types.StringValue(indexDetail.ModelProperties.Type),
 						Tokens:           types.Int64Value(indexDetail.ModelProperties.Tokens),
-						ModelLocation:    modelLocation,
+						ModelLocation:    convertModelLocation(indexDetail.ModelProperties.ModelLocation),
 						Url:              types.StringValue(indexDetail.ModelProperties.Url),
 						TrustRemoteCode:  types.BoolValue(indexDetail.ModelProperties.TrustRemoteCode),
 						IsMarqtunedModel: types.BoolValue(indexDetail.ModelProperties.IsMarqtunedModel),
@@ -545,16 +539,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 
 		// Handle model properties
-		if newState.Settings.ModelProperties != nil {
-			if newState.Settings.ModelProperties.Name.ValueString() == "" &&
-				newState.Settings.ModelProperties.Dimensions.ValueInt64() == 0 &&
-				newState.Settings.ModelProperties.Type.ValueString() == "" &&
-				newState.Settings.ModelProperties.Tokens.ValueInt64() == 0 &&
-				newState.Settings.ModelProperties.Url.ValueString() == "" &&
-				!newState.Settings.ModelProperties.TrustRemoteCode.ValueBool() &&
-				!newState.Settings.ModelProperties.IsMarqtunedModel.ValueBool() {
-				newState.Settings.ModelProperties = nil
-			}
+		if newState.Settings.ModelProperties.IsEmpty() {
+			newState.Settings.ModelProperties = nil
 		}
 
 		// Remove null fields

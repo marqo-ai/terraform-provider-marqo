@@ -58,6 +58,7 @@ Read-Only:
 - `store_size` (String) The size of the index storage
 - `text_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--text_preprocessing))
 - `treat_urls_and_pointers_as_images` (Boolean) Indicates if URLs and pointers should be treated as images
+- `treat_urls_and_pointers_as_media` (Boolean) Indicates if URLs and pointers should be treated as media
 - `type` (String) The type of the index
 - `vector_numeric_type` (String) The numeric type of the vector
 
