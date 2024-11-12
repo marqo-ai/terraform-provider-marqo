@@ -392,8 +392,6 @@ func (m *ModelPropertiesModelCreate) IsEmpty() bool {
 		m.Type.IsNull() &&
 		m.Tokens.IsNull() &&
 		m.Url.IsNull() &&
-		!m.TrustRemoteCode.ValueBool() &&
-		!m.IsMarqtunedModel.ValueBool() &&
 		(m.ModelLocation == nil || m.ModelLocation.IsEmpty())
 }
 
@@ -401,7 +399,7 @@ func (m *ModelLocationModel) IsEmpty() bool {
 	if m == nil {
 		return true
 	}
-	return !m.AuthRequired.ValueBool() &&
+	return m.AuthRequired.IsNull() &&
 		(m.S3 == nil || (m.S3.Bucket.IsNull() && m.S3.Key.IsNull())) &&
 		(m.Hf == nil || (m.Hf.RepoId.IsNull() && m.Hf.Filename.IsNull()))
 }
@@ -429,13 +427,18 @@ func convertModelPropertiesToResource(props *go_marqo.ModelProperties) *ModelPro
 	if props.Url != "" {
 		model.Url = types.StringValue(props.Url)
 	}
+	if props.TrustRemoteCode {
+		model.TrustRemoteCode = types.BoolValue(true)
+	}
+	if props.IsMarqtunedModel {
+		model.IsMarqtunedModel = types.BoolValue(true)
+	}
+	// Only convert ModelLocation if it has non-null values
+	if loc := convertModelLocation(props.ModelLocation); loc != nil {
+		model.ModelLocation = loc
+	}
 
-	model.TrustRemoteCode = types.BoolValue(props.TrustRemoteCode)
-	model.IsMarqtunedModel = types.BoolValue(props.IsMarqtunedModel)
-
-	model.ModelLocation = convertModelLocation(props.ModelLocation)
-
-	// Only return the model if it's not empty
+	// Only return the model if it's not empty.
 	if model.IsEmpty() {
 		return nil
 	}

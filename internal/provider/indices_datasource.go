@@ -298,7 +298,7 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 									},
 								},
 								"url":                schema.StringAttribute{Computed: true},
-								"trust_remote_code":  schema.StringAttribute{Computed: true},
+								"trust_remote_code":  schema.BoolAttribute{Computed: true},
 								"is_marqtuned_model": schema.BoolAttribute{Computed: true},
 							},
 						},
@@ -400,25 +400,32 @@ func ConvertMarqoAllFieldInputs(marqoFields []go_marqo.AllFieldInput) []AllField
 }
 
 func convertModelLocation(location go_marqo.ModelLocation) *ModelLocationModel {
-	modelLocation := &ModelLocationModel{
-		AuthRequired: types.BoolValue(location.AuthRequired),
+	model := &ModelLocationModel{}
+
+	if location.AuthRequired {
+		model.AuthRequired = types.BoolValue(true)
 	}
 
-	if location.S3 != nil {
-		modelLocation.S3 = &S3LocationModel{
+	if location.S3 != nil && (location.S3.Bucket != "" || location.S3.Key != "") {
+		model.S3 = &S3LocationModel{
 			Bucket: types.StringValue(location.S3.Bucket),
 			Key:    types.StringValue(location.S3.Key),
 		}
 	}
 
-	if location.Hf != nil {
-		modelLocation.Hf = &HfLocationModel{
+	if location.Hf != nil && (location.Hf.RepoId != "" || location.Hf.Filename != "") {
+		model.Hf = &HfLocationModel{
 			RepoId:   types.StringValue(location.Hf.RepoId),
 			Filename: types.StringValue(location.Hf.Filename),
 		}
 	}
 
-	return modelLocation
+	// Return nil if no fields were set
+	if model.AuthRequired.IsNull() && model.S3 == nil && model.Hf == nil {
+		return nil
+	}
+
+	return model
 }
 
 func (m *ModelPropertiesModel) IsEmpty() bool {
@@ -430,8 +437,6 @@ func (m *ModelPropertiesModel) IsEmpty() bool {
 		m.Type.IsNull() &&
 		m.Tokens.IsNull() &&
 		m.Url.IsNull() &&
-		!m.TrustRemoteCode.ValueBool() &&
-		!m.IsMarqtunedModel.ValueBool() &&
 		(m.ModelLocation == nil || m.ModelLocation.IsEmpty())
 }
 
@@ -460,8 +465,12 @@ func convertModelProperties(props *go_marqo.ModelProperties) *ModelPropertiesMod
 		model.Url = types.StringValue(props.Url)
 	}
 
-	model.TrustRemoteCode = types.BoolValue(props.TrustRemoteCode)
-	model.IsMarqtunedModel = types.BoolValue(props.IsMarqtunedModel)
+	if props.TrustRemoteCode {
+		model.TrustRemoteCode = types.BoolValue(true)
+	}
+	if props.IsMarqtunedModel {
+		model.IsMarqtunedModel = types.BoolValue(true)
+	}
 
 	model.ModelLocation = convertModelLocation(props.ModelLocation)
 

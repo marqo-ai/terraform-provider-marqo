@@ -8,8 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func TestAccResourceIndex(t *testing.T) {
-	unstructured_langbind_index_name := fmt.Sprintf("donotdelete_unstr_resrc_%s", randomString(6))
+func TestAccResourceCustomModelIndex(t *testing.T) {
 	unstructured_custom_model_index_name := fmt.Sprintf("donotdelete_unstr_resrc_%s", randomString(6))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -19,7 +18,6 @@ func TestAccResourceIndex(t *testing.T) {
 			{
 				Config: testAccEmptyConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckIndexExistsAndDelete(unstructured_langbind_index_name),
 					testAccCheckIndexExistsAndDelete(unstructured_custom_model_index_name),
 				),
 			},
@@ -37,12 +35,29 @@ func TestAccResourceIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.url", "https://marqo-ecs-50-audio-test-dataset.s3.us-east-1.amazonaws.com/test-hf.zip"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.dimensions", "384"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.type", "hf"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.model_properties.trust_remote_code", "false"),
 					testAccCheckIndexIsReady(unstructured_custom_model_index_name),
 					func(s *terraform.State) error {
 						fmt.Println("Custom Model testing completed")
 						return nil
 					},
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceLangBindIndex(t *testing.T) {
+	unstructured_langbind_index_name := fmt.Sprintf("donotdelete_unstr_resrc_%s", randomString(6))
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(unstructured_langbind_index_name),
 				),
 			},
 			// Create and Read testing
@@ -307,12 +322,12 @@ func testAccResourceIndexConfigCustomModel(name string) string {
             type = "unstructured"
             vector_numeric_type = "float"
             treat_urls_and_pointers_as_images = true
+            treat_urls_and_pointers_as_media = true
             model = "custom-model"
             model_properties = {
                 url = "https://marqo-ecs-50-audio-test-dataset.s3.us-east-1.amazonaws.com/test-hf.zip"
                 dimensions = 384
                 type = "hf"
-                trust_remote_code = false
             }
             normalize_embeddings = true
             inference_type = "marqo.CPU.small"
