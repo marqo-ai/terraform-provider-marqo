@@ -83,7 +83,6 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_length", "2"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_method", "sentence"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_overlap", "0"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.image_preprocessing.patch_method", "null"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.video_preprocessing.split_length", "5"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.video_preprocessing.split_overlap", "1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.audio_preprocessing.split_length", "5"),
@@ -243,9 +242,6 @@ func testAccResourceIndexConfig(name string) string {
 					split_length = 2
 					split_method = "sentence"
 					split_overlap = 0
-				}
-				image_preprocessing = {
-					patch_method = "null"
 				}
 				video_preprocessing = {
 					split_length = 5

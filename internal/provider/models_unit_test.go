@@ -20,14 +20,12 @@ func TestModelPropertiesModel_IsEmpty(t *testing.T) {
 		{
 			name: "empty model",
 			model: &ModelPropertiesModel{
-				Name:             types.StringNull(),
-				Dimensions:       types.StringValue(""),
-				Type:             types.StringNull(),
-				Tokens:           types.StringValue(""),
-				Url:              types.StringNull(),
-				TrustRemoteCode:  types.BoolValue(false),
-				IsMarqtunedModel: types.BoolValue(false),
-				ModelLocation:    nil,
+				Name:          types.StringNull(),
+				Dimensions:    types.StringNull(),
+				Type:          types.StringNull(),
+				Tokens:        types.StringNull(),
+				Url:           types.StringNull(),
+				ModelLocation: nil,
 			},
 			expected: true,
 		},
@@ -44,6 +42,20 @@ func TestModelPropertiesModel_IsEmpty(t *testing.T) {
 				ModelLocation:    nil,
 			},
 			expected: false,
+		},
+		{
+			name: "model with only boolean values",
+			model: &ModelPropertiesModel{
+				Name:             types.StringNull(),
+				Dimensions:       types.StringNull(),
+				Type:             types.StringNull(),
+				Tokens:           types.StringNull(),
+				Url:              types.StringNull(),
+				TrustRemoteCode:  types.BoolValue(false),
+				IsMarqtunedModel: types.BoolValue(false),
+				ModelLocation:    nil,
+			},
+			expected: true,
 		},
 		{
 			name: "model with only model location",
@@ -87,7 +99,7 @@ func TestModelLocationModel_IsEmpty(t *testing.T) {
 		{
 			name: "empty location",
 			location: &ModelLocationModel{
-				AuthRequired: types.BoolValue(false),
+				AuthRequired: types.BoolNull(),
 				S3:           nil,
 				Hf:           nil,
 			},

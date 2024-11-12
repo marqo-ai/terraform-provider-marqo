@@ -92,7 +92,7 @@ Read-Only:
 - `model_location` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties--model_location))
 - `name` (String)
 - `tokens` (String)
-- `trust_remote_code` (String)
+- `trust_remote_code` (Boolean)
 - `type` (String)
 - `url` (String)
 
