@@ -66,9 +66,9 @@ type indexModel struct {
 
 type ModelPropertiesModel struct {
 	Name             types.String        `tfsdk:"name"`
-	Dimensions       types.Int64         `tfsdk:"dimensions"`
+	Dimensions       types.String        `tfsdk:"dimensions"`
 	Type             types.String        `tfsdk:"type"`
-	Tokens           types.Int64         `tfsdk:"tokens"`
+	Tokens           types.String        `tfsdk:"tokens"`
 	ModelLocation    *ModelLocationModel `tfsdk:"model_location"`
 	Url              types.String        `tfsdk:"url"`
 	TrustRemoteCode  types.Bool          `tfsdk:"trust_remote_code"`
@@ -421,6 +421,58 @@ func convertModelLocation(location go_marqo.ModelLocation) *ModelLocationModel {
 	return modelLocation
 }
 
+func (m *ModelPropertiesModel) IsEmpty() bool {
+	if m == nil {
+		return true
+	}
+	return m.Name.IsNull() &&
+		m.Dimensions.IsNull() &&
+		m.Type.IsNull() &&
+		m.Tokens.IsNull() &&
+		m.Url.IsNull() &&
+		!m.TrustRemoteCode.ValueBool() &&
+		!m.IsMarqtunedModel.ValueBool() &&
+		(m.ModelLocation == nil || m.ModelLocation.IsEmpty())
+}
+
+// Convert ModelProperties from the API response to our schema model
+func convertModelProperties(props *go_marqo.ModelProperties) *ModelPropertiesModel {
+	if props == nil {
+		return nil
+	}
+
+	model := &ModelPropertiesModel{}
+
+	// Convert only non-empty values
+	if props.Name != "" {
+		model.Name = types.StringValue(props.Name)
+	}
+	if props.Dimensions != 0 {
+		model.Dimensions = types.StringValue(fmt.Sprintf("%d", props.Dimensions))
+	}
+	if props.Type != "" {
+		model.Type = types.StringValue(props.Type)
+	}
+	if props.Tokens != 0 {
+		model.Tokens = types.StringValue(fmt.Sprintf("%d", props.Tokens))
+	}
+	if props.Url != "" {
+		model.Url = types.StringValue(props.Url)
+	}
+
+	model.TrustRemoteCode = types.BoolValue(props.TrustRemoteCode)
+	model.IsMarqtunedModel = types.BoolValue(props.IsMarqtunedModel)
+
+	model.ModelLocation = convertModelLocation(props.ModelLocation)
+
+	// Only return the model if it's not empty
+	if model.IsEmpty() {
+		return nil
+	}
+
+	return model
+}
+
 // Read refreshes the Terraform state with the latest data.
 func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tflog.Debug(context.TODO(), "Calling marqo client ListIndices")
@@ -488,17 +540,8 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			Type:                         types.StringValue(indexDetail.Type),
 			VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 			Model:                        types.StringValue(indexDetail.Model),
-			ModelProperties: &ModelPropertiesModel{
-				Name:             types.StringValue(indexDetail.ModelProperties.Name),
-				Dimensions:       types.Int64Value(indexDetail.ModelProperties.Dimensions),
-				Type:             types.StringValue(indexDetail.ModelProperties.Type),
-				Tokens:           types.Int64Value(indexDetail.ModelProperties.Tokens),
-				ModelLocation:    convertModelLocation(indexDetail.ModelProperties.ModelLocation),
-				Url:              types.StringValue(indexDetail.ModelProperties.Url),
-				TrustRemoteCode:  types.BoolValue(indexDetail.ModelProperties.TrustRemoteCode),
-				IsMarqtunedModel: types.BoolValue(indexDetail.ModelProperties.IsMarqtunedModel),
-			},
-			NormalizeEmbeddings: types.BoolValue(indexDetail.NormalizeEmbeddings),
+			ModelProperties:              convertModelProperties(&indexDetail.ModelProperties),
+			NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
 			TextPreprocessing: &TextPreprocessingModel{
 				SplitLength:  types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitLength)),
 				SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),

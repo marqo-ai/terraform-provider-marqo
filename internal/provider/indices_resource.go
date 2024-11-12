@@ -48,7 +48,7 @@ type IndexSettingsModel struct {
 	TreatUrlsAndPointersAsImages types.Bool                     `tfsdk:"treat_urls_and_pointers_as_images"`
 	TreatUrlsAndPointersAsMedia  types.Bool                     `tfsdk:"treat_urls_and_pointers_as_media"`
 	Model                        types.String                   `tfsdk:"model"`
-	ModelProperties              *ModelPropertiesModel          `tfsdk:"model_properties"`
+	ModelProperties              *ModelPropertiesModelCreate    `tfsdk:"model_properties"`
 	NormalizeEmbeddings          types.Bool                     `tfsdk:"normalize_embeddings"`
 	TextPreprocessing            *TextPreprocessingModelCreate  `tfsdk:"text_preprocessing"`
 	ImagePreprocessing           *ImagePreprocessingModel       `tfsdk:"image_preprocessing"`
@@ -56,6 +56,17 @@ type IndexSettingsModel struct {
 	AudioPreprocessing           *AudioPreprocessingModelCreate `tfsdk:"audio_preprocessing"`
 	AnnParameters                *AnnParametersModelCreate      `tfsdk:"ann_parameters"`
 	FilterStringMaxLength        types.Int64                    `tfsdk:"filter_string_max_length"`
+}
+
+type ModelPropertiesModelCreate struct {
+	Name             types.String        `tfsdk:"name"`
+	Dimensions       types.Int64         `tfsdk:"dimensions"`
+	Type             types.String        `tfsdk:"type"`
+	Tokens           types.Int64         `tfsdk:"tokens"`
+	ModelLocation    *ModelLocationModel `tfsdk:"model_location"`
+	Url              types.String        `tfsdk:"url"`
+	TrustRemoteCode  types.Bool          `tfsdk:"trust_remote_code"`
+	IsMarqtunedModel types.Bool          `tfsdk:"is_marqtuned_model"`
 }
 
 type AllFieldInput struct {
@@ -372,7 +383,7 @@ func convertModelLocationToAPI(modelLocation *ModelLocationModel) map[string]int
 	return result
 }
 
-func (m *ModelPropertiesModel) IsEmpty() bool {
+func (m *ModelPropertiesModelCreate) IsEmpty() bool {
 	if m == nil {
 		return true
 	}
@@ -395,6 +406,43 @@ func (m *ModelLocationModel) IsEmpty() bool {
 		(m.Hf == nil || (m.Hf.RepoId.IsNull() && m.Hf.Filename.IsNull()))
 }
 
+func convertModelPropertiesToResource(props *go_marqo.ModelProperties) *ModelPropertiesModelCreate {
+	if props == nil {
+		return nil
+	}
+
+	model := &ModelPropertiesModelCreate{}
+
+	// Convert only non-empty values
+	if props.Name != "" {
+		model.Name = types.StringValue(props.Name)
+	}
+	if props.Dimensions != 0 {
+		model.Dimensions = types.Int64Value(props.Dimensions)
+	}
+	if props.Type != "" {
+		model.Type = types.StringValue(props.Type)
+	}
+	if props.Tokens != 0 {
+		model.Tokens = types.Int64Value(props.Tokens)
+	}
+	if props.Url != "" {
+		model.Url = types.StringValue(props.Url)
+	}
+
+	model.TrustRemoteCode = types.BoolValue(props.TrustRemoteCode)
+	model.IsMarqtunedModel = types.BoolValue(props.IsMarqtunedModel)
+
+	model.ModelLocation = convertModelLocation(props.ModelLocation)
+
+	// Only return the model if it's not empty
+	if model.IsEmpty() {
+		return nil
+	}
+
+	return model
+}
+
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
@@ -407,24 +455,15 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
 					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
-					ModelProperties: &ModelPropertiesModel{
-						Name:             types.StringValue(indexDetail.ModelProperties.Name),
-						Dimensions:       types.Int64Value(indexDetail.ModelProperties.Dimensions),
-						Type:             types.StringValue(indexDetail.ModelProperties.Type),
-						Tokens:           types.Int64Value(indexDetail.ModelProperties.Tokens),
-						ModelLocation:    convertModelLocation(indexDetail.ModelProperties.ModelLocation),
-						Url:              types.StringValue(indexDetail.ModelProperties.Url),
-						TrustRemoteCode:  types.BoolValue(indexDetail.ModelProperties.TrustRemoteCode),
-						IsMarqtunedModel: types.BoolValue(indexDetail.ModelProperties.IsMarqtunedModel),
-					},
-					AllFields:           ConvertMarqoAllFieldInputs(indexDetail.AllFields),
-					TensorFields:        indexDetail.TensorFields,
-					NormalizeEmbeddings: types.BoolValue(indexDetail.NormalizeEmbeddings),
-					InferenceType:       types.StringValue(indexDetail.InferenceType),
-					NumberOfInferences:  types.Int64Value(indexDetail.NumberOfInferences),
-					StorageClass:        types.StringValue(indexDetail.StorageClass),
-					NumberOfShards:      types.Int64Value(indexDetail.NumberOfShards),
-					NumberOfReplicas:    types.Int64Value(indexDetail.NumberOfReplicas),
+					ModelProperties:              convertModelPropertiesToResource(&indexDetail.ModelProperties),
+					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
+					TensorFields:                 indexDetail.TensorFields,
+					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
+					InferenceType:                types.StringValue(indexDetail.InferenceType),
+					NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
+					StorageClass:                 types.StringValue(indexDetail.StorageClass),
+					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
+					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
 					TextPreprocessing: &TextPreprocessingModelCreate{
 						SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
 						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
