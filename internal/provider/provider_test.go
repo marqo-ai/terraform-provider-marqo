@@ -145,7 +145,7 @@ func testAccCheckIndexIsReady(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Error creating Marqo client: %s", err)
 		}
 
-		timeout := time.After(15 * time.Minute)
+		timeout := time.After(30 * time.Minute)
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 

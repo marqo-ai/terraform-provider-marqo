@@ -567,7 +567,15 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 		}
 
-		// Handle video and audio preprocessing fields
+		// preserve the video/audio preprocessing from current state since api does not return them
+		if state.Settings.VideoPreprocessing != nil {
+			newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
+		}
+		if state.Settings.AudioPreprocessing != nil {
+			newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
+		}
+
+		// Then handle zero values (existing code)
 		if newState.Settings.VideoPreprocessing != nil &&
 			newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
 			newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {

@@ -243,6 +243,7 @@ func testAccResourceIndexConfig(name string) string {
 					split_method = "sentence"
 					split_overlap = 0
 				}
+				image_preprocessing = {}
 				video_preprocessing = {
 					split_length = 5
 					split_overlap = 1
@@ -286,6 +287,7 @@ func testAccResourceIndexConfigUpdated(name string) string {
 					split_method = "sentence"
 					split_overlap = 0
 				}
+				image_preprocessing = {}
 				video_preprocessing = {
 					split_length = 5
 					split_overlap = 1
