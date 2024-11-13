@@ -286,9 +286,6 @@ func testAccResourceIndexConfigUpdated(name string) string {
 					split_method = "sentence"
 					split_overlap = 0
 				}
-				image_preprocessing = {
-					patch_method = "null"
-				}
 				video_preprocessing = {
 					split_length = 5
 					split_overlap = 1
