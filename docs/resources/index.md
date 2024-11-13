@@ -37,13 +37,17 @@ Optional:
 
 - `all_fields` (Attributes List) (see [below for nested schema](#nestedatt--settings--all_fields))
 - `ann_parameters` (Attributes) (see [below for nested schema](#nestedatt--settings--ann_parameters))
+- `audio_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--audio_preprocessing))
 - `filter_string_max_length` (Number)
 - `image_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--image_preprocessing))
+- `model_properties` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties))
 - `normalize_embeddings` (Boolean)
 - `tensor_fields` (List of String)
 - `text_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--text_preprocessing))
 - `treat_urls_and_pointers_as_images` (Boolean)
+- `treat_urls_and_pointers_as_media` (Boolean)
 - `vector_numeric_type` (String)
+- `video_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--video_preprocessing))
 
 <a id="nestedatt--settings--all_fields"></a>
 ### Nested Schema for `settings.all_fields`
@@ -74,12 +78,64 @@ Optional:
 
 
 
+<a id="nestedatt--settings--audio_preprocessing"></a>
+### Nested Schema for `settings.audio_preprocessing`
+
+Optional:
+
+- `split_length` (Number)
+- `split_overlap` (Number)
+
+
 <a id="nestedatt--settings--image_preprocessing"></a>
 ### Nested Schema for `settings.image_preprocessing`
 
 Optional:
 
 - `patch_method` (String)
+
+
+<a id="nestedatt--settings--model_properties"></a>
+### Nested Schema for `settings.model_properties`
+
+Optional:
+
+- `dimensions` (Number)
+- `is_marqtuned_model` (Boolean)
+- `model_location` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties--model_location))
+- `name` (String)
+- `tokens` (Number)
+- `trust_remote_code` (Boolean)
+- `type` (String)
+- `url` (String)
+
+<a id="nestedatt--settings--model_properties--model_location"></a>
+### Nested Schema for `settings.model_properties.model_location`
+
+Optional:
+
+- `auth_required` (Boolean)
+- `hf` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties--model_location--hf))
+- `s3` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties--model_location--s3))
+
+<a id="nestedatt--settings--model_properties--model_location--hf"></a>
+### Nested Schema for `settings.model_properties.model_location.s3`
+
+Optional:
+
+- `filename` (String)
+- `repo_id` (String)
+
+
+<a id="nestedatt--settings--model_properties--model_location--s3"></a>
+### Nested Schema for `settings.model_properties.model_location.s3`
+
+Optional:
+
+- `bucket` (String)
+- `key` (String)
+
+
 
 
 <a id="nestedatt--settings--text_preprocessing"></a>
@@ -89,4 +145,13 @@ Optional:
 
 - `split_length` (Number)
 - `split_method` (String)
+- `split_overlap` (Number)
+
+
+<a id="nestedatt--settings--video_preprocessing"></a>
+### Nested Schema for `settings.video_preprocessing`
+
+Optional:
+
+- `split_length` (Number)
 - `split_overlap` (Number)

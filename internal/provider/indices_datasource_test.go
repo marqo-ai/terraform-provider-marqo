@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccDataSourceIndices(t *testing.T) {
-	unstructured_index_name := fmt.Sprintf("unstructured_dsource_%s", randomString(9))
+	unstructured_index_name := fmt.Sprintf("donotdelete_unstr_dsrc_%s", randomString(7))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -71,6 +71,7 @@ func testAccDataSourceIndexConfig(name string) string {
 				type = "unstructured"
 				vector_numeric_type = "float"
 				treat_urls_and_pointers_as_images = true
+				treat_urls_and_pointers_as_media = true
 				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
 				normalize_embeddings = true
 				inference_type = "marqo.CPU.small"

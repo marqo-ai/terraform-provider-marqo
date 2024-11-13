@@ -37,13 +37,17 @@ type IndexDetail struct {
 	DocsDeleted                  string                  `json:"docs.deleted"`
 	SearchQueryTotal             string                  `json:"search.queryTotal"`
 	TreatUrlsAndPointersAsImages bool                    `json:"treatUrlsAndPointersAsImages"`
+	TreatUrlsAndPointersAsMedia  bool                    `json:"treatUrlsAndPointersAsMedia"`
 	MarqoEndpoint                string                  `json:"marqoEndpoint"`
 	Type                         string                  `json:"type"`
 	VectorNumericType            string                  `json:"vectorNumericType"`
 	Model                        string                  `json:"model"`
+	ModelProperties              ModelProperties         `json:"modelProperties"`
 	NormalizeEmbeddings          bool                    `json:"normalizeEmbeddings"`
 	TextPreprocessing            TextPreprocessing       `json:"textPreprocessing"`
 	ImagePreprocessing           ImagePreprocessingModel `json:"imagePreprocessing"` // Assuming no specific structure
+	VideoPreprocessing           VideoPreprocessingModel `json:"videoPreprocessing"`
+	AudioPreprocessing           AudioPreprocessingModel `json:"audioPreprocessing"`
 	AnnParameters                AnnParameters           `json:"annParameters"`
 	MarqoVersion                 string                  `json:"marqoVersion"`
 	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
@@ -56,6 +60,33 @@ type AllFieldInput struct {
 	DependentFields map[string]float64 `tfsdk:"dependentFields"`
 }
 
+type ModelProperties struct {
+	Name             string        `json:"name"`
+	Dimensions       int64         `json:"dimensions"`
+	Type             string        `json:"type"`
+	Tokens           int64         `json:"tokens"`
+	ModelLocation    ModelLocation `json:"modelLocation"`
+	Url              string        `json:"url"`
+	TrustRemoteCode  bool          `json:"trustRemoteCode"`
+	IsMarqtunedModel bool          `json:"isMarqtunedModel"`
+}
+
+type ModelLocation struct {
+	S3           *S3Location `json:"s3,omitempty"`
+	Hf           *HfLocation `json:"hf,omitempty"`
+	AuthRequired bool        `json:"authRequired"`
+}
+
+type S3Location struct {
+	Bucket string `json:"bucket"`
+	Key    string `json:"key"`
+}
+
+type HfLocation struct {
+	RepoId   string `json:"repoId"`
+	Filename string `json:"filename"`
+}
+
 type ImagePreprocessingModel struct {
 	PatchMethod string `json:"patchMethod"`
 }
@@ -64,6 +95,16 @@ type TextPreprocessing struct {
 	SplitLength  int64  `json:"splitLength"`
 	SplitMethod  string `json:"splitMethod"`
 	SplitOverlap int64  `json:"splitOverlap"`
+}
+
+type VideoPreprocessingModel struct {
+	SplitLength  int64 `json:"splitLength"`
+	SplitOverlap int64 `json:"splitOverlap"`
+}
+
+type AudioPreprocessingModel struct {
+	SplitLength  int64 `json:"splitLength"`
+	SplitOverlap int64 `json:"splitOverlap"`
 }
 
 type AnnParameters struct {
@@ -130,8 +171,6 @@ func NewClient(baseURL, apiKey *string) (*Client, error) {
 	//	else:
 	//		instance_mappings = DefaultInstanceMappings(url, main_user, main_password)
 	// Print the input parameters
-	fmt.Println(baseURL)
-	fmt.Println(apiKey)
 
 	// Create the client instance
 	client := &Client{
@@ -169,7 +208,7 @@ func (c *Client) ListIndices() ([]IndexDetail, error) {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
 
-	//tflog.Debug(context.Background(), fmt.Sprintf("Response body length: %d", len(body)))
+	tflog.Debug(context.Background(), fmt.Sprintf("Response body length: %d", len(body)))
 
 	// Log the response body in chunks
 	/*
@@ -245,7 +284,6 @@ func (c *Client) GetIndexStats(indexName string) (IndexStats, error) {
 // CreateIndex creates a new index with the given settings.
 func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) error {
 	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
-	//fmt.Printf("%T\n", settings)
 
 	jsonData, err := json.Marshal(settings)
 	if err != nil {
@@ -256,9 +294,6 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	fmt.Println("Settings: ", settings)
-	fmt.Println("Request: ", req)
-	//fmt.Println("JSON Body: ", jsonData)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-KEY", c.APIKey)
@@ -267,7 +302,7 @@ func (c *Client) CreateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	fmt.Println("Response: ", resp)
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -316,8 +351,6 @@ func (c *Client) UpdateIndex(indexName string, settings map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	//fmt.Println("Settings: ", settings)
-	//fmt.Println("Request: ", req)
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-KEY", c.APIKey)

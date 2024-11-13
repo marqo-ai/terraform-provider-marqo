@@ -31,31 +31,43 @@ type indicesResource struct {
 
 // IndexResourceModel maps the resource schema data.
 type IndexResourceModel struct {
-	//ID        types.String       `tfsdk:"id"`
 	IndexName types.String       `tfsdk:"index_name"`
 	Settings  IndexSettingsModel `tfsdk:"settings"`
 }
 
 type IndexSettingsModel struct {
-	Type                         types.String                 `tfsdk:"type"`
-	VectorNumericType            types.String                 `tfsdk:"vector_numeric_type"`
-	NumberOfInferences           types.Int64                  `tfsdk:"number_of_inferences"`
-	AllFields                    []AllFieldInput              `tfsdk:"all_fields"`
-	TensorFields                 []string                     `tfsdk:"tensor_fields"`
-	InferenceType                types.String                 `tfsdk:"inference_type"`
-	StorageClass                 types.String                 `tfsdk:"storage_class"`
-	NumberOfShards               types.Int64                  `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.Int64                  `tfsdk:"number_of_replicas"`
-	TreatUrlsAndPointersAsImages types.Bool                   `tfsdk:"treat_urls_and_pointers_as_images"`
-	Model                        types.String                 `tfsdk:"model"`
-	NormalizeEmbeddings          types.Bool                   `tfsdk:"normalize_embeddings"`
-	TextPreprocessing            TextPreprocessingModelCreate `tfsdk:"text_preprocessing"`
-	ImagePreprocessing           ImagePreprocessingModel      `tfsdk:"image_preprocessing"`
-	AnnParameters                AnnParametersModelCreate     `tfsdk:"ann_parameters"`
-	FilterStringMaxLength        types.Int64                  `tfsdk:"filter_string_max_length"`
+	Type                         types.String                   `tfsdk:"type"`
+	VectorNumericType            types.String                   `tfsdk:"vector_numeric_type"`
+	NumberOfInferences           types.Int64                    `tfsdk:"number_of_inferences"`
+	AllFields                    []AllFieldInput                `tfsdk:"all_fields"`
+	TensorFields                 []string                       `tfsdk:"tensor_fields"`
+	InferenceType                types.String                   `tfsdk:"inference_type"`
+	StorageClass                 types.String                   `tfsdk:"storage_class"`
+	NumberOfShards               types.Int64                    `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.Int64                    `tfsdk:"number_of_replicas"`
+	TreatUrlsAndPointersAsImages types.Bool                     `tfsdk:"treat_urls_and_pointers_as_images"`
+	TreatUrlsAndPointersAsMedia  types.Bool                     `tfsdk:"treat_urls_and_pointers_as_media"`
+	Model                        types.String                   `tfsdk:"model"`
+	ModelProperties              *ModelPropertiesModelCreate    `tfsdk:"model_properties"`
+	NormalizeEmbeddings          types.Bool                     `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            *TextPreprocessingModelCreate  `tfsdk:"text_preprocessing"`
+	ImagePreprocessing           *ImagePreprocessingModel       `tfsdk:"image_preprocessing"`
+	VideoPreprocessing           *VideoPreprocessingModelCreate `tfsdk:"video_preprocessing"`
+	AudioPreprocessing           *AudioPreprocessingModelCreate `tfsdk:"audio_preprocessing"`
+	AnnParameters                *AnnParametersModelCreate      `tfsdk:"ann_parameters"`
+	FilterStringMaxLength        types.Int64                    `tfsdk:"filter_string_max_length"`
 }
 
-//             "dependentFields": {"image_field": 0.8, "text_field": 0.1},
+type ModelPropertiesModelCreate struct {
+	Name             types.String        `tfsdk:"name"`
+	Dimensions       types.Int64         `tfsdk:"dimensions"`
+	Type             types.String        `tfsdk:"type"`
+	Tokens           types.Int64         `tfsdk:"tokens"`
+	ModelLocation    *ModelLocationModel `tfsdk:"model_location"`
+	Url              types.String        `tfsdk:"url"`
+	TrustRemoteCode  types.Bool          `tfsdk:"trust_remote_code"`
+	IsMarqtunedModel types.Bool          `tfsdk:"is_marqtuned_model"`
+}
 
 type AllFieldInput struct {
 	Name            types.String             `tfsdk:"name"`
@@ -72,6 +84,16 @@ type TextPreprocessingModelCreate struct {
 
 type ImagePreprocessingModel struct {
 	PatchMethod types.String `tfsdk:"patch_method"`
+}
+
+type VideoPreprocessingModelCreate struct {
+	SplitLength  types.Int64 `tfsdk:"split_length"`
+	SplitOverlap types.Int64 `tfsdk:"split_overlap"`
+}
+
+type AudioPreprocessingModelCreate struct {
+	SplitLength  types.Int64 `tfsdk:"split_length"`
+	SplitOverlap types.Int64 `tfsdk:"split_overlap"`
 }
 
 type AnnParametersModelCreate struct {
@@ -112,10 +134,6 @@ func (r *indicesResource) Metadata(_ context.Context, req resource.MetadataReque
 func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			//"id": schema.StringAttribute{
-			//	Computed:    true,
-			//	Description: "The unique identifier for the index.",
-			//},
 			"index_name": schema.StringAttribute{
 				Required:    true,
 				Description: "The name of the index.",
@@ -171,8 +189,43 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"treat_urls_and_pointers_as_images": schema.BoolAttribute{
 						Optional: true,
 					},
+					"treat_urls_and_pointers_as_media": schema.BoolAttribute{
+						Optional: true,
+					},
 					"model": schema.StringAttribute{
 						Required: true,
+					},
+					"model_properties": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"name":       schema.StringAttribute{Optional: true},
+							"dimensions": schema.Int64Attribute{Optional: true},
+							"type":       schema.StringAttribute{Optional: true},
+							"tokens":     schema.Int64Attribute{Optional: true},
+							"model_location": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"s3": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"bucket": schema.StringAttribute{Optional: true},
+											"key":    schema.StringAttribute{Optional: true},
+										},
+									},
+									"hf": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"repo_id":  schema.StringAttribute{Optional: true},
+											"filename": schema.StringAttribute{Optional: true},
+										},
+									},
+									"auth_required": schema.BoolAttribute{Optional: true},
+								},
+							},
+							"url":                schema.StringAttribute{Optional: true},
+							"trust_remote_code":  schema.BoolAttribute{Optional: true},
+							"is_marqtuned_model": schema.BoolAttribute{Optional: true},
+						},
 					},
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,
@@ -189,6 +242,20 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"patch_method": schema.StringAttribute{Optional: true},
+						},
+					},
+					"video_preprocessing": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"split_length":  schema.Int64Attribute{Optional: true},
+							"split_overlap": schema.Int64Attribute{Optional: true},
+						},
+					},
+					"audio_preprocessing": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"split_length":  schema.Int64Attribute{Optional: true},
+							"split_overlap": schema.Int64Attribute{Optional: true},
 						},
 					},
 					"ann_parameters": schema.SingleNestedAttribute{
@@ -290,11 +357,94 @@ func convertAllFieldsToMap(allFieldsInput []AllFieldInput) []map[string]interfac
 	return allFields
 }
 
-// constructTensorFields constructs the tensorFields setting from the input.
-//func constructTensorFields(tensorFieldsInput []string) ([]string, error) {
-//	// Blank for now
-//	return tensorFieldsInput, nil
-//}
+func convertModelLocationToAPI(modelLocation *ModelLocationModel) map[string]interface{} {
+	if modelLocation == nil {
+		return nil
+	}
+
+	result := map[string]interface{}{
+		"authRequired": modelLocation.AuthRequired.ValueBool(),
+	}
+
+	if modelLocation.S3 != nil {
+		result["s3"] = map[string]interface{}{
+			"bucket": modelLocation.S3.Bucket.ValueString(),
+			"key":    modelLocation.S3.Key.ValueString(),
+		}
+	}
+
+	if modelLocation.Hf != nil {
+		result["hf"] = map[string]interface{}{
+			"repoId":   modelLocation.Hf.RepoId.ValueString(),
+			"filename": modelLocation.Hf.Filename.ValueString(),
+		}
+	}
+
+	return result
+}
+
+func (m *ModelPropertiesModelCreate) IsEmpty() bool {
+	if m == nil {
+		return true
+	}
+	return m.Name.IsNull() &&
+		m.Dimensions.IsNull() &&
+		m.Type.IsNull() &&
+		m.Tokens.IsNull() &&
+		m.Url.IsNull() &&
+		(m.ModelLocation == nil || m.ModelLocation.IsEmpty())
+}
+
+func (m *ModelLocationModel) IsEmpty() bool {
+	if m == nil {
+		return true
+	}
+	return m.AuthRequired.IsNull() &&
+		(m.S3 == nil || (m.S3.Bucket.IsNull() && m.S3.Key.IsNull())) &&
+		(m.Hf == nil || (m.Hf.RepoId.IsNull() && m.Hf.Filename.IsNull()))
+}
+
+func convertModelPropertiesToResource(props *go_marqo.ModelProperties) *ModelPropertiesModelCreate {
+	if props == nil {
+		return nil
+	}
+
+	model := &ModelPropertiesModelCreate{}
+
+	// Convert only non-empty values
+	if props.Name != "" {
+		model.Name = types.StringValue(props.Name)
+	}
+	if props.Dimensions != 0 {
+		model.Dimensions = types.Int64Value(props.Dimensions)
+	}
+	if props.Type != "" {
+		model.Type = types.StringValue(props.Type)
+	}
+	if props.Tokens != 0 {
+		model.Tokens = types.Int64Value(props.Tokens)
+	}
+	if props.Url != "" {
+		model.Url = types.StringValue(props.Url)
+	}
+	if props.TrustRemoteCode {
+		model.TrustRemoteCode = types.BoolValue(true)
+	}
+	if props.IsMarqtunedModel {
+		model.IsMarqtunedModel = types.BoolValue(true)
+	}
+	// Only convert ModelLocation if it has non-null values
+	if loc := convertModelLocation(props.ModelLocation); loc != nil {
+		model.ModelLocation = loc
+	}
+
+	// Only return the model if it's not empty.
+	if model.IsEmpty() {
+		return nil
+	}
+
+	return model
+}
 
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
@@ -306,7 +456,9 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					Type:                         types.StringValue(indexDetail.Type),
 					VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
+					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
+					ModelProperties:              convertModelPropertiesToResource(&indexDetail.ModelProperties),
 					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 					TensorFields:                 indexDetail.TensorFields,
 					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
@@ -315,15 +467,23 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					StorageClass:                 types.StringValue(indexDetail.StorageClass),
 					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
 					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
-					TextPreprocessing: TextPreprocessingModelCreate{
+					TextPreprocessing: &TextPreprocessingModelCreate{
 						SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
 						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
 						SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
 					},
-					ImagePreprocessing: ImagePreprocessingModel{
+					ImagePreprocessing: &ImagePreprocessingModel{
 						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 					},
-					AnnParameters: AnnParametersModelCreate{
+					VideoPreprocessing: &VideoPreprocessingModelCreate{
+						SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
+						SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
+					},
+					AudioPreprocessing: &AudioPreprocessingModelCreate{
+						SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
+						SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
+					},
+					AnnParameters: &AnnParametersModelCreate{
 						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
 						Parameters: ParametersModel{
 							EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
@@ -399,11 +559,38 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if newState.Settings.Type.ValueString() == "structured" {
 			newState.Settings.FilterStringMaxLength = types.Int64Null()
 			newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+			newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
 		}
 
 		// Handle image_preprocessing.patch_method
 		if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
 			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+		}
+
+		// preserve the video/audio preprocessing from current state since api does not return them
+		if state.Settings.VideoPreprocessing != nil {
+			newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
+		}
+		if state.Settings.AudioPreprocessing != nil {
+			newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
+		}
+
+		// Then handle zero values (existing code)
+		if newState.Settings.VideoPreprocessing != nil &&
+			newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
+			newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+			newState.Settings.VideoPreprocessing = nil
+		}
+
+		if newState.Settings.AudioPreprocessing != nil &&
+			newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
+			newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+			newState.Settings.AudioPreprocessing = nil
+		}
+
+		// Handle model properties
+		if newState.Settings.ModelProperties.IsEmpty() {
+			newState.Settings.ModelProperties = nil
 		}
 
 		// Remove null fields
@@ -415,11 +602,9 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	// if index no longer exists in cloud, delete the state
 	if !found {
 
-		resp.Diagnostics.AddWarning("Resource Not Found", "test The specified index does not exist in the cloud. The state will be deleted.")
-		//state = IndexResourceModel{}
+		resp.Diagnostics.AddWarning("Resource Not Found", "The specified index does not exist in the cloud. The state will be deleted.")
 		// Then Totally Remove from terraform resources
 		resp.State.RemoveResource(ctx)
-		//resp.State.Set(ctx, &IndexResourceModel{})
 		return
 	}
 
@@ -433,8 +618,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 // Standalone function to compare states.
 func statesAreEqual(existing *IndexResourceModel, desired *IndexResourceModel) bool {
-	// Implement a deep comparison between existing and desired states
-	// This is a basic implementation - you may need to adjust based on your specific needs
+	// A deep comparison between existing and desired states
 	return reflect.DeepEqual(existing.Settings, desired.Settings)
 }
 
@@ -451,7 +635,9 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"type":                         model.Settings.Type.ValueString(),
 		"vectorNumericType":            model.Settings.VectorNumericType.ValueString(),
 		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
+		"treatUrlsAndPointersAsMedia":  model.Settings.TreatUrlsAndPointersAsMedia.ValueBool(),
 		"model":                        model.Settings.Model.ValueString(),
+		"modelProperties":              model.Settings.ModelProperties,
 		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
 		"allFields":                    convertAllFieldsToMap(model.Settings.AllFields),
 		"tensorFields":                 model.Settings.TensorFields,
@@ -460,22 +646,58 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"storageClass":                 model.Settings.StorageClass.ValueString(),
 		"numberOfShards":               model.Settings.NumberOfShards.ValueInt64(),
 		"numberOfReplicas":             model.Settings.NumberOfReplicas.ValueInt64(),
-		"textPreprocessing": map[string]interface{}{
+		"filterStringMaxLength":        model.Settings.FilterStringMaxLength.ValueInt64(),
+	}
+	// Optional dictionary fields
+	if model.Settings.ModelProperties != nil {
+		modelPropertiesMap := map[string]interface{}{
+			"name":             model.Settings.ModelProperties.Name.ValueString(),
+			"dimensions":       model.Settings.ModelProperties.Dimensions.ValueInt64(),
+			"type":             model.Settings.ModelProperties.Type.ValueString(),
+			"tokens":           model.Settings.ModelProperties.Tokens.ValueInt64(),
+			"url":              model.Settings.ModelProperties.Url.ValueString(),
+			"trustRemoteCode":  model.Settings.ModelProperties.TrustRemoteCode.ValueBool(),
+			"isMarqtunedModel": model.Settings.ModelProperties.IsMarqtunedModel.ValueBool(),
+		}
+
+		if model.Settings.ModelProperties.ModelLocation != nil {
+			modelPropertiesMap["modelLocation"] = convertModelLocationToAPI(model.Settings.ModelProperties.ModelLocation)
+		}
+
+		settings["modelProperties"] = modelPropertiesMap
+	}
+	if model.Settings.TextPreprocessing != nil {
+		settings["textPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
 			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod.ValueString(),
 			"splitOverlap": model.Settings.TextPreprocessing.SplitOverlap.ValueInt64(),
-		},
-		"imagePreprocessing": map[string]interface{}{
+		}
+	}
+	if model.Settings.ImagePreprocessing != nil {
+		settings["imagePreprocessing"] = map[string]interface{}{
 			"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
-		},
-		"annParameters": map[string]interface{}{
+		}
+	}
+	if model.Settings.VideoPreprocessing != nil {
+		settings["videoPreprocessing"] = map[string]interface{}{
+			"splitLength":  model.Settings.VideoPreprocessing.SplitLength.ValueInt64(),
+			"splitOverlap": model.Settings.VideoPreprocessing.SplitOverlap.ValueInt64(),
+		}
+	}
+	if model.Settings.AudioPreprocessing != nil {
+		settings["audioPreprocessing"] = map[string]interface{}{
+			"splitLength":  model.Settings.AudioPreprocessing.SplitLength.ValueInt64(),
+			"splitOverlap": model.Settings.AudioPreprocessing.SplitOverlap.ValueInt64(),
+		}
+	}
+	if model.Settings.AnnParameters != nil {
+		settings["annParameters"] = map[string]interface{}{
 			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
 			"parameters": map[string]interface{}{
 				"efConstruction": model.Settings.AnnParameters.Parameters.EfConstruction.ValueInt64(),
 				"m":              model.Settings.AnnParameters.Parameters.M.ValueInt64(),
 			},
-		},
-		"filterStringMaxLength": model.Settings.FilterStringMaxLength.ValueInt64(),
+		}
 	}
 
 	// Remove optional fields if they are not set
@@ -485,19 +707,49 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
 		delete(settings, "treatUrlsAndPointersAsImages")
 	}
+	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+		delete(settings, "treatUrlsAndPointersAsMedia")
+	}
 	if model.Settings.Model.IsNull() {
 		delete(settings, "model")
 	}
 	if model.Settings.NormalizeEmbeddings.IsNull() {
 		delete(settings, "normalizeEmbeddings")
 	}
-	if imagePreprocessing, ok := settings["imagePreprocessing"].(map[string]interface{}); ok {
-		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
-			delete(imagePreprocessing, "patchMethod")
-		}
-		if len(imagePreprocessing) == 0 {
-			delete(settings, "imagePreprocessing")
-		}
+	if model.Settings.ModelProperties == nil ||
+		(model.Settings.ModelProperties.Name.IsNull() &&
+			model.Settings.ModelProperties.Dimensions.IsNull() &&
+			model.Settings.ModelProperties.Type.IsNull() &&
+			model.Settings.ModelProperties.Tokens.IsNull() &&
+			model.Settings.ModelProperties.Url.IsNull() &&
+			model.Settings.ModelProperties.TrustRemoteCode.IsNull()) {
+		delete(settings, "modelProperties")
+	}
+	if model.Settings.TextPreprocessing == nil ||
+		(model.Settings.TextPreprocessing.SplitLength.IsNull() &&
+			model.Settings.TextPreprocessing.SplitMethod.IsNull() &&
+			model.Settings.TextPreprocessing.SplitOverlap.IsNull()) {
+		delete(settings, "textPreprocessing")
+	}
+	if model.Settings.VideoPreprocessing == nil ||
+		(model.Settings.VideoPreprocessing.SplitLength.IsNull() &&
+			model.Settings.VideoPreprocessing.SplitOverlap.IsNull()) {
+		delete(settings, "videoPreprocessing")
+	}
+	if model.Settings.AudioPreprocessing == nil ||
+		(model.Settings.AudioPreprocessing.SplitLength.IsNull() &&
+			model.Settings.AudioPreprocessing.SplitOverlap.IsNull()) {
+		delete(settings, "audioPreprocessing")
+	}
+	if model.Settings.ImagePreprocessing == nil ||
+		(model.Settings.ImagePreprocessing.PatchMethod.IsNull()) {
+		delete(settings, "imagePreprocessing")
+	}
+	if model.Settings.AnnParameters == nil ||
+		(model.Settings.AnnParameters.SpaceType.IsNull() &&
+			model.Settings.AnnParameters.Parameters.EfConstruction.IsNull() &&
+			model.Settings.AnnParameters.Parameters.M.IsNull()) {
+		delete(settings, "annParameters")
 	}
 	if model.Settings.InferenceType.IsNull() {
 		delete(settings, "inferenceType")
@@ -506,7 +758,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		delete(settings, "numberOfInferences")
 	}
 	if model.Settings.StorageClass.IsNull() {
-		// Set storageClass to marqo.basic
 		settings["storageClass"] = "marqo.basic"
 	}
 	if model.Settings.NumberOfShards.IsNull() {
@@ -525,8 +776,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		delete(settings, "filterStringMaxLength")
 	}
 	tflog.Debug(ctx, "Creating index with settings: %#v", settings)
-
-	//indexNameAsString := model.IndexName.
 
 	// Adjust settings for structured index
 	if model.Settings.Type.ValueString() == "structured" {
@@ -591,7 +840,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Set the index name as the ID in the Terraform state
-	//model.ID = model.IndexName
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 }
@@ -633,8 +881,6 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		delete(settings, "numberOfInferences")
 	}
 
-	//indexNameAsString := model.IndexName.
-
 	err := r.marqoClient.UpdateIndex(model.IndexName.ValueString(), settings)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to Update Index", "Could not create index: "+err.Error())
@@ -642,7 +888,6 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Set the index name as the ID in the Terraform state
-	//model.ID = model.IndexName
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 }

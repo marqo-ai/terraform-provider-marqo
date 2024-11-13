@@ -33,36 +33,77 @@ type allIndicesResourceModel struct {
 
 // indexModel maps index detail data.
 type indexModel struct {
-	Created                      types.String            `tfsdk:"created"`
-	IndexName                    types.String            `tfsdk:"index_name"`
-	NumberOfShards               types.String            `tfsdk:"number_of_shards"`
-	NumberOfReplicas             types.String            `tfsdk:"number_of_replicas"`
-	IndexStatus                  types.String            `tfsdk:"index_status"`
-	AllFields                    []AllFieldInput         `tfsdk:"all_fields"`
-	TensorFields                 []string                `tfsdk:"tensor_fields"`
-	NumberOfInferences           types.String            `tfsdk:"number_of_inferences"`
-	StorageClass                 types.String            `tfsdk:"storage_class"`
-	InferenceType                types.String            `tfsdk:"inference_type"`
-	DocsCount                    types.String            `tfsdk:"docs_count"`
-	StoreSize                    types.String            `tfsdk:"store_size"`
-	DocsDeleted                  types.String            `tfsdk:"docs_deleted"`
-	SearchQueryTotal             types.String            `tfsdk:"search_query_total"`
-	TreatUrlsAndPointersAsImages types.Bool              `tfsdk:"treat_urls_and_pointers_as_images"`
-	MarqoEndpoint                types.String            `tfsdk:"marqo_endpoint"`
-	Type                         types.String            `tfsdk:"type"`
-	VectorNumericType            types.String            `tfsdk:"vector_numeric_type"`
-	Model                        types.String            `tfsdk:"model"`
-	NormalizeEmbeddings          types.Bool              `tfsdk:"normalize_embeddings"`
-	TextPreprocessing            TextPreprocessingModel  `tfsdk:"text_preprocessing"`
-	ImagePreprocessing           ImagePreprocessingModel `tfsdk:"image_preprocessing"`
-	AnnParameters                AnnParametersModel      `tfsdk:"ann_parameters"`
-	MarqoVersion                 types.String            `tfsdk:"marqo_version"`
-	FilterStringMaxLength        types.String            `tfsdk:"filter_string_max_length"`
+	Created                      types.String             `tfsdk:"created"`
+	IndexName                    types.String             `tfsdk:"index_name"`
+	NumberOfShards               types.String             `tfsdk:"number_of_shards"`
+	NumberOfReplicas             types.String             `tfsdk:"number_of_replicas"`
+	IndexStatus                  types.String             `tfsdk:"index_status"`
+	AllFields                    []AllFieldInput          `tfsdk:"all_fields"`
+	TensorFields                 []string                 `tfsdk:"tensor_fields"`
+	NumberOfInferences           types.String             `tfsdk:"number_of_inferences"`
+	StorageClass                 types.String             `tfsdk:"storage_class"`
+	InferenceType                types.String             `tfsdk:"inference_type"`
+	DocsCount                    types.String             `tfsdk:"docs_count"`
+	StoreSize                    types.String             `tfsdk:"store_size"`
+	DocsDeleted                  types.String             `tfsdk:"docs_deleted"`
+	SearchQueryTotal             types.String             `tfsdk:"search_query_total"`
+	TreatUrlsAndPointersAsImages types.Bool               `tfsdk:"treat_urls_and_pointers_as_images"`
+	TreatUrlsAndPointersAsMedia  types.Bool               `tfsdk:"treat_urls_and_pointers_as_media"`
+	MarqoEndpoint                types.String             `tfsdk:"marqo_endpoint"`
+	Type                         types.String             `tfsdk:"type"`
+	VectorNumericType            types.String             `tfsdk:"vector_numeric_type"`
+	Model                        types.String             `tfsdk:"model"`
+	ModelProperties              *ModelPropertiesModel    `tfsdk:"model_properties"`
+	NormalizeEmbeddings          types.Bool               `tfsdk:"normalize_embeddings"`
+	TextPreprocessing            *TextPreprocessingModel  `tfsdk:"text_preprocessing"`
+	ImagePreprocessing           *ImagePreprocessingModel `tfsdk:"image_preprocessing"`
+	VideoPreprocessing           *VideoPreprocessingModel `tfsdk:"video_preprocessing"`
+	AudioPreprocessing           *AudioPreprocessingModel `tfsdk:"audio_preprocessing"`
+	AnnParameters                *AnnParametersModel      `tfsdk:"ann_parameters"`
+	MarqoVersion                 types.String             `tfsdk:"marqo_version"`
+	FilterStringMaxLength        types.String             `tfsdk:"filter_string_max_length"`
+}
+
+type ModelPropertiesModel struct {
+	Name             types.String        `tfsdk:"name"`
+	Dimensions       types.String        `tfsdk:"dimensions"`
+	Type             types.String        `tfsdk:"type"`
+	Tokens           types.String        `tfsdk:"tokens"`
+	ModelLocation    *ModelLocationModel `tfsdk:"model_location"`
+	Url              types.String        `tfsdk:"url"`
+	TrustRemoteCode  types.Bool          `tfsdk:"trust_remote_code"`
+	IsMarqtunedModel types.Bool          `tfsdk:"is_marqtuned_model"`
+}
+
+type ModelLocationModel struct {
+	S3           *S3LocationModel `tfsdk:"s3"`
+	Hf           *HfLocationModel `tfsdk:"hf"`
+	AuthRequired types.Bool       `tfsdk:"auth_required"`
+}
+
+type S3LocationModel struct {
+	Bucket types.String `tfsdk:"bucket"`
+	Key    types.String `tfsdk:"key"`
+}
+
+type HfLocationModel struct {
+	RepoId   types.String `tfsdk:"repo_id"`
+	Filename types.String `tfsdk:"filename"`
 }
 
 type TextPreprocessingModel struct {
 	SplitLength  types.String `tfsdk:"split_length"`
 	SplitMethod  types.String `tfsdk:"split_method"`
+	SplitOverlap types.String `tfsdk:"split_overlap"`
+}
+
+type VideoPreprocessingModel struct {
+	SplitLength  types.String `tfsdk:"split_length"`
+	SplitOverlap types.String `tfsdk:"split_overlap"`
+}
+
+type AudioPreprocessingModel struct {
+	SplitLength  types.String `tfsdk:"split_length"`
 	SplitOverlap types.String `tfsdk:"split_overlap"`
 }
 
@@ -210,6 +251,10 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 							Computed:    true,
 							Description: "Indicates if URLs and pointers should be treated as images",
 						},
+						"treat_urls_and_pointers_as_media": schema.BoolAttribute{
+							Computed:    true,
+							Description: "Indicates if URLs and pointers should be treated as media",
+						},
 						"type": schema.StringAttribute{
 							Computed:    true,
 							Description: "The type of the index",
@@ -221,6 +266,41 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 						"model": schema.StringAttribute{
 							Computed:    true,
 							Description: "The model used by the index",
+						},
+						"model_properties": schema.SingleNestedAttribute{
+							Computed: true,
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"name":       schema.StringAttribute{Computed: true},
+								"dimensions": schema.StringAttribute{Computed: true},
+								"type":       schema.StringAttribute{Computed: true},
+								"tokens":     schema.StringAttribute{Computed: true},
+								"model_location": schema.SingleNestedAttribute{
+									Computed: true,
+									Attributes: map[string]schema.Attribute{
+										"s3": schema.SingleNestedAttribute{
+											Computed: true,
+											Optional: true,
+											Attributes: map[string]schema.Attribute{
+												"bucket": schema.StringAttribute{Computed: true},
+												"key":    schema.StringAttribute{Computed: true},
+											},
+										},
+										"hf": schema.SingleNestedAttribute{
+											Computed: true,
+											Optional: true,
+											Attributes: map[string]schema.Attribute{
+												"repo_id":  schema.StringAttribute{Computed: true},
+												"filename": schema.StringAttribute{Computed: true},
+											},
+										},
+										"auth_required": schema.BoolAttribute{Computed: true},
+									},
+								},
+								"url":                schema.StringAttribute{Computed: true},
+								"trust_remote_code":  schema.BoolAttribute{Computed: true},
+								"is_marqtuned_model": schema.BoolAttribute{Computed: true},
+							},
 						},
 						"normalize_embeddings": schema.BoolAttribute{
 							Computed:    true,
@@ -250,6 +330,22 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 									Computed:    true,
 									Description: "The patch method for image preprocessing",
 								},
+							},
+						},
+						"video_preprocessing": schema.SingleNestedAttribute{
+							Computed: true,
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"split_length":  schema.StringAttribute{Computed: true, Optional: true},
+								"split_overlap": schema.StringAttribute{Computed: true, Optional: true},
+							},
+						},
+						"audio_preprocessing": schema.SingleNestedAttribute{
+							Computed: true,
+							Optional: true,
+							Attributes: map[string]schema.Attribute{
+								"split_length":  schema.StringAttribute{Computed: true, Optional: true},
+								"split_overlap": schema.StringAttribute{Computed: true, Optional: true},
 							},
 						},
 						"ann_parameters": schema.SingleNestedAttribute{
@@ -303,6 +399,89 @@ func ConvertMarqoAllFieldInputs(marqoFields []go_marqo.AllFieldInput) []AllField
 	return allFieldsConverted
 }
 
+func convertModelLocation(location go_marqo.ModelLocation) *ModelLocationModel {
+	model := &ModelLocationModel{}
+
+	if location.AuthRequired {
+		model.AuthRequired = types.BoolValue(true)
+	}
+
+	if location.S3 != nil && (location.S3.Bucket != "" || location.S3.Key != "") {
+		model.S3 = &S3LocationModel{
+			Bucket: types.StringValue(location.S3.Bucket),
+			Key:    types.StringValue(location.S3.Key),
+		}
+	}
+
+	if location.Hf != nil && (location.Hf.RepoId != "" || location.Hf.Filename != "") {
+		model.Hf = &HfLocationModel{
+			RepoId:   types.StringValue(location.Hf.RepoId),
+			Filename: types.StringValue(location.Hf.Filename),
+		}
+	}
+
+	// Return nil if no fields were set
+	if model.AuthRequired.IsNull() && model.S3 == nil && model.Hf == nil {
+		return nil
+	}
+
+	return model
+}
+
+func (m *ModelPropertiesModel) IsEmpty() bool {
+	if m == nil {
+		return true
+	}
+	return m.Name.IsNull() &&
+		m.Dimensions.IsNull() &&
+		m.Type.IsNull() &&
+		m.Tokens.IsNull() &&
+		m.Url.IsNull() &&
+		(m.ModelLocation == nil || m.ModelLocation.IsEmpty())
+}
+
+// Convert ModelProperties from the API response to our schema model.
+func convertModelProperties(props *go_marqo.ModelProperties) *ModelPropertiesModel {
+	if props == nil {
+		return nil
+	}
+
+	model := &ModelPropertiesModel{}
+
+	// Convert only non-empty values
+	if props.Name != "" {
+		model.Name = types.StringValue(props.Name)
+	}
+	if props.Dimensions != 0 {
+		model.Dimensions = types.StringValue(fmt.Sprintf("%d", props.Dimensions))
+	}
+	if props.Type != "" {
+		model.Type = types.StringValue(props.Type)
+	}
+	if props.Tokens != 0 {
+		model.Tokens = types.StringValue(fmt.Sprintf("%d", props.Tokens))
+	}
+	if props.Url != "" {
+		model.Url = types.StringValue(props.Url)
+	}
+
+	if props.TrustRemoteCode {
+		model.TrustRemoteCode = types.BoolValue(true)
+	}
+	if props.IsMarqtunedModel {
+		model.IsMarqtunedModel = types.BoolValue(true)
+	}
+
+	model.ModelLocation = convertModelLocation(props.ModelLocation)
+
+	// Only return the model if it's not empty
+	if model.IsEmpty() {
+		return nil
+	}
+
+	return model
+}
+
 // Read refreshes the Terraform state with the latest data.
 func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	tflog.Debug(context.TODO(), "Calling marqo client ListIndices")
@@ -323,8 +502,6 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	// Use the id from the configuration
 	model.ID = types.StringValue(model.ID.ValueString())
-
-	// fmt.Println("Indices: ", indices)
 
 	inferenceTypeMap := map[string]string{
 		"CPU.SMALL": "marqo.CPU.small",
@@ -351,7 +528,6 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		}
 
 		// Handle image_preprocessing.patch_method
-
 		items[i] = indexModel{
 			Created:                      types.StringValue(indexDetail.Created),
 			IndexName:                    types.StringValue(indexDetail.IndexName),
@@ -368,18 +544,20 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			DocsDeleted:                  types.StringValue(indexDetail.DocsDeleted),
 			SearchQueryTotal:             types.StringValue(indexDetail.SearchQueryTotal),
 			TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
+			TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 			MarqoEndpoint:                types.StringValue(indexDetail.MarqoEndpoint),
 			Type:                         types.StringValue(indexDetail.Type),
 			VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 			Model:                        types.StringValue(indexDetail.Model),
+			ModelProperties:              convertModelProperties(&indexDetail.ModelProperties),
 			NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
-			TextPreprocessing: TextPreprocessingModel{
+			TextPreprocessing: &TextPreprocessingModel{
 				SplitLength:  types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitLength)),
 				SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
 				SplitOverlap: types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitOverlap)),
 			},
-			//ImagePreprocessing: types.ObjectValue(map[string]interface{}, indexDetail.ImagePreprocessing),
-			AnnParameters: AnnParametersModel{
+			// ImagePreprocessing
+			AnnParameters: &AnnParametersModel{
 				SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
 				Parameters: parametersModel{
 					EfConstruction: types.StringValue(fmt.Sprintf("%d", indexDetail.AnnParameters.Parameters.EfConstruction)),
@@ -388,6 +566,12 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			},
 			MarqoVersion:          types.StringValue(indexDetail.MarqoVersion),
 			FilterStringMaxLength: types.StringValue(fmt.Sprintf("%d", indexDetail.FilterStringMaxLength)),
+		}
+
+		// Handle model properties
+		// In the resource
+		if items[i].ModelProperties.IsEmpty() {
+			items[i].ModelProperties = nil
 		}
 
 		// Remove null fields

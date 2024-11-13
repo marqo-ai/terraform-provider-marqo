@@ -30,7 +30,10 @@ description: |-
 Optional:
 
 - `all_fields` (Attributes List) (see [below for nested schema](#nestedatt--items--all_fields))
+- `audio_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--audio_preprocessing))
+- `model_properties` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties))
 - `tensor_fields` (List of String)
+- `video_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--video_preprocessing))
 
 Read-Only:
 
@@ -55,6 +58,7 @@ Read-Only:
 - `store_size` (String) The size of the index storage
 - `text_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--text_preprocessing))
 - `treat_urls_and_pointers_as_images` (Boolean) Indicates if URLs and pointers should be treated as images
+- `treat_urls_and_pointers_as_media` (Boolean) Indicates if URLs and pointers should be treated as media
 - `type` (String) The type of the index
 - `vector_numeric_type` (String) The numeric type of the vector
 
@@ -67,6 +71,70 @@ Optional:
 - `features` (List of String)
 - `name` (String)
 - `type` (String)
+
+
+<a id="nestedatt--items--audio_preprocessing"></a>
+### Nested Schema for `items.audio_preprocessing`
+
+Optional:
+
+- `split_length` (String)
+- `split_overlap` (String)
+
+
+<a id="nestedatt--items--model_properties"></a>
+### Nested Schema for `items.model_properties`
+
+Read-Only:
+
+- `dimensions` (String)
+- `is_marqtuned_model` (Boolean)
+- `model_location` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties--model_location))
+- `name` (String)
+- `tokens` (String)
+- `trust_remote_code` (Boolean)
+- `type` (String)
+- `url` (String)
+
+<a id="nestedatt--items--model_properties--model_location"></a>
+### Nested Schema for `items.model_properties.model_location`
+
+Optional:
+
+- `hf` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties--model_location--hf))
+- `s3` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties--model_location--s3))
+
+Read-Only:
+
+- `auth_required` (Boolean)
+
+<a id="nestedatt--items--model_properties--model_location--hf"></a>
+### Nested Schema for `items.model_properties.model_location.auth_required`
+
+Read-Only:
+
+- `filename` (String)
+- `repo_id` (String)
+
+
+<a id="nestedatt--items--model_properties--model_location--s3"></a>
+### Nested Schema for `items.model_properties.model_location.auth_required`
+
+Read-Only:
+
+- `bucket` (String)
+- `key` (String)
+
+
+
+
+<a id="nestedatt--items--video_preprocessing"></a>
+### Nested Schema for `items.video_preprocessing`
+
+Optional:
+
+- `split_length` (String)
+- `split_overlap` (String)
 
 
 <a id="nestedatt--items--ann_parameters"></a>
