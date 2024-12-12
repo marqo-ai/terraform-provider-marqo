@@ -45,6 +45,7 @@ type IndexSettingsModel struct {
 	StorageClass                 types.String                   `tfsdk:"storage_class"`
 	NumberOfShards               types.Int64                    `tfsdk:"number_of_shards"`
 	NumberOfReplicas             types.Int64                    `tfsdk:"number_of_replicas"`
+	MarqoEndpoint                types.String                   `tfsdk:"marqo_endpoint"`
 	TreatUrlsAndPointersAsImages types.Bool                     `tfsdk:"treat_urls_and_pointers_as_images"`
 	TreatUrlsAndPointersAsMedia  types.Bool                     `tfsdk:"treat_urls_and_pointers_as_media"`
 	Model                        types.String                   `tfsdk:"model"`
@@ -173,7 +174,9 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional:    true,
 						ElementType: types.StringType,
 					},
-
+					"marqo_endpoint": schema.StringAttribute{
+						Computed: true,
+					},
 					"inference_type": schema.StringAttribute{
 						Required: true,
 					},
@@ -459,6 +462,7 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
 					ModelProperties:              convertModelPropertiesToResource(&indexDetail.ModelProperties),
+					MarqoEndpoint:                types.StringValue(indexDetail.MarqoEndpoint),
 					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 					TensorFields:                 indexDetail.TensorFields,
 					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
