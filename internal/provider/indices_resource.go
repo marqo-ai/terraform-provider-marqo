@@ -1031,6 +1031,11 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	// Preserve computed/meta fields from current state
+	var state IndexResourceModel
+	model.MarqoEndpoint = state.MarqoEndpoint
+	model.Timeouts = state.Timeouts
+
 	// Set the index name as the ID in the Terraform state
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
