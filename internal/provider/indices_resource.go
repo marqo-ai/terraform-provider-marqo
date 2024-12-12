@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -34,6 +35,11 @@ type IndexResourceModel struct {
 	IndexName     types.String       `tfsdk:"index_name"`
 	Settings      IndexSettingsModel `tfsdk:"settings"`
 	MarqoEndpoint types.String       `tfsdk:"marqo_endpoint"`
+	Timeouts      *timeouts          `tfsdk:"timeouts"`
+}
+
+type timeouts struct {
+	Create types.String `tfsdk:"create"`
 }
 
 type IndexSettingsModel struct {
@@ -142,6 +148,15 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"marqo_endpoint": schema.StringAttribute{
 				Computed:    true,
 				Description: "The Marqo endpoint used by the index",
+			},
+			"timeouts": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"create": schema.StringAttribute{
+						Optional:    true,
+						Description: "Time to wait for index to be ready (e.g., '30m', '1h'). Default is 30m.",
+					},
+				},
 			},
 			"settings": schema.SingleNestedAttribute{
 				Required:    true,
@@ -850,6 +865,64 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	// Set the index name as the ID in the Terraform state
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
+
+	timeout := time.After(30 * time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	tflog.Info(ctx, fmt.Sprintf("Waiting for index %s to be ready...\n", model.IndexName.ValueString()))
+
+	start := time.Now()
+	for {
+		select {
+		case <-timeout:
+			resp.Diagnostics.AddError(
+				"Timeout Waiting for Index",
+				fmt.Sprintf("Index %s did not become ready within the 30-minute timeout period", model.IndexName.ValueString()),
+			)
+			return
+		case <-ticker.C:
+			indices, err := r.marqoClient.ListIndices()
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Error listing indices: %s", err))
+				continue
+			}
+			for _, index := range indices {
+				if index.IndexName == model.IndexName.ValueString() {
+					tflog.Info(ctx, fmt.Sprintf("Index %s status: %s (elapsed: %v)",
+						model.IndexName.ValueString(),
+						index.IndexStatus,
+						time.Since(start)))
+					if index.IndexStatus == "READY" {
+						tflog.Info(ctx, fmt.Sprintf("Index %s is now ready (total time: %v)",
+							model.IndexName.ValueString(),
+							time.Since(start)))
+
+						// Do final read to get the complete state
+						readResp := resource.ReadResponse{
+							State: resp.State,
+						}
+						r.Read(ctx, resource.ReadRequest{
+							State: resp.State,
+						}, &readResp)
+
+						if readResp.Diagnostics.HasError() {
+							resp.Diagnostics.Append(readResp.Diagnostics...)
+							return
+						}
+
+						// Update the response state with the read state
+						resp.State = readResp.State
+						return
+					}
+					break
+				}
+			}
+			tflog.Info(ctx, fmt.Sprintf("Index %s not ready yet, continuing to wait... (elapsed: %v)",
+				model.IndexName.ValueString(),
+				time.Since(start)))
+		}
+	}
 }
 
 func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
