@@ -20,6 +20,14 @@ description: |-
 - `index_name` (String) The name of the index.
 - `settings` (Attributes) The settings for the index. (see [below for nested schema](#nestedatt--settings))
 
+### Optional
+
+- `timeouts` (Attributes) (see [below for nested schema](#nestedatt--timeouts))
+
+### Read-Only
+
+- `marqo_endpoint` (String) The Marqo endpoint used by the index
+
 <a id="nestedatt--settings"></a>
 ### Nested Schema for `settings`
 
@@ -155,3 +163,12 @@ Optional:
 
 - `split_length` (Number)
 - `split_overlap` (Number)
+
+
+
+<a id="nestedatt--timeouts"></a>
+### Nested Schema for `timeouts`
+
+Optional:
+
+- `create` (String) Time to wait for index to be ready (e.g., '30m', '1h'). Default is 30m.
