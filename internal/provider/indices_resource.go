@@ -31,8 +31,9 @@ type indicesResource struct {
 
 // IndexResourceModel maps the resource schema data.
 type IndexResourceModel struct {
-	IndexName types.String       `tfsdk:"index_name"`
-	Settings  IndexSettingsModel `tfsdk:"settings"`
+	IndexName     types.String       `tfsdk:"index_name"`
+	Settings      IndexSettingsModel `tfsdk:"settings"`
+	MarqoEndpoint types.String       `tfsdk:"marqo_endpoint"`
 }
 
 type IndexSettingsModel struct {
@@ -45,7 +46,6 @@ type IndexSettingsModel struct {
 	StorageClass                 types.String                   `tfsdk:"storage_class"`
 	NumberOfShards               types.Int64                    `tfsdk:"number_of_shards"`
 	NumberOfReplicas             types.Int64                    `tfsdk:"number_of_replicas"`
-	MarqoEndpoint                types.String                   `tfsdk:"marqo_endpoint"`
 	TreatUrlsAndPointersAsImages types.Bool                     `tfsdk:"treat_urls_and_pointers_as_images"`
 	TreatUrlsAndPointersAsMedia  types.Bool                     `tfsdk:"treat_urls_and_pointers_as_media"`
 	Model                        types.String                   `tfsdk:"model"`
@@ -139,6 +139,10 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:    true,
 				Description: "The name of the index.",
 			},
+			"marqo_endpoint": schema.StringAttribute{
+				Computed:    true,
+				Description: "The Marqo endpoint used by the index",
+			},
 			"settings": schema.SingleNestedAttribute{
 				Required:    true,
 				Description: "The settings for the index.",
@@ -173,9 +177,6 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"tensor_fields": schema.ListAttribute{
 						Optional:    true,
 						ElementType: types.StringType,
-					},
-					"marqo_endpoint": schema.StringAttribute{
-						Computed: true,
 					},
 					"inference_type": schema.StringAttribute{
 						Required: true,
@@ -454,7 +455,8 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 		if indexDetail.IndexName == indexName {
 			return &IndexResourceModel{
 				//ID:        types.StringValue(indexDetail.IndexName),
-				IndexName: types.StringValue(indexDetail.IndexName),
+				IndexName:     types.StringValue(indexDetail.IndexName),
+				MarqoEndpoint: types.StringValue(indexDetail.MarqoEndpoint),
 				Settings: IndexSettingsModel{
 					Type:                         types.StringValue(indexDetail.Type),
 					VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
@@ -462,7 +464,6 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
 					ModelProperties:              convertModelPropertiesToResource(&indexDetail.ModelProperties),
-					MarqoEndpoint:                types.StringValue(indexDetail.MarqoEndpoint),
 					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
 					TensorFields:                 indexDetail.TensorFields,
 					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
@@ -842,6 +843,9 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to Create Index", "Could not create index: "+err.Error())
 		return
 	}
+
+	// Placeholder value for marqo_endpoint
+	model.MarqoEndpoint = types.StringValue("pending")
 
 	// Set the index name as the ID in the Terraform state
 	diags = resp.State.Set(ctx, &model)
