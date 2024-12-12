@@ -465,13 +465,14 @@ func convertModelPropertiesToResource(props *go_marqo.ModelProperties) *ModelPro
 	return model
 }
 
-func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string) (*IndexResourceModel, bool) {
+func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string, existingTimeouts *timeouts) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
 			return &IndexResourceModel{
 				//ID:        types.StringValue(indexDetail.IndexName),
 				IndexName:     types.StringValue(indexDetail.IndexName),
 				MarqoEndpoint: types.StringValue(indexDetail.MarqoEndpoint),
+				Timeouts:      existingTimeouts,
 				Settings: IndexSettingsModel{
 					Type:                         types.StringValue(indexDetail.Type),
 					VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
@@ -534,7 +535,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	newState, found := r.findAndCreateState(indices, state.IndexName.ValueString())
+	newState, found := r.findAndCreateState(indices, state.IndexName.ValueString(), state.Timeouts)
 
 	// Handle inference_type field
 	if newState != nil {
@@ -816,6 +817,21 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		//}
 	}
 
+	// Parse timeout duration
+	timeoutDuration := 30 * time.Minute // default timeout
+	if model.Timeouts != nil && model.Timeouts.Create.ValueString() != "" {
+		parsedTimeout, err := time.ParseDuration(model.Timeouts.Create.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Invalid Timeout Duration",
+				fmt.Sprintf("Could not parse timeout duration: %s. Expected format: '30m', '1h', etc.", err),
+			)
+			return
+		}
+		timeoutDuration = parsedTimeout
+		tflog.Info(ctx, fmt.Sprintf("Using configured timeout of %v", timeoutDuration))
+	}
+
 	err := r.marqoClient.CreateIndex(model.IndexName.ValueString(), settings)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
@@ -827,7 +843,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 				return
 			}
 
-			existingState, found := r.findAndCreateState(indices, model.IndexName.ValueString())
+			existingState, found := r.findAndCreateState(indices, model.IndexName.ValueString(), model.Timeouts)
 			if !found {
 				resp.Diagnostics.AddError("Failed to Find Index", fmt.Sprintf("Index %s not found after creation", model.IndexName.ValueString()))
 				return
@@ -859,26 +875,73 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// Placeholder value for marqo_endpoint
+	// Set initial state
 	model.MarqoEndpoint = types.StringValue("pending")
-
-	// Set the index name as the ID in the Terraform state
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 
-	timeout := time.After(30 * time.Minute)
+	// Wait for index to be ready
+	timeout := time.After(timeoutDuration)
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	tflog.Info(ctx, fmt.Sprintf("Waiting for index %s to be ready...\n", model.IndexName.ValueString()))
+	tflog.Info(ctx, fmt.Sprintf("Waiting up to %v for index %s to be ready...",
+		timeoutDuration,
+		model.IndexName.ValueString()))
 
 	start := time.Now()
 	for {
 		select {
 		case <-timeout:
+			// Check the current status of the index
+			indices, err := r.marqoClient.ListIndices()
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Failed to Check Index Status",
+					fmt.Sprintf("Could not check index status after timeout: %s", err),
+				)
+				return
+			}
+
+			var indexStatus string
+			for _, index := range indices {
+				if index.IndexName == model.IndexName.ValueString() {
+					indexStatus = index.IndexStatus
+					break
+				}
+			}
+
+			if indexStatus == "CREATING" {
+				resp.Diagnostics.AddError(
+					"Timeout Waiting for Index",
+					fmt.Sprintf("Index %s did not become ready within the %v timeout period. "+
+						"The index is still being created in the cloud and cannot be deleted at this time. "+
+						"You may need to manually delete it later using the Marqo console or API.",
+						model.IndexName.ValueString(),
+						timeoutDuration),
+				)
+				return
+			}
+
+			// If the index is in any other state, try to delete it
+			deleteErr := r.marqoClient.DeleteIndex(model.IndexName.ValueString())
+			if deleteErr != nil {
+				resp.Diagnostics.AddError(
+					"Cleanup Failed",
+					fmt.Sprintf("Index %s creation timed out after %v and cleanup failed: %s. "+
+						"Manual cleanup may be required.",
+						model.IndexName.ValueString(),
+						timeoutDuration,
+						deleteErr),
+				)
+				return
+			}
+
 			resp.Diagnostics.AddError(
 				"Timeout Waiting for Index",
-				fmt.Sprintf("Index %s did not become ready within the 30-minute timeout period", model.IndexName.ValueString()),
+				fmt.Sprintf("Index %s did not become ready within the %v timeout period and has been deleted.",
+					model.IndexName.ValueString(),
+					timeoutDuration),
 			)
 			return
 		case <-ticker.C:
