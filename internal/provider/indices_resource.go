@@ -962,12 +962,8 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 							time.Since(start)))
 
 						// Do final read to get the complete state
-						readResp := resource.ReadResponse{
-							State: resp.State,
-						}
-						r.Read(ctx, resource.ReadRequest{
-							State: resp.State,
-						}, &readResp)
+						readResp := resource.ReadResponse{State: resp.State}
+						r.Read(ctx, resource.ReadRequest{State: resp.State}, &readResp)
 
 						if readResp.Diagnostics.HasError() {
 							resp.Diagnostics.Append(readResp.Diagnostics...)
@@ -977,6 +973,27 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 						// Update the response state with the read state
 						resp.State = readResp.State
 						return
+					} else if index.IndexStatus == "FAILED" {
+						// Attempt to delete the failed index
+						deleteErr := r.marqoClient.DeleteIndex(model.IndexName.ValueString())
+						if deleteErr != nil {
+							resp.Diagnostics.AddError(
+								"Cleanup Failed",
+								fmt.Sprintf("Index %s creation failed and cleanup attempt failed: %s. "+
+									"Manual cleanup may be required.",
+									model.IndexName.ValueString(),
+									deleteErr),
+							)
+							return
+						}
+
+						resp.Diagnostics.AddError(
+							"Index Creation Failed",
+							fmt.Sprintf("Index %s creation failed after %v and has been deleted. "+
+								"Please check the Marqo logs for more details.",
+								model.IndexName.ValueString(),
+								time.Since(start)),
+						)
 					}
 					break
 				}
