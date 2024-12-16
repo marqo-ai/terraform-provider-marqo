@@ -947,7 +947,10 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		case <-ticker.C:
 			indices, err := r.marqoClient.ListIndices()
 			if err != nil {
-				tflog.Error(ctx, fmt.Sprintf("Error listing indices: %s", err))
+				resp.Diagnostics.AddError(
+					"Failed to Check Index Status",
+					fmt.Sprintf("Could not check index status: %s", err),
+				)
 				continue
 			}
 			for _, index := range indices {
@@ -994,6 +997,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 								model.IndexName.ValueString(),
 								time.Since(start)),
 						)
+						return
 					}
 					break
 				}
