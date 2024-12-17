@@ -669,6 +669,17 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"numberOfReplicas":             model.Settings.NumberOfReplicas.ValueInt64(),
 		"filterStringMaxLength":        model.Settings.FilterStringMaxLength.ValueInt64(),
 	}
+	// Normalize values before creating
+	if model.Settings.ModelProperties != nil {
+		if model.Settings.ModelProperties.TrustRemoteCode.IsNull() {
+			model.Settings.ModelProperties.TrustRemoteCode = types.BoolValue(false)
+		}
+	}
+
+	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+		model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(false)
+	}
+
 	// Optional dictionary fields
 	if model.Settings.ModelProperties != nil {
 		modelPropertiesMap := map[string]interface{}{
