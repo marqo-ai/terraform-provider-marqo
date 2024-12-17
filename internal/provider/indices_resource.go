@@ -519,6 +519,48 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 	return nil, false
 }
 
+func normalizeIndexSettings(state *IndexResourceModel, newState *IndexResourceModel) {
+	// Handle boolean defaults
+	if state.Settings.TreatUrlsAndPointersAsMedia.IsNull() &&
+		!newState.Settings.TreatUrlsAndPointersAsMedia.ValueBool() {
+		newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
+	}
+
+	if state.Settings.NormalizeEmbeddings.IsNull() &&
+		!newState.Settings.NormalizeEmbeddings.ValueBool() {
+		newState.Settings.NormalizeEmbeddings = types.BoolNull()
+	}
+
+	// Handle empty strings
+	if state.Settings.VectorNumericType.IsNull() &&
+		newState.Settings.VectorNumericType.ValueString() == "" {
+		newState.Settings.VectorNumericType = types.StringNull()
+	}
+
+	// Handle empty objects
+	if state.Settings.AnnParameters == nil {
+		newState.Settings.AnnParameters = nil
+	}
+
+	if state.Settings.TextPreprocessing == nil {
+		newState.Settings.TextPreprocessing = nil
+	}
+
+	// Handle model properties
+	if state.Settings.ModelProperties != nil &&
+		newState.Settings.ModelProperties != nil {
+		if !state.Settings.ModelProperties.TrustRemoteCode.ValueBool() {
+			newState.Settings.ModelProperties.TrustRemoteCode = types.BoolValue(false)
+		}
+	}
+
+	// Handle numeric defaults
+	if state.Settings.FilterStringMaxLength.IsNull() &&
+		newState.Settings.FilterStringMaxLength.ValueInt64() == 0 {
+		newState.Settings.FilterStringMaxLength = types.Int64Null()
+	}
+}
+
 func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Initialize the state variable based on the IndexResourceModel
 	var state IndexResourceModel
@@ -539,6 +581,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// Handle inference_type field
 	if newState != nil {
+		normalizeIndexSettings(&state, newState)
 		inferenceTypeMap := map[string]string{
 			"CPU":       "marqo.CPU.large", // verify this
 			"CPU.SMALL": "marqo.CPU.small",
@@ -674,10 +717,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		if model.Settings.ModelProperties.TrustRemoteCode.IsNull() {
 			model.Settings.ModelProperties.TrustRemoteCode = types.BoolValue(false)
 		}
-	}
-
-	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
-		model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(false)
 	}
 
 	// Optional dictionary fields
