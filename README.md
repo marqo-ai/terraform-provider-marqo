@@ -2,7 +2,7 @@
 
 This page will walk you through using OpenTofu to manage your Marqo Cloud resources.
 
-OpenTofu, a fork of Terraform, is an open-source infrastructure as code tool that enables you to safely and predictably create, change, and delete cloud resources. 
+OpenTofu, a fork of Terraform, is an open-source infrastructure as code tool that enables you to safely and predictably create, change, and delete cloud resources.
 For more information on opentofu and terraform, please visit the following links: [OpenTofu](https://opentofu.org) and [Terraform](https://www.terraform.io/).
 
 The marqo opentofu provider is located at [`registry.opentofu.org/marqo-ai/marqo`](https://github.com/opentofu/registry/blob/main/providers/m/marqo-ai/marqo.json).
@@ -17,7 +17,7 @@ Detailed documentation can be found in marqodocs [here](https://docs.marqo.ai/2.
 
 ## Installation Instructions
 
-1. Install Opentofu by following the instructions on the [Opentofu website](https://opentofu.org/docs/intro/install/). Alternatively, install Terraform by following the instructions on the [Terraform website](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
+1. Install OpenTofu by following the instructions on the [OpenTofu website](https://opentofu.org/docs/intro/install/). Alternatively, install Terraform by following the instructions on the [Terraform website](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
 2. Create a Marqo configuration (a `.tf` file with your marqo API and endpoint details) in a new directory
 3. Run `tofu init` in the directory you created the configuration in to initialize the configuration
 4. At this point, you should be able to run `tofu plan` and `tofu apply` to create and manage your Marqo resources.
@@ -27,7 +27,7 @@ Some common commands are:
 - `tofu apply` - creates or updates the resources in your account
 - `tofu destroy` - deletes the resources in your account
 
-See the [Opentofu documentation](https://opentofu.org/docs/intro/) for more information on how to use Opentofu.
+See the [OpenTofu documentation](https://opentofu.org/docs/intro/) for more information on how to use OpenTofu.
 
 ## Overview of Features
 
