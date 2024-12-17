@@ -152,6 +152,6 @@ variable "marqo_api_key" {
 
 ## Testing
 
-To verify that your index has been created and is ready to use, you can add some data to the index and query it using the Marqo API:
+To verify that your index has been created and is ready to use, you can add some data to the index and query it using the Marqo API.
 
-```bash
+Browse to your index details page in the Marqo Cloud Console for snippets to help you get started.
