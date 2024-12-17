@@ -2,7 +2,7 @@ terraform {
   required_providers {
     marqo = {
       source  = "marqo/marqo"
-      version = "1.0.1"
+      version = "1.2.0"
     }
   }
 }
@@ -36,7 +36,7 @@ resource "marqo_index" "example" {
     tensor_fields        = ["multimodal_field"],
     model                = "open_clip/ViT-L-14/laion2b_s32b_b82k"
     normalize_embeddings = true
-    inference_type       = "marqo.CPU.small"
+    inference_type       = "marqo.CPU.large"
     text_preprocessing = {
       split_length  = 2
       split_method  = "sentence"
