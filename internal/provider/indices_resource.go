@@ -11,6 +11,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -18,6 +23,7 @@ import (
 var (
 	_ resource.Resource              = &indicesResource{}
 	_ resource.ResourceWithConfigure = &indicesResource{}
+	//_ resource.ResourceWithModifyPlan = &indicesResource{}
 )
 
 // ManageIndicesResource is a helper function to simplify the provider implementation.
@@ -148,6 +154,9 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"marqo_endpoint": schema.StringAttribute{
 				Computed:    true,
 				Description: "The Marqo endpoint used by the index",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"timeouts": schema.SingleNestedAttribute{
 				Optional: true,
@@ -167,6 +176,10 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"vector_numeric_type": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"number_of_inferences": schema.Int64Attribute{
 						Required: true,
@@ -207,9 +220,17 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"treat_urls_and_pointers_as_images": schema.BoolAttribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"treat_urls_and_pointers_as_media": schema.BoolAttribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"model": schema.StringAttribute{
 						Required: true,
@@ -248,17 +269,26 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,
+						Computed: true,
 					},
 					"text_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
-							"split_length":  schema.Int64Attribute{Optional: true},
-							"split_method":  schema.StringAttribute{Optional: true},
-							"split_overlap": schema.Int64Attribute{Optional: true},
+							"split_length":  schema.Int64Attribute{Optional: true, Computed: true},
+							"split_method":  schema.StringAttribute{Optional: true, Computed: true},
+							"split_overlap": schema.Int64Attribute{Optional: true, Computed: true},
 						},
 					},
 					"image_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
 							"patch_method": schema.StringAttribute{Optional: true},
 						},
@@ -279,19 +309,27 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"ann_parameters": schema.SingleNestedAttribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
-							"space_type": schema.StringAttribute{Optional: true},
+							"space_type": schema.StringAttribute{Optional: true, Computed: true},
 							"parameters": schema.SingleNestedAttribute{
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
-									"ef_construction": schema.Int64Attribute{Optional: true},
-									"m":               schema.Int64Attribute{Optional: true},
+									"ef_construction": schema.Int64Attribute{Optional: true, Computed: true},
+									"m":               schema.Int64Attribute{Optional: true, Computed: true},
 								},
 							},
 						},
 					},
 					"filter_string_max_length": schema.Int64Attribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},
@@ -519,48 +557,6 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 	return nil, false
 }
 
-func normalizeIndexSettings(state *IndexResourceModel, newState *IndexResourceModel) {
-	// Handle boolean defaults
-	if state.Settings.TreatUrlsAndPointersAsMedia.IsNull() &&
-		!newState.Settings.TreatUrlsAndPointersAsMedia.ValueBool() {
-		newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
-	}
-
-	if state.Settings.NormalizeEmbeddings.IsNull() &&
-		!newState.Settings.NormalizeEmbeddings.ValueBool() {
-		newState.Settings.NormalizeEmbeddings = types.BoolNull()
-	}
-
-	// Handle empty strings
-	if state.Settings.VectorNumericType.IsNull() &&
-		newState.Settings.VectorNumericType.ValueString() == "" {
-		newState.Settings.VectorNumericType = types.StringNull()
-	}
-
-	// Handle empty objects
-	if state.Settings.AnnParameters == nil {
-		newState.Settings.AnnParameters = nil
-	}
-
-	if state.Settings.TextPreprocessing == nil {
-		newState.Settings.TextPreprocessing = nil
-	}
-
-	// Handle model properties
-	if state.Settings.ModelProperties != nil &&
-		newState.Settings.ModelProperties != nil {
-		if !state.Settings.ModelProperties.TrustRemoteCode.ValueBool() {
-			newState.Settings.ModelProperties.TrustRemoteCode = types.BoolValue(false)
-		}
-	}
-
-	// Handle numeric defaults
-	if state.Settings.FilterStringMaxLength.IsNull() &&
-		newState.Settings.FilterStringMaxLength.ValueInt64() == 0 {
-		newState.Settings.FilterStringMaxLength = types.Int64Null()
-	}
-}
-
 func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Initialize the state variable based on the IndexResourceModel
 	var state IndexResourceModel
@@ -581,7 +577,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// Handle inference_type field
 	if newState != nil {
-		normalizeIndexSettings(&state, newState)
 		inferenceTypeMap := map[string]string{
 			"CPU":       "marqo.CPU.large", // verify this
 			"CPU.SMALL": "marqo.CPU.small",
@@ -627,8 +622,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 
 		// Handle image_preprocessing.patch_method
-		if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+		if newState.Settings.ImagePreprocessing != nil &&
+			(newState.Settings.ImagePreprocessing.PatchMethod.IsNull() ||
+				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "") {
+			newState.Settings.ImagePreprocessing = nil
 		}
 
 		// preserve the video/audio preprocessing from current state since api does not return them
@@ -918,11 +915,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError("Failed to Create Index", "Could not create index: "+err.Error())
 		return
 	}
-
-	// Set initial state
-	model.MarqoEndpoint = types.StringValue("pending")
-	diags = resp.State.Set(ctx, &model)
-	resp.Diagnostics.Append(diags...)
 
 	// Wait for index to be ready
 	timeout := time.After(timeoutDuration)
