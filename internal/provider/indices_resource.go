@@ -468,6 +468,44 @@ func convertModelPropertiesToResource(props *go_marqo.ModelProperties) *ModelPro
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string, existingTimeouts *timeouts) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
+			// --- Convert the all_fields ---
+			convertedAllFields := ConvertMarqoAllFieldInputs(indexDetail.AllFields)
+			// If the result is empty, set it to nil so Terraform sees it as "null".
+			if len(convertedAllFields) == 0 {
+				convertedAllFields = nil
+			}
+
+			// --- Convert image_preprocessing ---
+			// Only create the block if patchMethod is non-empty
+			var imagePreproc *ImagePreprocessingModel
+			if indexDetail.ImagePreprocessing.PatchMethod != "" {
+				imagePreproc = &ImagePreprocessingModel{
+					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
+				}
+			} else {
+				// If PatchMethod is blank, set the entire pointer to nil
+				imagePreproc = nil
+			}
+
+			// --- Convert video_preprocessing, audio_preprocessing similarly ---
+			var videoPreproc *VideoPreprocessingModelCreate
+			if indexDetail.VideoPreprocessing.SplitLength != 0 ||
+				indexDetail.VideoPreprocessing.SplitOverlap != 0 {
+				videoPreproc = &VideoPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
+					SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
+				}
+			}
+
+			var audioPreproc *AudioPreprocessingModelCreate
+			if indexDetail.AudioPreprocessing.SplitLength != 0 ||
+				indexDetail.AudioPreprocessing.SplitOverlap != 0 {
+				audioPreproc = &AudioPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
+					SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
+				}
+			}
+
 			return &IndexResourceModel{
 				//ID:        types.StringValue(indexDetail.IndexName),
 				IndexName:     types.StringValue(indexDetail.IndexName),
@@ -480,7 +518,7 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
 					Model:                        types.StringValue(indexDetail.Model),
 					ModelProperties:              convertModelPropertiesToResource(&indexDetail.ModelProperties),
-					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
+					AllFields:                    convertedAllFields,
 					TensorFields:                 indexDetail.TensorFields,
 					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
 					InferenceType:                types.StringValue(indexDetail.InferenceType),
@@ -493,17 +531,9 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
 						SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
 					},
-					ImagePreprocessing: &ImagePreprocessingModel{
-						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
-					},
-					VideoPreprocessing: &VideoPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
-						SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
-					},
-					AudioPreprocessing: &AudioPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
-						SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
-					},
+					ImagePreprocessing: imagePreproc,
+					VideoPreprocessing: videoPreproc,
+					AudioPreprocessing: audioPreproc,
 					AnnParameters: &AnnParametersModelCreate{
 						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
 						Parameters: ParametersModel{
@@ -566,13 +596,18 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			}
 		}
 
-		// Ensure features and dependent_fields are always set
-		for i := range newState.Settings.AllFields {
-			if len(newState.Settings.AllFields[i].Features) == 0 {
-				newState.Settings.AllFields[i].Features = nil
-			}
-			if len(newState.Settings.AllFields[i].DependentFields) == 0 {
-				newState.Settings.AllFields[i].DependentFields = nil
+		// If all_fields is empty, remove it entirely (so Terraform sees null).
+		if len(newState.Settings.AllFields) == 0 {
+			newState.Settings.AllFields = nil
+		} else {
+			// Ensure features and dependent_fields are always set
+			for i := range newState.Settings.AllFields {
+				if len(newState.Settings.AllFields[i].Features) == 0 {
+					newState.Settings.AllFields[i].Features = nil
+				}
+				if len(newState.Settings.AllFields[i].DependentFields) == 0 {
+					newState.Settings.AllFields[i].DependentFields = nil
+				}
 			}
 		}
 
@@ -584,8 +619,9 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 
 		// Handle image_preprocessing.patch_method
-		if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+		if newState.Settings.ImagePreprocessing != nil &&
+			newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+			newState.Settings.ImagePreprocessing = nil
 		}
 
 		// preserve the video/audio preprocessing from current state since api does not return them
