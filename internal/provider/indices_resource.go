@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -176,10 +175,10 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"vector_numeric_type": schema.StringAttribute{
 						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
-						},
+						//Computed: true,
+						//PlanModifiers: []planmodifier.String{
+						//	stringplanmodifier.UseStateForUnknown(),
+						//},
 					},
 					"number_of_inferences": schema.Int64Attribute{
 						Required: true,
@@ -270,27 +269,22 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,
 						Computed: true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"text_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.Object{
-							objectplanmodifier.UseStateForUnknown(),
-						},
 						Attributes: map[string]schema.Attribute{
-							"split_length":  schema.Int64Attribute{Optional: true, Computed: true},
-							"split_method":  schema.StringAttribute{Optional: true, Computed: true},
-							"split_overlap": schema.Int64Attribute{Optional: true, Computed: true},
+							"split_length":  schema.Int64Attribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}},
+							"split_method":  schema.StringAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+							"split_overlap": schema.Int64Attribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}},
 						},
 					},
 					"image_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.Object{
-							objectplanmodifier.UseStateForUnknown(),
-						},
 						Attributes: map[string]schema.Attribute{
-							"patch_method": schema.StringAttribute{Optional: true},
+							"patch_method": schema.StringAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 						},
 					},
 					"video_preprocessing": schema.SingleNestedAttribute{
@@ -309,17 +303,13 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"ann_parameters": schema.SingleNestedAttribute{
 						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.Object{
-							objectplanmodifier.UseStateForUnknown(),
-						},
 						Attributes: map[string]schema.Attribute{
-							"space_type": schema.StringAttribute{Optional: true, Computed: true},
+							"space_type": schema.StringAttribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 							"parameters": schema.SingleNestedAttribute{
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
-									"ef_construction": schema.Int64Attribute{Optional: true, Computed: true},
-									"m":               schema.Int64Attribute{Optional: true, Computed: true},
+									"ef_construction": schema.Int64Attribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}},
+									"m":               schema.Int64Attribute{Optional: true, Computed: true, PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()}},
 								},
 							},
 						},
@@ -506,52 +496,108 @@ func convertModelPropertiesToResource(props *go_marqo.ModelProperties) *ModelPro
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string, existingTimeouts *timeouts) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
-			return &IndexResourceModel{
-				//ID:        types.StringValue(indexDetail.IndexName),
+			// Initialize with required fields
+			state := &IndexResourceModel{
 				IndexName:     types.StringValue(indexDetail.IndexName),
 				MarqoEndpoint: types.StringValue(indexDetail.MarqoEndpoint),
 				Timeouts:      existingTimeouts,
 				Settings: IndexSettingsModel{
-					Type:                         types.StringValue(indexDetail.Type),
-					VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
-					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
-					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
-					Model:                        types.StringValue(indexDetail.Model),
-					ModelProperties:              convertModelPropertiesToResource(&indexDetail.ModelProperties),
-					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
-					TensorFields:                 indexDetail.TensorFields,
-					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
-					InferenceType:                types.StringValue(indexDetail.InferenceType),
-					NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
-					StorageClass:                 types.StringValue(indexDetail.StorageClass),
-					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
-					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
-					TextPreprocessing: &TextPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
-						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
-						SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
-					},
-					ImagePreprocessing: &ImagePreprocessingModel{
-						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
-					},
-					VideoPreprocessing: &VideoPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
-						SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
-					},
-					AudioPreprocessing: &AudioPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
-						SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
-					},
-					AnnParameters: &AnnParametersModelCreate{
-						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
-						Parameters: ParametersModel{
-							EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
-							M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
-						},
-					},
-					FilterStringMaxLength: types.Int64Value(indexDetail.FilterStringMaxLength),
+					// Required fields
+					Type:               types.StringValue(indexDetail.Type),
+					InferenceType:      types.StringValue(indexDetail.InferenceType),
+					NumberOfInferences: types.Int64Value(indexDetail.NumberOfInferences),
+					StorageClass:       types.StringValue(indexDetail.StorageClass),
+					NumberOfShards:     types.Int64Value(indexDetail.NumberOfShards),
+					NumberOfReplicas:   types.Int64Value(indexDetail.NumberOfReplicas),
+					Model:              types.StringValue(indexDetail.Model),
 				},
-			}, true
+			}
+
+			// Optional string fields
+			if indexDetail.VectorNumericType != "" {
+				state.Settings.VectorNumericType = types.StringValue(indexDetail.VectorNumericType)
+			}
+
+			// Boolean fields
+			state.Settings.TreatUrlsAndPointersAsImages = types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages)
+			state.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia)
+			state.Settings.NormalizeEmbeddings = types.BoolValue(indexDetail.NormalizeEmbeddings)
+
+			// Model Properties
+			if modelProps := convertModelPropertiesToResource(&indexDetail.ModelProperties); modelProps != nil {
+				state.Settings.ModelProperties = modelProps
+			}
+
+			// Array fields
+			if len(indexDetail.AllFields) > 0 {
+				state.Settings.AllFields = ConvertMarqoAllFieldInputs(indexDetail.AllFields)
+			}
+			if len(indexDetail.TensorFields) > 0 {
+				state.Settings.TensorFields = indexDetail.TensorFields
+			}
+
+			// Text Preprocessing
+			if indexDetail.TextPreprocessing.SplitLength != 0 ||
+				indexDetail.TextPreprocessing.SplitMethod != "" ||
+				indexDetail.TextPreprocessing.SplitOverlap != 0 {
+				state.Settings.TextPreprocessing = &TextPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
+					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
+					SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
+				}
+			}
+
+			// Image Preprocessing
+			if indexDetail.ImagePreprocessing.PatchMethod != "" {
+				state.Settings.ImagePreprocessing = &ImagePreprocessingModel{
+					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
+				}
+			}
+
+			// Video Preprocessing
+			if indexDetail.VideoPreprocessing.SplitLength != 0 ||
+				indexDetail.VideoPreprocessing.SplitOverlap != 0 {
+				state.Settings.VideoPreprocessing = &VideoPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
+					SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
+				}
+			}
+
+			// Audio Preprocessing
+			if indexDetail.AudioPreprocessing.SplitLength != 0 ||
+				indexDetail.AudioPreprocessing.SplitOverlap != 0 {
+				state.Settings.AudioPreprocessing = &AudioPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
+					SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
+				}
+			}
+
+			// ANN Parameters
+			if indexDetail.AnnParameters.SpaceType != "" ||
+				indexDetail.AnnParameters.Parameters.EfConstruction != 0 ||
+				indexDetail.AnnParameters.Parameters.M != 0 {
+				state.Settings.AnnParameters = &AnnParametersModelCreate{
+					SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
+					Parameters: ParametersModel{
+						EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
+						M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
+					},
+				}
+			}
+
+			// Filter String Max Length
+			if indexDetail.FilterStringMaxLength != 0 {
+				state.Settings.FilterStringMaxLength = types.Int64Value(indexDetail.FilterStringMaxLength)
+			}
+
+			// Handle structured index specific cases
+			if state.Settings.Type.ValueString() == "structured" {
+				state.Settings.FilterStringMaxLength = types.Int64Null()
+				state.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+				state.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
+			}
+
+			return state, true
 		}
 	}
 	return nil, false
@@ -1000,17 +1046,19 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 							model.IndexName.ValueString(),
 							time.Since(start)))
 
-						// Do final read to get the complete state
-						readResp := resource.ReadResponse{State: resp.State}
-						r.Read(ctx, resource.ReadRequest{State: resp.State}, &readResp)
-
-						if readResp.Diagnostics.HasError() {
-							resp.Diagnostics.Append(readResp.Diagnostics...)
+						newState, found := r.findAndCreateState(indices, model.IndexName.ValueString(), model.Timeouts)
+						if !found {
+							resp.Diagnostics.AddError(
+								"Failed to Find Created Index",
+								fmt.Sprintf("Index %s not found after creation", model.IndexName.ValueString()),
+							)
 							return
 						}
 
 						// Update the response state with the read state
-						resp.State = readResp.State
+						// Set state directly
+						diags = resp.State.Set(ctx, newState)
+						resp.Diagnostics.Append(diags...)
 						return
 					} else if index.IndexStatus == "FAILED" {
 						// Attempt to delete the failed index
