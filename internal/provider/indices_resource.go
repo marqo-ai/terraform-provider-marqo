@@ -569,8 +569,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		// marqo doesn't return timeouts, so we maintain the existing state
 		newState.Timeouts = state.Timeouts
 
-		if newState.Settings.AllFields == nil || len(newState.Settings.AllFields) == 0 {
+		if state.Settings.AllFields == nil {
 			newState.Settings.AllFields = nil
+		} else if len(newState.Settings.AllFields) == 0 {
+			newState.Settings.AllFields = []AllFieldInput{}
 		} else {
 			// Ensure features and dependent_fields are always set
 			for i := range newState.Settings.AllFields {
@@ -591,9 +593,11 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 
 		// Handle image_preprocessing
-		if newState.Settings.ImagePreprocessing != nil &&
-			newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+		if state.Settings.ImagePreprocessing == nil {
 			newState.Settings.ImagePreprocessing = nil
+		} else if newState.Settings.ImagePreprocessing != nil &&
+			newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 		}
 
 		// preserve the video/audio preprocessing from current state since api does not return them
@@ -604,7 +608,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
 		}
 
-		// Then handle zero values (existing code)
+		// Then handle zero values
 		if newState.Settings.VideoPreprocessing != nil &&
 			newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
 			newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
