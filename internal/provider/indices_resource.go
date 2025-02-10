@@ -566,13 +566,20 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			}
 		}
 
-		// Ensure features and dependent_fields are always set
-		for i := range newState.Settings.AllFields {
-			if len(newState.Settings.AllFields[i].Features) == 0 {
-				newState.Settings.AllFields[i].Features = nil
-			}
-			if len(newState.Settings.AllFields[i].DependentFields) == 0 {
-				newState.Settings.AllFields[i].DependentFields = nil
+		// marqo doesn't return timeouts, so we maintain the existing state
+		newState.Timeouts = state.Timeouts
+
+		if newState.Settings.AllFields == nil || len(newState.Settings.AllFields) == 0 {
+			newState.Settings.AllFields = nil
+		} else {
+			// Ensure features and dependent_fields are always set
+			for i := range newState.Settings.AllFields {
+				if len(newState.Settings.AllFields[i].Features) == 0 {
+					newState.Settings.AllFields[i].Features = nil
+				}
+				if len(newState.Settings.AllFields[i].DependentFields) == 0 {
+					newState.Settings.AllFields[i].DependentFields = nil
+				}
 			}
 		}
 
@@ -583,9 +590,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
 		}
 
-		// Handle image_preprocessing.patch_method
-		if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+		// Handle image_preprocessing
+		if newState.Settings.ImagePreprocessing != nil &&
+			newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+			newState.Settings.ImagePreprocessing = nil
 		}
 
 		// preserve the video/audio preprocessing from current state since api does not return them
