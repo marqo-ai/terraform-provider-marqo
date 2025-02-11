@@ -655,6 +655,79 @@ func statesAreEqual(existing *IndexResourceModel, desired *IndexResourceModel) b
 	return reflect.DeepEqual(existing.Settings, desired.Settings)
 }
 
+// waitForIndexStatus waits for an index to reach a target status or be deleted
+func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName string, targetStatus string, timeoutDuration time.Duration, isDelete bool) error {
+	timeout := time.After(timeoutDuration)
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	tflog.Info(ctx, fmt.Sprintf("Waiting up to %v for index %s to reach status %s...",
+		timeoutDuration,
+		indexName,
+		targetStatus))
+
+	start := time.Now()
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for index %s to reach status %s after %v",
+				indexName, targetStatus, timeoutDuration)
+		case <-ticker.C:
+			indices, err := r.marqoClient.ListIndices()
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("Error listing indices: %s", err))
+				continue
+			}
+
+			// For delete operations, we check if the index no longer exists
+			if isDelete {
+				indexExists := false
+				for _, index := range indices {
+					if index.IndexName == indexName {
+						indexExists = true
+						break
+					}
+				}
+				if !indexExists {
+					tflog.Info(ctx, fmt.Sprintf("Index %s has been successfully deleted (total time: %v)",
+						indexName,
+						time.Since(start)))
+					return nil
+				}
+				tflog.Info(ctx, fmt.Sprintf("Index %s still exists, continuing to wait... (elapsed: %v)",
+					indexName,
+					time.Since(start)))
+				continue
+			}
+
+			// For create/update operations, we check for the target status
+			for _, index := range indices {
+				if index.IndexName == indexName {
+					tflog.Info(ctx, fmt.Sprintf("Index %s status: %s (elapsed: %v)",
+						indexName,
+						index.IndexStatus,
+						time.Since(start)))
+
+					if index.IndexStatus == targetStatus {
+						tflog.Info(ctx, fmt.Sprintf("Index %s has reached status %s (total time: %v)",
+							indexName,
+							targetStatus,
+							time.Since(start)))
+						return nil
+					} else if index.IndexStatus == "FAILED" {
+						return fmt.Errorf("index %s reached FAILED status while waiting for %s",
+							indexName, targetStatus)
+					}
+					break
+				}
+			}
+			tflog.Info(ctx, fmt.Sprintf("Index %s not in desired state yet, continuing to wait... (elapsed: %v)",
+				indexName,
+				time.Since(start)))
+		}
+	}
+}
+
 func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var model IndexResourceModel
 	diags := req.Plan.Get(ctx, &model)
@@ -844,10 +917,11 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		tflog.Info(ctx, fmt.Sprintf("Using configured timeout of %v", timeoutDuration))
 	}
 
-	err := r.marqoClient.CreateIndex(model.IndexName.ValueString(), settings)
+	indexName := model.IndexName.ValueString()
+	err := r.marqoClient.CreateIndex(indexName, settings)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
-			tflog.Info(ctx, fmt.Sprintf("Index %s already exists. Checking if it needs to be updated.", model.IndexName.ValueString()))
+			tflog.Info(ctx, fmt.Sprintf("Index %s already exists. Checking if it needs to be updated.", indexName))
 
 			indices, err := r.marqoClient.ListIndices()
 			if err != nil {
@@ -855,30 +929,30 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 				return
 			}
 
-			existingState, found := r.findAndCreateState(indices, model.IndexName.ValueString(), model.Timeouts)
+			existingState, found := r.findAndCreateState(indices, indexName, model.Timeouts)
 			if !found {
-				resp.Diagnostics.AddError("Failed to Find Index", fmt.Sprintf("Index %s not found after creation", model.IndexName.ValueString()))
+				resp.Diagnostics.AddError("Failed to Find Index", fmt.Sprintf("Index %s not found after creation", indexName))
 				return
 			}
 
 			// Compare existing state with desired state
 			if !statesAreEqual(existingState, &model) {
 				// Attempt to update the existing index
-				err = r.marqoClient.UpdateIndex(model.IndexName.ValueString(), settings)
+				err = r.marqoClient.UpdateIndex(indexName, settings)
 				if err != nil {
 					resp.Diagnostics.AddError("Failed to Update Existing Index",
-						fmt.Sprintf("Index %s exists but couldn't be updated to match the configuration: %s", model.IndexName.ValueString(), err.Error()))
+						fmt.Sprintf("Index %s exists but couldn't be updated to match the configuration: %s", indexName, err.Error()))
 					return
 				}
-				tflog.Info(ctx, fmt.Sprintf("Index %s updated to match configuration.", model.IndexName.ValueString()))
+				tflog.Info(ctx, fmt.Sprintf("Index %s updated to match configuration.", indexName))
 			} else {
-				tflog.Info(ctx, fmt.Sprintf("Existing index %s matches configuration. No update needed.", model.IndexName.ValueString()))
+				tflog.Info(ctx, fmt.Sprintf("Existing index %s matches configuration. No update needed.", indexName))
 			}
 
 			// Set state to the (potentially updated) existing index
 			diags = resp.State.Set(ctx, existingState)
 			resp.Diagnostics.Append(diags...)
-			resp.Diagnostics.AddWarning(fmt.Sprintf("Index %s already existed and has been imported into Terraform state.", model.IndexName.ValueString()),
+			resp.Diagnostics.AddWarning(fmt.Sprintf("Index %s already existed and has been imported into Terraform state.", indexName),
 				"Any differences between the existing index and your configuration have been resolved by updating the index.")
 			return
 		}
@@ -892,133 +966,36 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 
-	// Wait for index to be ready
-	timeout := time.After(timeoutDuration)
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
-	tflog.Info(ctx, fmt.Sprintf("Waiting up to %v for index %s to be ready...",
-		timeoutDuration,
-		model.IndexName.ValueString()))
-
-	start := time.Now()
-	for {
-		select {
-		case <-timeout:
-			// Check the current status of the index
-			indices, err := r.marqoClient.ListIndices()
-			if err != nil {
-				resp.Diagnostics.AddError(
-					"Failed to Check Index Status",
-					fmt.Sprintf("Could not check index status after timeout: %s", err),
-				)
-				return
-			}
-
-			var indexStatus string
-			for _, index := range indices {
-				if index.IndexName == model.IndexName.ValueString() {
-					indexStatus = index.IndexStatus
-					break
-				}
-			}
-
-			if indexStatus == "CREATING" {
-				resp.Diagnostics.AddError(
-					"Timeout Waiting for Index",
-					fmt.Sprintf("Index %s did not become ready within the %v timeout period. "+
-						"The index is still being created in the cloud and cannot be deleted at this time. "+
-						"You may need to manually delete it later using the Marqo console or API.",
-						model.IndexName.ValueString(),
-						timeoutDuration),
-				)
-				return
-			}
-
-			// If the index is in any other state, try to delete it
-			deleteErr := r.marqoClient.DeleteIndex(model.IndexName.ValueString())
-			if deleteErr != nil {
-				resp.Diagnostics.AddError(
-					"Cleanup Failed",
-					fmt.Sprintf("Index %s creation timed out after %v and cleanup failed: %s. "+
-						"Manual cleanup may be required.",
-						model.IndexName.ValueString(),
-						timeoutDuration,
-						deleteErr),
-				)
-				return
-			}
-
+	// Wait for the index to be ready
+	err = r.waitForIndexStatus(ctx, indexName, "READY", timeoutDuration, false)
+	if err != nil {
+		// If waiting failed, attempt to clean up the index
+		deleteErr := r.marqoClient.DeleteIndex(indexName)
+		if deleteErr != nil {
 			resp.Diagnostics.AddError(
-				"Timeout Waiting for Index",
-				fmt.Sprintf("Index %s did not become ready within the %v timeout period and has been deleted.",
-					model.IndexName.ValueString(),
-					timeoutDuration),
+				"Cleanup Failed",
+				fmt.Sprintf("Index %s creation failed and cleanup attempt failed: %s. Manual cleanup may be required.",
+					indexName, deleteErr),
 			)
-			return
-		case <-ticker.C:
-			indices, err := r.marqoClient.ListIndices()
-			if err != nil {
-				resp.Diagnostics.AddError(
-					"Failed to Check Index Status",
-					fmt.Sprintf("Could not check index status: %s", err),
-				)
-				continue
-			}
-			for _, index := range indices {
-				if index.IndexName == model.IndexName.ValueString() {
-					tflog.Info(ctx, fmt.Sprintf("Index %s status: %s (elapsed: %v)",
-						model.IndexName.ValueString(),
-						index.IndexStatus,
-						time.Since(start)))
-					if index.IndexStatus == "READY" {
-						tflog.Info(ctx, fmt.Sprintf("Index %s is now ready (total time: %v)",
-							model.IndexName.ValueString(),
-							time.Since(start)))
-
-						// Do final read to get the complete state
-						readResp := resource.ReadResponse{State: resp.State}
-						r.Read(ctx, resource.ReadRequest{State: resp.State}, &readResp)
-
-						if readResp.Diagnostics.HasError() {
-							resp.Diagnostics.Append(readResp.Diagnostics...)
-							return
-						}
-
-						// Update the response state with the read state
-						resp.State = readResp.State
-						return
-					} else if index.IndexStatus == "FAILED" {
-						// Attempt to delete the failed index
-						deleteErr := r.marqoClient.DeleteIndex(model.IndexName.ValueString())
-						if deleteErr != nil {
-							resp.Diagnostics.AddError(
-								"Cleanup Failed",
-								fmt.Sprintf("Index %s creation failed and cleanup attempt failed: %s. "+
-									"Manual cleanup may be required.",
-									model.IndexName.ValueString(),
-									deleteErr),
-							)
-							return
-						}
-
-						resp.Diagnostics.AddError(
-							"Index Creation Failed",
-							fmt.Sprintf("Index %s creation failed after %v and has been deleted. "+
-								"Please check the Marqo logs for more details.",
-								model.IndexName.ValueString(),
-								time.Since(start)),
-						)
-						return
-					}
-					break
-				}
-			}
-			tflog.Info(ctx, fmt.Sprintf("Index %s not ready yet, continuing to wait... (elapsed: %v)",
-				model.IndexName.ValueString(),
-				time.Since(start)))
 		}
+
+		resp.Diagnostics.AddError(
+			"Index Creation Failed",
+			fmt.Sprintf("Index %s creation failed: %s", indexName, err),
+		)
+		return
 	}
+
+	// Do final read to get the complete state
+	readResp := resource.ReadResponse{State: resp.State}
+	r.Read(ctx, resource.ReadRequest{State: resp.State}, &readResp)
+	if readResp.Diagnostics.HasError() {
+		resp.Diagnostics.Append(readResp.Diagnostics...)
+		return
+	}
+
+	// Update the response state with the read state
+	resp.State = readResp.State
 }
 
 func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -1029,9 +1006,29 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	err := r.marqoClient.DeleteIndex(model.IndexName.ValueString())
+	indexName := model.IndexName.ValueString()
+	err := r.marqoClient.DeleteIndex(indexName)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to Delete Index", "Could not delete index: "+err.Error())
+		resp.Diagnostics.AddError("Failed to Delete Index", fmt.Sprintf("Could not delete index: %s", err.Error()))
+		return
+	}
+
+	// Default timeout of 15 minutes for deletion
+	timeoutDuration := 15 * time.Minute
+	if model.Timeouts != nil && model.Timeouts.Create.ValueString() != "" {
+		parsedTimeout, err := time.ParseDuration(model.Timeouts.Create.ValueString())
+		if err == nil {
+			timeoutDuration = parsedTimeout
+		}
+	}
+
+	// Wait for the index to be deleted
+	err = r.waitForIndexStatus(ctx, indexName, "", timeoutDuration, true)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Timeout Waiting for Index Deletion",
+			fmt.Sprintf("Index %s deletion did not complete within timeout: %s", indexName, err),
+		)
 		return
 	}
 }
@@ -1058,18 +1055,47 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		delete(settings, "numberOfInferences")
 	}
 
-	err := r.marqoClient.UpdateIndex(model.IndexName.ValueString(), settings)
+	indexName := model.IndexName.ValueString()
+	err := r.marqoClient.UpdateIndex(indexName, settings)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to Update Index", "Could not create index: "+err.Error())
+		resp.Diagnostics.AddError("Failed to Update Index", fmt.Sprintf("Could not update index: %s", err.Error()))
 		return
 	}
 
+	// Default timeout of 30 minutes for update
+	timeoutDuration := 30 * time.Minute
+	if model.Timeouts != nil && model.Timeouts.Create.ValueString() != "" {
+		parsedTimeout, err := time.ParseDuration(model.Timeouts.Create.ValueString())
+		if err == nil {
+			timeoutDuration = parsedTimeout
+		}
+	}
+
+	// Wait for the index to be ready
+	err = r.waitForIndexStatus(ctx, indexName, "READY", timeoutDuration, false)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Timeout Waiting for Index Update",
+			fmt.Sprintf("Index %s update did not complete within timeout: %s", indexName, err),
+		)
+		return
+	}
+
+	// Do final read to get the complete state
 	// Preserve computed/meta fields from current state
 	var state IndexResourceModel
 	model.MarqoEndpoint = state.MarqoEndpoint
 	model.Timeouts = state.Timeouts
+	readResp := resource.ReadResponse{State: resp.State}
+	r.Read(ctx, resource.ReadRequest{State: resp.State}, &readResp)
+	if readResp.Diagnostics.HasError() {
+		resp.Diagnostics.Append(readResp.Diagnostics...)
+		return
+	}
 
+	// Update the response state with the read state
 	// Set the index name as the ID in the Terraform state
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
+	resp.State = readResp.State
 }
