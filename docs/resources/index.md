@@ -172,3 +172,5 @@ Optional:
 Optional:
 
 - `create` (String) Time to wait for index to be ready (e.g., '30m', '1h'). Default is 30m.
+- `delete` (String) Time to wait for index to be deleted (e.g., '15m', '1h'). Default is 15m.
+- `update` (String) Time to wait for index to be updated (e.g., '30m', '1h'). Default is 30m.
