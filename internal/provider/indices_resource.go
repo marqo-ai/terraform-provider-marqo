@@ -667,11 +667,53 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 		targetStatus))
 
 	start := time.Now()
+
+	// For delete operations, check if index is in READY state first
+	if isDelete {
+		indices, err := r.marqoClient.ListIndices()
+		if err != nil {
+			return fmt.Errorf("error checking index status before deletion: %v", err)
+		}
+
+		for _, index := range indices {
+			if index.IndexName == indexName {
+				if index.IndexStatus != "READY" {
+					return fmt.Errorf("cannot delete index %s: index is in %s state, must be in READY state",
+						indexName, index.IndexStatus)
+				}
+				break
+			}
+		}
+	}
+
 	for {
 		select {
 		case <-timeout:
-			return fmt.Errorf("timeout waiting for index %s to reach status %s after %v",
-				indexName, targetStatus, timeoutDuration)
+			// Get the current status before timing out
+			indices, err := r.marqoClient.ListIndices()
+			if err != nil {
+				return fmt.Errorf("timeout waiting for index %s to reach status %s after %v, and failed to get final status: %v",
+					indexName, targetStatus, timeoutDuration, err)
+			}
+
+			var currentStatus string
+			var exists bool
+			for _, index := range indices {
+				if index.IndexName == indexName {
+					currentStatus = index.IndexStatus
+					exists = true
+					break
+				}
+			}
+
+			if !exists {
+				return fmt.Errorf("timeout waiting for index %s after %v - index does not exist",
+					indexName, timeoutDuration)
+			}
+
+			return fmt.Errorf("timeout waiting for index %s to reach status %s after %v - current status is %s",
+				indexName, targetStatus, timeoutDuration, currentStatus)
+
 		case <-ticker.C:
 			indices, err := r.marqoClient.ListIndices()
 			if err != nil {
@@ -682,9 +724,11 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 			// For delete operations, we check if the index no longer exists
 			if isDelete {
 				indexExists := false
+				var currentStatus string
 				for _, index := range indices {
 					if index.IndexName == indexName {
 						indexExists = true
+						currentStatus = index.IndexStatus
 						break
 					}
 				}
@@ -694,15 +738,18 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 						time.Since(start)))
 					return nil
 				}
-				tflog.Info(ctx, fmt.Sprintf("Index %s still exists, continuing to wait... (elapsed: %v)",
+				tflog.Info(ctx, fmt.Sprintf("Index %s still exists with status %s, continuing to wait... (elapsed: %v)",
 					indexName,
+					currentStatus,
 					time.Since(start)))
 				continue
 			}
 
 			// For create/update operations, we check for the target status
+			indexFound := false
 			for _, index := range indices {
 				if index.IndexName == indexName {
+					indexFound = true
 					tflog.Info(ctx, fmt.Sprintf("Index %s status: %s (elapsed: %v)",
 						indexName,
 						index.IndexStatus,
@@ -721,6 +768,12 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 					break
 				}
 			}
+
+			if !indexFound {
+				return fmt.Errorf("index %s no longer exists while waiting for status %s",
+					indexName, targetStatus)
+			}
+
 			tflog.Info(ctx, fmt.Sprintf("Index %s not in desired state yet, continuing to wait... (elapsed: %v)",
 				indexName,
 				time.Since(start)))
@@ -973,16 +1026,17 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		deleteErr := r.marqoClient.DeleteIndex(indexName)
 		if deleteErr != nil {
 			resp.Diagnostics.AddError(
-				"Cleanup Failed",
-				fmt.Sprintf("Index %s creation failed and cleanup attempt failed: %s. Manual cleanup may be required.",
-					indexName, deleteErr),
+				"Index Creation Failed and Cleanup Failed",
+				fmt.Sprintf("Index %s creation failed: %s\n\nAttempted cleanup also failed: %s\nManual cleanup may be required.",
+					indexName, err, deleteErr),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Index Creation Failed",
+				fmt.Sprintf("Index %s creation failed and was automatically cleaned up.\nError: %s",
+					indexName, err),
 			)
 		}
-
-		resp.Diagnostics.AddError(
-			"Index Creation Failed",
-			fmt.Sprintf("Index %s creation failed: %s", indexName, err),
-		)
 		return
 	}
 
@@ -1007,9 +1061,37 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	indexName := model.IndexName.ValueString()
-	err := r.marqoClient.DeleteIndex(indexName)
+
+	// Check current index status before attempting deletion
+	indices, err := r.marqoClient.ListIndices()
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to Delete Index", fmt.Sprintf("Could not delete index: %s", err.Error()))
+		resp.Diagnostics.AddError(
+			"Failed to List Indices",
+			fmt.Sprintf("Could not check index status: %s", err.Error()))
+		return
+	}
+
+	var currentStatus string
+	indexFound := false
+	for _, index := range indices {
+		if index.IndexName == indexName {
+			currentStatus = index.IndexStatus
+			indexFound = true
+			break
+		}
+	}
+
+	if !indexFound {
+		resp.Diagnostics.AddError(
+			"Index Not Found",
+			fmt.Sprintf("Index %s does not exist", indexName))
+		return
+	}
+
+	if currentStatus != "READY" {
+		resp.Diagnostics.AddError(
+			"Index Not Ready",
+			fmt.Sprintf("Cannot delete index %s: current status is %s, must be READY", indexName, currentStatus))
 		return
 	}
 
@@ -1020,6 +1102,16 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 		if err == nil {
 			timeoutDuration = parsedTimeout
 		}
+	}
+
+	// Attempt to delete the index
+	err = r.marqoClient.DeleteIndex(indexName)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to Delete Index",
+			fmt.Sprintf("Could not delete index %s.\n"+
+				"Error details: %s", indexName, err.Error()))
+		return
 	}
 
 	// Wait for the index to be deleted
@@ -1042,6 +1134,41 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	indexName := model.IndexName.ValueString()
+
+	// Check current index status before attempting update
+	indices, err := r.marqoClient.ListIndices()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to List Indices",
+			fmt.Sprintf("Could not check index status: %s", err.Error()))
+		return
+	}
+
+	var currentStatus string
+	indexFound := false
+	for _, index := range indices {
+		if index.IndexName == indexName {
+			currentStatus = index.IndexStatus
+			indexFound = true
+			break
+		}
+	}
+
+	if !indexFound {
+		resp.Diagnostics.AddError(
+			"Index Not Found",
+			fmt.Sprintf("Index %s does not exist", indexName))
+		return
+	}
+
+	if currentStatus != "READY" {
+		resp.Diagnostics.AddError(
+			"Index Not Ready",
+			fmt.Sprintf("Cannot update index %s: current status is %s, must be READY", indexName, currentStatus))
+		return
+	}
+
 	// Construct settings map
 	settings := map[string]interface{}{
 		"inferenceType":      model.Settings.InferenceType.ValueString(),
@@ -1055,10 +1182,13 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		delete(settings, "numberOfInferences")
 	}
 
-	indexName := model.IndexName.ValueString()
-	err := r.marqoClient.UpdateIndex(indexName, settings)
+	// Attempt to update the index
+	err = r.marqoClient.UpdateIndex(indexName, settings)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to Update Index", fmt.Sprintf("Could not update index: %s", err.Error()))
+		resp.Diagnostics.AddError(
+			"Failed to Update Index",
+			fmt.Sprintf("Could not update index %s.\n"+
+				"Error details: %s", indexName, err.Error()))
 		return
 	}
 
