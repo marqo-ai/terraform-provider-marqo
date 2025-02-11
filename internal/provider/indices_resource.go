@@ -665,7 +665,7 @@ func statesAreEqual(existing *IndexResourceModel, desired *IndexResourceModel) b
 	return reflect.DeepEqual(existing.Settings, desired.Settings)
 }
 
-// waitForIndexStatus waits for an index to reach a target status or be deleted
+// waitForIndexStatus waits for an index to reach a target status or be deleted.
 func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName string, targetStatus string, timeoutDuration time.Duration, isDelete bool) error {
 	timeout := time.After(timeoutDuration)
 	ticker := time.NewTicker(30 * time.Second)
