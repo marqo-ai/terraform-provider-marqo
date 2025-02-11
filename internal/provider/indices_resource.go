@@ -40,6 +40,8 @@ type IndexResourceModel struct {
 
 type timeouts struct {
 	Create types.String `tfsdk:"create"`
+	Update types.String `tfsdk:"update"`
+	Delete types.String `tfsdk:"delete"`
 }
 
 type IndexSettingsModel struct {
@@ -155,6 +157,14 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"create": schema.StringAttribute{
 						Optional:    true,
 						Description: "Time to wait for index to be ready (e.g., '30m', '1h'). Default is 30m.",
+					},
+					"update": schema.StringAttribute{
+						Optional:    true,
+						Description: "Time to wait for index to be updated (e.g., '30m', '1h'). Default is 30m.",
+					},
+					"delete": schema.StringAttribute{
+						Optional:    true,
+						Description: "Time to wait for index to be deleted (e.g., '15m', '1h'). Default is 15m.",
 					},
 				},
 			},
@@ -661,11 +671,6 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	tflog.Info(ctx, fmt.Sprintf("Waiting up to %v for index %s to reach status %s...",
-		timeoutDuration,
-		indexName,
-		targetStatus))
-
 	start := time.Now()
 
 	// For delete operations, check if index is in READY state first
@@ -677,7 +682,7 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 
 		for _, index := range indices {
 			if index.IndexName == indexName {
-				if index.IndexStatus != "READY" {
+				if index.IndexStatus != "READY" && index.IndexStatus != "DELETING" {
 					return fmt.Errorf("cannot delete index %s: index is in %s state, must be in READY state",
 						indexName, index.IndexStatus)
 				}
@@ -686,18 +691,26 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 		}
 	}
 
+	tflog.Info(ctx, fmt.Sprintf("Waiting up to %v for index %s to reach %s...",
+		timeoutDuration,
+		indexName,
+		func() string {
+			if isDelete {
+				return "deletion"
+			}
+			return fmt.Sprintf("status %s", targetStatus)
+		}()))
+
 	for {
 		select {
 		case <-timeout:
-			// Get the current status before timing out
 			indices, err := r.marqoClient.ListIndices()
 			if err != nil {
-				return fmt.Errorf("timeout waiting for index %s to reach status %s after %v, and failed to get final status: %v",
-					indexName, targetStatus, timeoutDuration, err)
+				return fmt.Errorf("timeout checking final status: %v", err)
 			}
 
 			var currentStatus string
-			var exists bool
+			exists := false
 			for _, index := range indices {
 				if index.IndexName == indexName {
 					currentStatus = index.IndexStatus
@@ -706,9 +719,17 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 				}
 			}
 
+			if isDelete {
+				if !exists {
+					return nil
+				}
+				return fmt.Errorf("index %s still exists after %v (status: %s)",
+					indexName, timeoutDuration, currentStatus)
+			}
+
 			if !exists {
-				return fmt.Errorf("timeout waiting for index %s after %v - index does not exist",
-					indexName, timeoutDuration)
+				return fmt.Errorf("index %s no longer exists while waiting for status %s",
+					indexName, targetStatus)
 			}
 
 			return fmt.Errorf("timeout waiting for index %s to reach status %s after %v - current status is %s",
@@ -717,7 +738,7 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 		case <-ticker.C:
 			indices, err := r.marqoClient.ListIndices()
 			if err != nil {
-				tflog.Error(ctx, fmt.Sprintf("Error listing indices: %s", err))
+				tflog.Error(ctx, fmt.Sprintf("Error checking index status: %s", err))
 				continue
 			}
 
@@ -734,32 +755,23 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 				}
 				if !indexExists {
 					tflog.Info(ctx, fmt.Sprintf("Index %s has been successfully deleted (total time: %v)",
-						indexName,
-						time.Since(start)))
+						indexName, time.Since(start)))
 					return nil
 				}
 				tflog.Info(ctx, fmt.Sprintf("Index %s still exists with status %s, continuing to wait... (elapsed: %v)",
-					indexName,
-					currentStatus,
-					time.Since(start)))
+					indexName, currentStatus, time.Since(start)))
 				continue
 			}
 
 			// For create/update operations, we check for the target status
-			indexFound := false
 			for _, index := range indices {
 				if index.IndexName == indexName {
-					indexFound = true
 					tflog.Info(ctx, fmt.Sprintf("Index %s status: %s (elapsed: %v)",
-						indexName,
-						index.IndexStatus,
-						time.Since(start)))
+						indexName, index.IndexStatus, time.Since(start)))
 
 					if index.IndexStatus == targetStatus {
 						tflog.Info(ctx, fmt.Sprintf("Index %s has reached status %s (total time: %v)",
-							indexName,
-							targetStatus,
-							time.Since(start)))
+							indexName, targetStatus, time.Since(start)))
 						return nil
 					} else if index.IndexStatus == "FAILED" {
 						return fmt.Errorf("index %s reached FAILED status while waiting for %s",
@@ -768,15 +780,6 @@ func (r *indicesResource) waitForIndexStatus(ctx context.Context, indexName stri
 					break
 				}
 			}
-
-			if !indexFound {
-				return fmt.Errorf("index %s no longer exists while waiting for status %s",
-					indexName, targetStatus)
-			}
-
-			tflog.Info(ctx, fmt.Sprintf("Index %s not in desired state yet, continuing to wait... (elapsed: %v)",
-				indexName,
-				time.Since(start)))
 		}
 	}
 }
@@ -1062,50 +1065,20 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 
 	indexName := model.IndexName.ValueString()
 
-	// Check current index status before attempting deletion
-	indices, err := r.marqoClient.ListIndices()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to List Indices",
-			fmt.Sprintf("Could not check index status: %s", err.Error()))
-		return
-	}
-
-	var currentStatus string
-	indexFound := false
-	for _, index := range indices {
-		if index.IndexName == indexName {
-			currentStatus = index.IndexStatus
-			indexFound = true
-			break
-		}
-	}
-
-	if !indexFound {
-		resp.Diagnostics.AddError(
-			"Index Not Found",
-			fmt.Sprintf("Index %s does not exist", indexName))
-		return
-	}
-
-	if currentStatus != "READY" {
-		resp.Diagnostics.AddError(
-			"Index Not Ready",
-			fmt.Sprintf("Cannot delete index %s: current status is %s, must be READY", indexName, currentStatus))
-		return
-	}
-
 	// Default timeout of 15 minutes for deletion
 	timeoutDuration := 15 * time.Minute
-	if model.Timeouts != nil && model.Timeouts.Create.ValueString() != "" {
-		parsedTimeout, err := time.ParseDuration(model.Timeouts.Create.ValueString())
+	if model.Timeouts != nil && model.Timeouts.Delete.ValueString() != "" {
+		parsedTimeout, err := time.ParseDuration(model.Timeouts.Delete.ValueString())
 		if err == nil {
 			timeoutDuration = parsedTimeout
+			tflog.Info(ctx, fmt.Sprintf("Using configured delete timeout of %v", timeoutDuration))
+		} else {
+			tflog.Warn(ctx, fmt.Sprintf("Invalid delete timeout duration: %s, using default of 15m", err))
 		}
 	}
 
 	// Attempt to delete the index
-	err = r.marqoClient.DeleteIndex(indexName)
+	err := r.marqoClient.DeleteIndex(indexName)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to Delete Index",
@@ -1119,8 +1092,7 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Timeout Waiting for Index Deletion",
-			fmt.Sprintf("Index %s deletion did not complete within timeout: %s", indexName, err),
-		)
+			fmt.Sprintf("Index %s deletion did not complete: %s", indexName, err))
 		return
 	}
 }
@@ -1182,6 +1154,18 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		delete(settings, "numberOfInferences")
 	}
 
+	// Default timeout of 30 minutes for update
+	timeoutDuration := 30 * time.Minute
+	if model.Timeouts != nil && model.Timeouts.Update.ValueString() != "" {
+		parsedTimeout, err := time.ParseDuration(model.Timeouts.Update.ValueString())
+		if err == nil {
+			timeoutDuration = parsedTimeout
+			tflog.Info(ctx, fmt.Sprintf("Using configured update timeout of %v", timeoutDuration))
+		} else {
+			tflog.Warn(ctx, fmt.Sprintf("Invalid update timeout duration: %s, using default of 30m", err))
+		}
+	}
+
 	// Attempt to update the index
 	err = r.marqoClient.UpdateIndex(indexName, settings)
 	if err != nil {
@@ -1192,22 +1176,12 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// Default timeout of 30 minutes for update
-	timeoutDuration := 30 * time.Minute
-	if model.Timeouts != nil && model.Timeouts.Create.ValueString() != "" {
-		parsedTimeout, err := time.ParseDuration(model.Timeouts.Create.ValueString())
-		if err == nil {
-			timeoutDuration = parsedTimeout
-		}
-	}
-
 	// Wait for the index to be ready
 	err = r.waitForIndexStatus(ctx, indexName, "READY", timeoutDuration, false)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Timeout Waiting for Index Update",
-			fmt.Sprintf("Index %s update did not complete within timeout: %s", indexName, err),
-		)
+			fmt.Sprintf("Index %s update did not complete: %s", indexName, err))
 		return
 	}
 
@@ -1224,7 +1198,6 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Update the response state with the read state
-	// Set the index name as the ID in the Terraform state
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 	resp.State = readResp.State
