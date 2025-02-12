@@ -106,8 +106,8 @@ type AudioPreprocessingModelCreate struct {
 }
 
 type AnnParametersModelCreate struct {
-	SpaceType  types.String    `tfsdk:"space_type"`
-	Parameters ParametersModel `tfsdk:"parameters"`
+	SpaceType  types.String     `tfsdk:"space_type"`
+	Parameters *ParametersModel `tfsdk:"parameters"`
 }
 
 type ParametersModel struct {
@@ -177,6 +177,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"vector_numeric_type": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 					},
 					"number_of_inferences": schema.Int64Attribute{
 						Required: true,
@@ -217,9 +218,11 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"treat_urls_and_pointers_as_images": schema.BoolAttribute{
 						Optional: true,
+						Computed: true,
 					},
 					"treat_urls_and_pointers_as_media": schema.BoolAttribute{
 						Optional: true,
+						Computed: true,
 					},
 					"model": schema.StringAttribute{
 						Required: true,
@@ -258,6 +261,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,
+						Computed: true,
 					},
 					"text_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
@@ -290,7 +294,9 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"ann_parameters": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"space_type": schema.StringAttribute{Optional: true},
+							"space_type": schema.StringAttribute{
+								Optional: true,
+							},
 							"parameters": schema.SingleNestedAttribute{
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
@@ -302,6 +308,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"filter_string_max_length": schema.Int64Attribute{
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},
@@ -516,7 +523,7 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					},
 					AnnParameters: &AnnParametersModelCreate{
 						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
-						Parameters: ParametersModel{
+						Parameters: &ParametersModel{
 							EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
 							M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
 						},
@@ -593,6 +600,14 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 					newState.Settings.AllFields[i].DependentFields = nil
 				}
 			}
+		}
+
+		// If these fields are not set, set them to null
+		if state.Settings.TextPreprocessing == nil {
+			newState.Settings.TextPreprocessing = nil
+		}
+		if state.Settings.AnnParameters == nil {
+			newState.Settings.AnnParameters = nil
 		}
 
 		// Ignore these fields for structured indexes
@@ -829,6 +844,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		settings["modelProperties"] = modelPropertiesMap
 	}
 	if model.Settings.TextPreprocessing != nil {
+
 		settings["textPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
 			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod.ValueString(),
@@ -853,6 +869,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 	if model.Settings.AnnParameters != nil {
+
 		settings["annParameters"] = map[string]interface{}{
 			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
 			"parameters": map[string]interface{}{
@@ -863,19 +880,16 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Remove optional fields if they are not set
-	if model.Settings.VectorNumericType.IsNull() {
-		delete(settings, "vectorNumericType")
-	}
-	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
+	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() || !model.Settings.TreatUrlsAndPointersAsImages.ValueBool() {
 		delete(settings, "treatUrlsAndPointersAsImages")
 	}
-	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() || !model.Settings.TreatUrlsAndPointersAsMedia.ValueBool() {
 		delete(settings, "treatUrlsAndPointersAsMedia")
 	}
 	if model.Settings.Model.IsNull() {
 		delete(settings, "model")
 	}
-	if model.Settings.NormalizeEmbeddings.IsNull() {
+	if model.Settings.NormalizeEmbeddings.IsNull() || model.Settings.NormalizeEmbeddings.IsUnknown() {
 		delete(settings, "normalizeEmbeddings")
 	}
 	if model.Settings.ModelProperties == nil ||
@@ -893,6 +907,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			model.Settings.TextPreprocessing.SplitOverlap.IsNull()) {
 		delete(settings, "textPreprocessing")
 	}
+
 	if model.Settings.VideoPreprocessing == nil ||
 		(model.Settings.VideoPreprocessing.SplitLength.IsNull() &&
 			model.Settings.VideoPreprocessing.SplitOverlap.IsNull()) {
@@ -913,20 +928,8 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			model.Settings.AnnParameters.Parameters.M.IsNull()) {
 		delete(settings, "annParameters")
 	}
-	if model.Settings.InferenceType.IsNull() {
-		delete(settings, "inferenceType")
-	}
-	if model.Settings.NumberOfInferences.IsNull() {
-		delete(settings, "numberOfInferences")
-	}
-	if model.Settings.StorageClass.IsNull() {
-		settings["storageClass"] = "marqo.basic"
-	}
-	if model.Settings.NumberOfShards.IsNull() {
-		delete(settings, "numberOfShards")
-	}
-	if model.Settings.NumberOfReplicas.IsNull() {
-		delete(settings, "numberOfReplicas")
+	if model.Settings.VectorNumericType.IsNull() || model.Settings.VectorNumericType.ValueString() == "" {
+		delete(settings, "vectorNumericType")
 	}
 	if len(model.Settings.AllFields) == 0 {
 		delete(settings, "allFields")
@@ -934,9 +937,10 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if len(model.Settings.TensorFields) == 0 {
 		delete(settings, "tensorFields")
 	}
-	if model.Settings.FilterStringMaxLength.IsNull() {
+	if model.Settings.FilterStringMaxLength.IsNull() || model.Settings.FilterStringMaxLength.IsUnknown() {
 		delete(settings, "filterStringMaxLength")
 	}
+
 	tflog.Debug(ctx, "Creating index with settings: %#v", settings)
 
 	// Adjust settings for structured index
@@ -1092,7 +1096,7 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Timeout Waiting for Index Deletion",
-			fmt.Sprintf("Index %s deletion did not complete: %s", indexName, err))
+			fmt.Sprintf("Index %s deletion did not complete within the timeout period: %s", indexName, err))
 		return
 	}
 }
@@ -1181,7 +1185,7 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Timeout Waiting for Index Update",
-			fmt.Sprintf("Index %s update did not complete: %s", indexName, err))
+			fmt.Sprintf("Index %s update did not complete within the timeout period: %s", indexName, err))
 		return
 	}
 
