@@ -266,15 +266,9 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"text_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"split_length": schema.Int64Attribute{
-								Optional: true,
-							},
-							"split_method": schema.StringAttribute{
-								Optional: true,
-							},
-							"split_overlap": schema.Int64Attribute{
-								Optional: true,
-							},
+							"split_length":  schema.Int64Attribute{Optional: true},
+							"split_method":  schema.StringAttribute{Optional: true},
+							"split_overlap": schema.Int64Attribute{Optional: true},
 						},
 					},
 					"image_preprocessing": schema.SingleNestedAttribute{
@@ -306,12 +300,8 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 							"parameters": schema.SingleNestedAttribute{
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
-									"ef_construction": schema.Int64Attribute{
-										Optional: true,
-									},
-									"m": schema.Int64Attribute{
-										Optional: true,
-									},
+									"ef_construction": schema.Int64Attribute{Optional: true},
+									"m":               schema.Int64Attribute{Optional: true},
 								},
 							},
 						},
@@ -853,13 +843,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 
 		settings["modelProperties"] = modelPropertiesMap
 	}
-	if model.Settings.TextPreprocessing != nil &&
-		!model.Settings.TextPreprocessing.SplitLength.IsUnknown() &&
-		!model.Settings.TextPreprocessing.SplitLength.IsNull() &&
-		!model.Settings.TextPreprocessing.SplitMethod.IsUnknown() &&
-		!model.Settings.TextPreprocessing.SplitMethod.IsNull() &&
-		!model.Settings.TextPreprocessing.SplitOverlap.IsUnknown() &&
-		!model.Settings.TextPreprocessing.SplitOverlap.IsNull() {
+	if model.Settings.TextPreprocessing != nil {
 
 		settings["textPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
@@ -884,14 +868,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 			"splitOverlap": model.Settings.AudioPreprocessing.SplitOverlap.ValueInt64(),
 		}
 	}
-	if model.Settings.AnnParameters != nil &&
-		!model.Settings.AnnParameters.SpaceType.IsUnknown() &&
-		!model.Settings.AnnParameters.SpaceType.IsNull() &&
-		model.Settings.AnnParameters.Parameters != nil &&
-		!model.Settings.AnnParameters.Parameters.EfConstruction.IsUnknown() &&
-		!model.Settings.AnnParameters.Parameters.EfConstruction.IsNull() &&
-		!model.Settings.AnnParameters.Parameters.M.IsUnknown() &&
-		!model.Settings.AnnParameters.Parameters.M.IsNull() {
+	if model.Settings.AnnParameters != nil {
 
 		settings["annParameters"] = map[string]interface{}{
 			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
