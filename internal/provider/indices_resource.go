@@ -177,7 +177,6 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"vector_numeric_type": schema.StringAttribute{
 						Optional: true,
-						Computed: true,
 					},
 					"number_of_inferences": schema.Int64Attribute{
 						Required: true,
@@ -218,11 +217,9 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"treat_urls_and_pointers_as_images": schema.BoolAttribute{
 						Optional: true,
-						Computed: true,
 					},
 					"treat_urls_and_pointers_as_media": schema.BoolAttribute{
 						Optional: true,
-						Computed: true,
 					},
 					"model": schema.StringAttribute{
 						Required: true,
@@ -261,7 +258,6 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"normalize_embeddings": schema.BoolAttribute{
 						Optional: true,
-						Computed: true,
 					},
 					"text_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
@@ -308,7 +304,6 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"filter_string_max_length": schema.Int64Attribute{
 						Optional: true,
-						Computed: true,
 					},
 				},
 			},
@@ -608,6 +603,21 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 		if state.Settings.AnnParameters == nil {
 			newState.Settings.AnnParameters = nil
+		}
+		if state.Settings.FilterStringMaxLength.IsNull() {
+			newState.Settings.FilterStringMaxLength = types.Int64Null()
+		}
+		if state.Settings.NormalizeEmbeddings.IsNull() {
+			newState.Settings.NormalizeEmbeddings = types.BoolNull()
+		}
+		if state.Settings.TreatUrlsAndPointersAsImages.IsNull() {
+			newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+		}
+		if state.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+			newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
+		}
+		if state.Settings.VectorNumericType.IsNull() {
+			newState.Settings.VectorNumericType = types.StringNull()
 		}
 
 		// Ignore these fields for structured indexes
