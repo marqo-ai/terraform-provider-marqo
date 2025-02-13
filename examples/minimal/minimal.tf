@@ -13,12 +13,12 @@ provider "marqo" {
 }
 
 resource "marqo_index" "example" {
-  index_name = "optional1"
+  index_name = "optional"
   settings = {
     type                 = "unstructured"
     model                = "open_clip/ViT-L-14/laion2b_s32b_b82k"
-    inference_type       = "marqo.GPU"
-    number_of_inferences = 2
+    inference_type       = "marqo.CPU.large"
+    number_of_inferences = 1
     number_of_replicas   = 0
     number_of_shards     = 1
     storage_class        = "marqo.basic"
