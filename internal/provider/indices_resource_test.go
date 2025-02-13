@@ -9,6 +9,7 @@ import (
 )
 
 func TestAccResourceCustomModelIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
 	unstructured_custom_model_index_name := fmt.Sprintf("donotdelete_unstr_resrc_%s", randomString(6))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -48,6 +49,7 @@ func TestAccResourceCustomModelIndex(t *testing.T) {
 }
 
 func TestAccResourceLangBindIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
 	unstructured_langbind_index_name := fmt.Sprintf("donotdelete_unstr_resrc_%s", randomString(6))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -130,6 +132,7 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 }
 
 func TestAccResourceStructuredIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
 	structured_index_name := fmt.Sprintf("donotdelete_str_rsrc_%s", randomString(7))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -171,6 +174,96 @@ func TestAccResourceStructuredIndex(t *testing.T) {
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
 			},
+		},
+	})
+}
+
+func TestAccResourceMinimalIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
+	minimal_index_name := fmt.Sprintf("donotdelete_min_%s", randomString(6))
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(minimal_index_name),
+				),
+			},
+			// Create and Read testing
+			{
+				Config: testAccResourceMinimalIndexConfig(minimal_index_name),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Minimal Index testing")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", minimal_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.large"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.basic"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "45m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "45m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "20m"),
+					func(s *terraform.State) error {
+						fmt.Println("Minimal Index testing completed")
+						return nil
+					},
+				),
+			},
+			// Update testing
+			{
+				Config: testAccResourceMinimalIndexConfigUpdated(minimal_index_name),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Minimal Index update testing")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "45m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "45m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "20m"),
+					func(s *terraform.State) error {
+						fmt.Println("Minimal Index update testing completed")
+						return nil
+					},
+				),
+			},
+			// Delete and recreate testing
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Minimal Index delete testing")
+						return nil
+					},
+				),
+			},
+			// Recreate testing
+			{
+				Config: testAccResourceMinimalIndexConfig(minimal_index_name),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Minimal Index recreation testing")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", minimal_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "45m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "45m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "20m"),
+					func(s *terraform.State) error {
+						fmt.Println("Minimal Index recreation testing completed")
+						return nil
+					},
+				),
+			},
+			// Final deletion occurs automatically
 		},
 	})
 }
@@ -348,4 +441,48 @@ func testAccResourceIndexConfigCustomModel(name string) string {
         }
     }
     `, name)
+}
+
+func testAccResourceMinimalIndexConfig(name string) string {
+	return fmt.Sprintf(`
+		resource "marqo_index" "test" {
+			index_name = "%s"
+			settings = {
+				type = "unstructured"
+				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+				inference_type = "marqo.CPU.large"
+				number_of_inferences = 1
+				number_of_replicas = 0
+				number_of_shards = 1
+				storage_class = "marqo.basic"
+			}
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
+		}
+	`, name)
+}
+
+func testAccResourceMinimalIndexConfigUpdated(name string) string {
+	return fmt.Sprintf(`
+		resource "marqo_index" "test" {
+			index_name = "%s"
+			settings = {
+				type = "unstructured"
+				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+				inference_type = "marqo.CPU.large"
+				number_of_inferences = 2
+				number_of_replicas = 0
+				number_of_shards = 1
+				storage_class = "marqo.basic"
+			}
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
+		}
+	`, name)
 }
