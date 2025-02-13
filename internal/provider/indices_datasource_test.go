@@ -10,6 +10,7 @@ import (
 )
 
 func TestAccDataSourceIndices(t *testing.T) {
+	t.Parallel()
 	unstructured_index_name := fmt.Sprintf("donotdelete_unstr_dsrc_%s", randomString(7))
 
 	resource.Test(t, resource.TestCase{
