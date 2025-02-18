@@ -481,11 +481,6 @@ func testAccResourceMinimalIndexConfig(name string) string {
 				number_of_shards = 1
 				storage_class = "marqo.basic"
 			}
-			timeouts = {
-				create = "45m"
-				update = "45m"
-				delete = "20m"
-			}
 		}
 	`, name)
 }
@@ -507,11 +502,6 @@ func testAccResourceMinimalIndexConfigUpdated(name string) string {
 				number_of_replicas = 0
 				number_of_shards = 1
 				storage_class = "marqo.basic"
-			}
-			timeouts = {
-				create = "45m"
-				update = "45m"
-				delete = "20m"
 			}
 		}
 	`, name)
