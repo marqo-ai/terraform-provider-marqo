@@ -62,6 +62,11 @@ func testAccDataSourceIndexConfig(name string) string {
 	return fmt.Sprintf(`
 		resource "marqo_index" "test" {
 		index_name = "%s"
+		timeouts = {
+			create = "45m"
+			update = "45m"
+			delete = "20m"
+		}
 		settings = {
 				type = "unstructured"
 				vector_numeric_type = "float"

@@ -272,6 +272,11 @@ func testAccResourceStructuredIndexConfig(name string) string {
 	return fmt.Sprintf(`
     resource "marqo_index" "test" {
         index_name = "%s"
+		timeouts = {
+			create = "45m"
+			update = "45m"
+			delete = "20m"
+		}
         settings = {
             type                = "structured"
             vector_numeric_type = "float"
@@ -318,6 +323,11 @@ func testAccResourceIndexConfig(name string) string {
 	return fmt.Sprintf(`
 		resource "marqo_index" "test" {
 		index_name = "%s"
+		timeouts = {
+			create = "45m"
+			update = "45m"
+			delete = "20m"
+		}
 		settings = {
 				type = "unstructured"
 				vector_numeric_type = "float"
@@ -362,6 +372,11 @@ func testAccResourceIndexConfigUpdated(name string) string {
 	return fmt.Sprintf(`
 		resource "marqo_index" "test" {
 		index_name = "%s"
+		timeouts = {
+			create = "45m"
+			update = "45m"
+			delete = "20m"
+		}
 		settings = {
 				type = "unstructured"
 				vector_numeric_type = "float"
@@ -406,6 +421,11 @@ func testAccResourceIndexConfigCustomModel(name string) string {
 	return fmt.Sprintf(`
         resource "marqo_index" "test" {
         index_name = "%s"
+		timeouts = {
+			create = "45m"
+			update = "45m"
+			delete = "20m"
+		}
         settings = {
             type = "unstructured"
             vector_numeric_type = "float"
@@ -447,6 +467,11 @@ func testAccResourceMinimalIndexConfig(name string) string {
 	return fmt.Sprintf(`
 		resource "marqo_index" "test" {
 			index_name = "%s"
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
 			settings = {
 				type = "unstructured"
 				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
@@ -469,6 +494,11 @@ func testAccResourceMinimalIndexConfigUpdated(name string) string {
 	return fmt.Sprintf(`
 		resource "marqo_index" "test" {
 			index_name = "%s"
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
 			settings = {
 				type = "unstructured"
 				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
