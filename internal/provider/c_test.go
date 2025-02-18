@@ -1,4 +1,6 @@
-package customer_tests
+//go:build customer_c
+
+package provider
 
 import (
 	"fmt"
@@ -8,13 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-// To run these tests manually:
-// go test -v ./internal/provider/customer_tests -run TestRedbubble
-
 func TestC(t *testing.T) {
 	// Skip in normal test runs
 	if testing.Short() {
-		t.Skip("Skipping customer-specific test in short mode")
+		t.Skip("Skipping mock prod tests in short mode")
 	}
 	t.Parallel()
 
@@ -25,6 +24,12 @@ func TestC(t *testing.T) {
 			PreCheck:                 func() { testAccPreCheck(t) },
 			ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
+				{
+					Config: testAccEmptyConfig(),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckIndexExistsAndDelete(indexName),
+					),
+				},
 				// Create initial index
 				{
 					Config: testCProductionTenantConfig(indexName),
@@ -43,6 +48,8 @@ func TestC(t *testing.T) {
 					Config: testCProductionTenantConfigModified(indexName),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "1"),
+						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "2"),
 					),
 				},
 				// Delete and recreate testing
@@ -71,6 +78,11 @@ func testCProductionTenantConfig(name string) string {
 	return fmt.Sprintf(`
 	resource "marqo_index" "test" {
 		index_name = "%s"
+		timeouts = {
+			create = "45m"
+			update = "45m"
+			delete = "20m"
+		}
 		settings = {
 			type = "structured"
 			vector_numeric_type = "float"
@@ -142,6 +154,11 @@ func testCProductionTenantConfigModified(name string) string {
 	return fmt.Sprintf(`
 	resource "marqo_index" "test" {
 		index_name = "%s"
+		timeouts = {
+			create = "45m"
+			update = "45m"
+			delete = "20m"
+		}
 		settings = {
 			type = "structured"
 			vector_numeric_type = "float"

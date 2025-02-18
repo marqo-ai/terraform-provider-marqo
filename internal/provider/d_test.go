@@ -1,4 +1,6 @@
-package customer_tests
+//go:build customer_d
+
+package provider
 
 import (
 	"fmt"
@@ -8,13 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-// To run these tests manually:
-// go test -v ./internal/provider/customer_tests -run TestSybill
-
 func TestD(t *testing.T) {
 	// Skip in normal test runs
 	if testing.Short() {
-		t.Skip("Skipping customer-specific test in short mode")
+		t.Skip("Skipping mock prod tests in short mode")
 	}
 	t.Parallel()
 
@@ -25,12 +24,18 @@ func TestD(t *testing.T) {
 			PreCheck:                 func() { testAccPreCheck(t) },
 			ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 			Steps: []resource.TestStep{
+				{
+					Config: testAccEmptyConfig(),
+					Check: resource.ComposeTestCheckFunc(
+						testAccCheckIndexExistsAndDelete(indexName),
+					),
+				},
 				// Create initial index
 				{
 					Config: testDDealConfig(indexName),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("marqo_index.test", "index_name", indexName),
-						resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU"),
+						resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.large"),
 						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
 						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
 						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
@@ -42,6 +47,8 @@ func TestD(t *testing.T) {
 					Config: testDDealConfigModified(indexName),
 					Check: resource.ComposeTestCheckFunc(
 						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
+						resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
 					),
 				},
 				// Delete and recreate testing

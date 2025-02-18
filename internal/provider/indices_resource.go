@@ -1132,14 +1132,25 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	var currentStatus string
+	var currentIndex *go_marqo.IndexDetail
 	indexFound := false
 	for _, index := range indices {
 		if index.IndexName == indexName {
 			currentStatus = index.IndexStatus
+			currentIndex = &index
 			indexFound = true
 			break
 		}
 	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Current index state before update - Name: %s, Status: %s, Shards: %d, Replicas: %d, Storage: %s, InferenceType: %s, NumberOfInferences: %d",
+		currentIndex.IndexName,
+		currentIndex.IndexStatus,
+		currentIndex.NumberOfShards,
+		currentIndex.NumberOfReplicas,
+		currentIndex.StorageClass,
+		currentIndex.InferenceType,
+		currentIndex.NumberOfInferences))
 
 	if !indexFound {
 		resp.Diagnostics.AddError(
@@ -1155,11 +1166,48 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// Construct settings map
+	// Add detailed logging for storage class
+	tflog.Debug(ctx, fmt.Sprintf("Storage class from current index: '%s'", currentIndex.StorageClass))
+
+	// Map storage class values similar to inference type
+	storageClassMap := map[string]string{
+		"BASIC":             "marqo.basic",
+		"BALANCED":          "marqo.balanced",
+		"PERFORMANCE":       "marqo.performance",
+		"marqo.basic":       "marqo.basic",
+		"marqo.balanced":    "marqo.balanced",
+		"marqo.performance": "marqo.performance",
+	}
+
+	mappedStorageClass := currentIndex.StorageClass
+	if mapped, exists := storageClassMap[currentIndex.StorageClass]; exists {
+		mappedStorageClass = mapped
+		tflog.Debug(ctx, fmt.Sprintf("Mapped storage class from '%s' to '%s'", currentIndex.StorageClass, mappedStorageClass))
+	} else {
+		tflog.Warn(ctx, fmt.Sprintf("No mapping found for storage class '%s'", currentIndex.StorageClass))
+	}
+
+	// Construct settings map with all required settings
 	settings := map[string]interface{}{
 		"inferenceType":      model.Settings.InferenceType.ValueString(),
 		"numberOfInferences": model.Settings.NumberOfInferences.ValueInt64(),
+		"numberOfShards":     currentIndex.NumberOfShards,
+		"numberOfReplicas":   currentIndex.NumberOfReplicas,
+		"storageClass":       mappedStorageClass,
+		"type":               currentIndex.Type,
 	}
+
+	// Log raw values before any processing
+	tflog.Debug(ctx, fmt.Sprintf("Raw values from current index - Storage: '%s', Type: '%s', Shards: %d, Replicas: %d",
+		currentIndex.StorageClass,
+		currentIndex.Type,
+		currentIndex.NumberOfShards,
+		currentIndex.NumberOfReplicas))
+
+	// Log the desired changes
+	tflog.Debug(ctx, fmt.Sprintf("Desired changes - InferenceType: %s, NumberOfInferences: %d",
+		model.Settings.InferenceType.ValueString(),
+		model.Settings.NumberOfInferences.ValueInt64()))
 
 	if model.Settings.InferenceType.IsNull() {
 		delete(settings, "inferenceType")
@@ -1167,6 +1215,8 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	if model.Settings.NumberOfInferences.IsNull() {
 		delete(settings, "numberOfInferences")
 	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Final update settings being sent: %+v", settings))
 
 	// Default timeout of 30 minutes for update
 	timeoutDuration := 30 * time.Minute

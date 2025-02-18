@@ -58,12 +58,6 @@ data "marqo_read_indices" "test" {
 }
 `
 
-func testAccEmptyConfig() string {
-	return `
-    # Empty config
-    `
-}
-
 func testAccDataSourceIndexConfig(name string) string {
 	return fmt.Sprintf(`
 		resource "marqo_index" "test" {
