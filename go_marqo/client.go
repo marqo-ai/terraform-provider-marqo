@@ -340,16 +340,17 @@ func (c *Client) DeleteIndex(indexName string) error {
 // CreateIndex creates a new index with the given settings.
 func (c *Client) UpdateIndex(indexName string, settings map[string]interface{}) error {
 	url := fmt.Sprintf("%s/indexes/%s", c.BaseURL, indexName)
-	//fmt.Printf("%T\n", settings)
 
 	jsonData, err := json.Marshal(settings)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal settings: %v", err)
 	}
+
+	tflog.Debug(context.Background(), fmt.Sprintf("UpdateIndex request URL: %s", url))
 
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create request: %v", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -357,13 +358,33 @@ func (c *Client) UpdateIndex(indexName string, settings map[string]interface{}) 
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send request: %v", err)
 	}
-	fmt.Println("Response: ", resp)
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	tflog.Debug(context.Background(), fmt.Sprintf("UpdateIndex response: status=%d, headers=%v, body=%s",
+		resp.StatusCode,
+		resp.Header,
+		string(body)))
+
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		// Try to parse the error response as JSON for better error reporting
+		var errorResponse struct {
+			Error string `json:"error"`
+			Type  string `json:"type"`
+			Code  string `json:"code"`
+			Link  string `json:"link"`
+		}
+		if err := json.Unmarshal(body, &errorResponse); err == nil {
+			tflog.Error(context.Background(), fmt.Sprintf("API Error Response: %+v", errorResponse))
+			return fmt.Errorf("failed to update index: %+v", errorResponse)
+		}
+		tflog.Error(context.Background(), fmt.Sprintf("Non-JSON error response: %s", string(body)))
 		return fmt.Errorf("failed to update index: %s", string(body))
 	}
 

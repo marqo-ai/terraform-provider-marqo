@@ -22,6 +22,12 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 	"marqo": providerserver.NewProtocol6WithError(New("test")()),
 }
 
+func testAccEmptyConfig() string {
+	return `
+    # Empty config
+    `
+}
+
 func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("MARQO_HOST"); v == "" {
 		t.Fatal("MARQO_HOST must be set for acceptance tests")
