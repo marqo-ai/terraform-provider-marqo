@@ -116,6 +116,7 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 				ResourceName:      "marqo_index.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateId:     unstructured_langbind_index_name,
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -186,6 +187,7 @@ func TestAccResourceStructuredIndex(t *testing.T) {
 				ResourceName:      "marqo_index.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateId:     structured_index_name,
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -245,6 +247,7 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 				ResourceName:      "marqo_index.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateId:     minimal_index_name,
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -338,6 +341,7 @@ func TestAccResourceImportIndex(t *testing.T) {
 				ResourceName:      "marqo_index.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateId:     import_index_name,
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
 				},
@@ -407,6 +411,7 @@ func TestAccResourceImportStructuredIndex(t *testing.T) {
 				ResourceName:      "marqo_index.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateId:     import_structured_index_name,
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
 					"settings.all_fields", // all_fields might have different representation in API vs config
@@ -573,7 +578,7 @@ func testAccResourceScalingIndexConfig(name string, shards int, replicas int) st
 				number_of_inferences = 1
 				number_of_replicas = %d
 				number_of_shards = %d
-				storage_class = "marqo.basic"
+				storage_class = "marqo.performance"
 			}
 		}
 	`, name, replicas, shards)

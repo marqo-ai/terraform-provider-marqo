@@ -569,7 +569,9 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 				}
 			} else {
-				model.Settings.ImagePreprocessing = nil
+				model.Settings.ImagePreprocessing = &ImagePreprocessingModel{
+					PatchMethod: types.StringNull(),
+				}
 			}
 
 			// Handle VideoPreprocessing
@@ -732,7 +734,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 			if newState.Settings.ImagePreprocessing != nil &&
 				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-				newState.Settings.ImagePreprocessing = nil
+				newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 			}
 
 			if newState.Settings.VideoPreprocessing != nil &&
@@ -813,9 +815,16 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			// Handle image_preprocessing
 			if state.Settings.ImagePreprocessing == nil {
 				newState.Settings.ImagePreprocessing = nil
-			} else if newState.Settings.ImagePreprocessing != nil &&
-				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-				newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+			} else {
+				// Ensure we always have an ImagePreprocessing object if it was in the config
+				if newState.Settings.ImagePreprocessing == nil {
+					newState.Settings.ImagePreprocessing = &ImagePreprocessingModel{}
+				}
+
+				// Set PatchMethod to null if it's empty
+				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+				}
 			}
 
 			// preserve the video/audio preprocessing from current state since api does not return them
