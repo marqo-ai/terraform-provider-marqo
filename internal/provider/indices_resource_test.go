@@ -823,7 +823,7 @@ func testAccResourceMinimalIndexConfigUpdated(name string) string {
 	`, name)
 }
 
-// TestAccResourceMaximalIndex tests an index with all possible fields configured
+// TestAccResourceMaximalIndex tests an index with all possible fields configured.
 func TestAccResourceMaximalIndex(t *testing.T) {
 	t.Parallel() // Enable parallel testing
 	maximal_index_name := fmt.Sprintf("donotdelete_max_%s", randomString(6))
