@@ -553,14 +553,14 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 			}
 
 			// Handle TextPreprocessing
-			if !reflect.DeepEqual(indexDetail.TextPreprocessing, go_marqo.TextPreprocessing{}) {
+			if indexDetail.TextPreprocessing == (go_marqo.TextPreprocessing{}) {
+				model.Settings.TextPreprocessing = nil
+			} else {
 				model.Settings.TextPreprocessing = &TextPreprocessingModelCreate{
 					SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
 					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
 					SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
 				}
-			} else {
-				model.Settings.TextPreprocessing = nil
 			}
 
 			// Handle ImagePreprocessing

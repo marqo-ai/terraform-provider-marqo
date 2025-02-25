@@ -49,6 +49,7 @@ func TestAccResourceCustomModelIndex(t *testing.T) {
 				ResourceName:      "marqo_index.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateId:     unstructured_custom_model_index_name,
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -506,7 +507,7 @@ func TestAccResourceScalingIndex(t *testing.T) {
 // TestAccResourceInvalidUpdate tests that attempting to modify non-modifiable fields fails.
 func TestAccResourceInvalidUpdate(t *testing.T) {
 	t.Parallel() // Enable parallel testing
-	invalid_update_index_name := fmt.Sprintf("donotdelete_invalid_update_%s", randomString(6))
+	invalid_update_index_name := fmt.Sprintf("donotdelete_inv_%s", randomString(6))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -578,7 +579,7 @@ func testAccResourceScalingIndexConfig(name string, shards int, replicas int) st
 				number_of_inferences = 1
 				number_of_replicas = %d
 				number_of_shards = %d
-				storage_class = "marqo.performance"
+				storage_class = "marqo.balanced"
 			}
 		}
 	`, name, replicas, shards)
@@ -857,7 +858,7 @@ func TestAccResourceMaximalIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "2"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.basic"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.balanced"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_length", "3"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_method", "sentence"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_overlap", "1"),
@@ -931,7 +932,7 @@ func testAccResourceMaximalIndexConfig(name string) string {
 				number_of_inferences = 2
 				number_of_replicas = 1
 				number_of_shards = 2
-				storage_class = "marqo.basic"
+				storage_class = "marqo.balanced"
 				all_fields = [
 					{ "name" : "text_field", "type" : "text", "features" : ["lexical_search"] },
 					{ "name" : "image_field", "type" : "image_pointer" },
@@ -992,9 +993,9 @@ func testAccResourceMaximalIndexConfigUpdated(name string) string {
 				normalize_embeddings = true
 				inference_type = "marqo.GPU"
 				number_of_inferences = 3
-				number_of_replicas = 0
+				number_of_replicas = 1
 				number_of_shards = 2
-				storage_class = "marqo.basic"
+				storage_class = "marqo.balanced"
 				all_fields = [
 					{ "name" : "text_field", "type" : "text", "features" : ["lexical_search"] },
 					{ "name" : "image_field", "type" : "image_pointer" },
