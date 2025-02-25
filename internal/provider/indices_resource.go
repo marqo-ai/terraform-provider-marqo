@@ -779,7 +779,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			}
 
 			// Handle TensorFields
-			if state.Settings.TensorFields == nil || len(state.Settings.TensorFields) == 0 {
+			if len(state.Settings.TensorFields) == 0 {
 				newState.Settings.TensorFields = nil
 			}
 
@@ -1624,7 +1624,7 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.State = readResp.State
 }
 
-// ImportState imports an existing index into Terraform state
+// ImportState imports an existing index into Terraform state.
 func (r *indicesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Extract the index name from the import ID
 	indexName := req.ID

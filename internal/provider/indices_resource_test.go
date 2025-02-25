@@ -301,7 +301,7 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 	})
 }
 
-// TestAccResourceImportIndex specifically tests the import functionality
+// TestAccResourceImportIndex specifically tests the import functionality.
 func TestAccResourceImportIndex(t *testing.T) {
 	t.Parallel() // Enable parallel testing
 	import_index_name := fmt.Sprintf("donotdelete_import_%s", randomString(6))
@@ -369,7 +369,7 @@ func TestAccResourceImportIndex(t *testing.T) {
 	})
 }
 
-// TestAccResourceImportStructuredIndex tests importing a structured index
+// TestAccResourceImportStructuredIndex tests importing a structured index.
 func TestAccResourceImportStructuredIndex(t *testing.T) {
 	t.Parallel() // Enable parallel testing
 	import_structured_index_name := fmt.Sprintf("donotdelete_import_str_%s", randomString(7))
@@ -426,7 +426,7 @@ func TestAccResourceImportStructuredIndex(t *testing.T) {
 	})
 }
 
-// TestAccResourceScalingIndex tests scaling operations (shards and replicas)
+// TestAccResourceScalingIndex tests scaling operations (shards and replicas).
 func TestAccResourceScalingIndex(t *testing.T) {
 	t.Parallel() // Enable parallel testing
 	scaling_index_name := fmt.Sprintf("donotdelete_scaling_%s", randomString(6))
@@ -498,7 +498,7 @@ func TestAccResourceScalingIndex(t *testing.T) {
 	})
 }
 
-// TestAccResourceInvalidUpdate tests that attempting to modify non-modifiable fields fails
+// TestAccResourceInvalidUpdate tests that attempting to modify non-modifiable fields fails.
 func TestAccResourceInvalidUpdate(t *testing.T) {
 	t.Parallel() // Enable parallel testing
 	invalid_update_index_name := fmt.Sprintf("donotdelete_invalid_update_%s", randomString(6))
