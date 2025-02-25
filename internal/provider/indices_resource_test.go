@@ -862,7 +862,7 @@ func TestAccResourceMaximalIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_length", "3"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_method", "sentence"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_overlap", "1"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.image_preprocessing.patch_method", "grid"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.image_preprocessing.patch_method", "simple"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.video_preprocessing.split_length", "6"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.video_preprocessing.split_overlap", "2"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.audio_preprocessing.split_length", "6"),
@@ -952,7 +952,7 @@ func testAccResourceMaximalIndexConfig(name string) string {
 					split_overlap = 1
 				}
 				image_preprocessing = {
-					patch_method = "grid"
+					patch_method = "simple"
 				}
 				video_preprocessing = {
 					split_length = 6
@@ -1015,7 +1015,7 @@ func testAccResourceMaximalIndexConfigUpdated(name string) string {
 					split_overlap = 1
 				}
 				image_preprocessing = {
-					patch_method = "grid"
+					patch_method = "simple"
 				}
 				video_preprocessing = {
 					split_length = 6
