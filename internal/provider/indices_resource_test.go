@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -42,6 +43,16 @@ func TestAccResourceCustomModelIndex(t *testing.T) {
 						return nil
 					},
 				),
+			},
+			// Import testing
+			{
+				ResourceName:      "marqo_index.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// Don't verify these fields as they might be computed or have different representations
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
+				},
 			},
 			// Delete testing automatically occurs in TestCase
 		},
@@ -101,13 +112,15 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 				),
 			},
 			// ImportState testing
-			/*
-				{
-					ResourceName:      "marqo_index.test",
-					ImportState:       true,
-					ImportStateVerify: true,
+			{
+				ResourceName:      "marqo_index.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// Don't verify these fields as they might be computed or have different representations
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
 				},
-			*/
+			},
 			// Update and Read testing
 			{
 				Config: testAccResourceIndexConfigUpdated(unstructured_langbind_index_name),
@@ -168,6 +181,16 @@ func TestAccResourceStructuredIndex(t *testing.T) {
 					testAccCheckIndexIsReady(structured_index_name),
 				),
 			},
+			// Import testing
+			{
+				ResourceName:      "marqo_index.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// Don't verify these fields as they might be computed or have different representations
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
+				},
+			},
 			// Check for no changes on re-apply
 			{
 				Config:             testAccResourceStructuredIndexConfig(structured_index_name),
@@ -216,6 +239,16 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 						return nil
 					},
 				),
+			},
+			// Import testing
+			{
+				ResourceName:      "marqo_index.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// Don't verify these fields as they might be computed or have different representations
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
+				},
 			},
 			// Update testing
 			{
@@ -266,6 +299,284 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 			// Final deletion occurs automatically
 		},
 	})
+}
+
+// TestAccResourceImportIndex specifically tests the import functionality
+func TestAccResourceImportIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
+	import_index_name := fmt.Sprintf("donotdelete_import_%s", randomString(6))
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(import_index_name),
+				),
+			},
+			// Create the index
+			{
+				Config: testAccResourceMinimalIndexConfig(import_index_name),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Import test - creating index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", import_index_name),
+					testAccCheckIndexIsReady(import_index_name),
+				),
+			},
+			// Remove the resource from state to simulate import scenario
+			{
+				Config: testAccEmptyConfig(),
+			},
+			// Import the index
+			{
+				Config:            testAccResourceMinimalIndexConfig(import_index_name),
+				ResourceName:      "marqo_index.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
+				},
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Import test - verifying imported state")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", import_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.large"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
+				),
+			},
+			// Verify that we can update the imported resource
+			{
+				Config: testAccResourceMinimalIndexConfigUpdated(import_index_name),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Import test - updating imported resource")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+					testAccCheckIndexIsReady(import_index_name),
+				),
+			},
+		},
+	})
+}
+
+// TestAccResourceImportStructuredIndex tests importing a structured index
+func TestAccResourceImportStructuredIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
+	import_structured_index_name := fmt.Sprintf("donotdelete_import_str_%s", randomString(7))
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(import_structured_index_name),
+				),
+			},
+			// Create the structured index
+			{
+				Config: testAccResourceStructuredIndexConfig(import_structured_index_name),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Structured Import test - creating index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", import_structured_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "structured"),
+					testAccCheckIndexIsReady(import_structured_index_name),
+				),
+			},
+			// Remove the resource from state to simulate import scenario
+			{
+				Config: testAccEmptyConfig(),
+			},
+			// Import the structured index
+			{
+				Config:            testAccResourceStructuredIndexConfig(import_structured_index_name),
+				ResourceName:      "marqo_index.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
+					"settings.all_fields", // all_fields might have different representation in API vs config
+				},
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Structured Import test - verifying imported state")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", import_structured_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "structured"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.small"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccResourceScalingIndex tests scaling operations (shards and replicas)
+func TestAccResourceScalingIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
+	scaling_index_name := fmt.Sprintf("donotdelete_scaling_%s", randomString(6))
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(scaling_index_name),
+				),
+			},
+			// Create the index with initial configuration
+			{
+				Config: testAccResourceScalingIndexConfig(scaling_index_name, 1, 0),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Scaling test - creating index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", scaling_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
+					testAccCheckIndexIsReady(scaling_index_name),
+				),
+			},
+			// Scale up shards
+			{
+				Config: testAccResourceScalingIndexConfig(scaling_index_name, 2, 0),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Scaling test - increasing shards")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "2"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
+					testAccCheckIndexIsReady(scaling_index_name),
+				),
+			},
+			// Scale up replicas
+			{
+				Config: testAccResourceScalingIndexConfig(scaling_index_name, 2, 1),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Scaling test - increasing replicas")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "2"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "1"),
+					testAccCheckIndexIsReady(scaling_index_name),
+				),
+			},
+			// Scale up both shards and replicas
+			{
+				Config: testAccResourceScalingIndexConfig(scaling_index_name, 3, 2),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Scaling test - increasing both shards and replicas")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "3"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "2"),
+					testAccCheckIndexIsReady(scaling_index_name),
+				),
+			},
+		},
+	})
+}
+
+// TestAccResourceInvalidUpdate tests that attempting to modify non-modifiable fields fails
+func TestAccResourceInvalidUpdate(t *testing.T) {
+	t.Parallel() // Enable parallel testing
+	invalid_update_index_name := fmt.Sprintf("donotdelete_invalid_update_%s", randomString(6))
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(invalid_update_index_name),
+				),
+			},
+			// Create the index with initial configuration
+			{
+				Config: testAccResourceMinimalIndexConfig(invalid_update_index_name),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Invalid Update test - creating index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", invalid_update_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
+					testAccCheckIndexIsReady(invalid_update_index_name),
+				),
+			},
+			// Attempt to modify a non-modifiable field (model)
+			{
+				Config:      testAccResourceInvalidUpdateConfig(invalid_update_index_name),
+				ExpectError: regexp.MustCompile("Cannot Modify Index Model"),
+			},
+		},
+	})
+}
+
+func testAccResourceInvalidUpdateConfig(name string) string {
+	return fmt.Sprintf(`
+		resource "marqo_index" "test" {
+			index_name = "%s"
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
+			settings = {
+				type = "unstructured"
+				model = "open_clip/ViT-B-32/laion2b_s34b_b79k" # Changed model
+				inference_type = "marqo.CPU.large"
+				number_of_inferences = 1
+				number_of_replicas = 0
+				number_of_shards = 1
+				storage_class = "marqo.basic"
+			}
+		}
+	`, name)
+}
+
+func testAccResourceScalingIndexConfig(name string, shards int, replicas int) string {
+	return fmt.Sprintf(`
+		resource "marqo_index" "test" {
+			index_name = "%s"
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
+			settings = {
+				type = "unstructured"
+				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+				inference_type = "marqo.CPU.large"
+				number_of_inferences = 1
+				number_of_replicas = %d
+				number_of_shards = %d
+				storage_class = "marqo.basic"
+			}
+		}
+	`, name, replicas, shards)
 }
 
 func testAccResourceStructuredIndexConfig(name string) string {
