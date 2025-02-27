@@ -760,12 +760,18 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			// use those values; otherwise keep them null
 			if !state.Settings.NormalizeEmbeddings.IsNull() {
 				newState.Settings.NormalizeEmbeddings = state.Settings.NormalizeEmbeddings
+			} else {
+				newState.Settings.NormalizeEmbeddings = types.BoolNull()
 			}
 			if !state.Settings.TreatUrlsAndPointersAsImages.IsNull() {
 				newState.Settings.TreatUrlsAndPointersAsImages = state.Settings.TreatUrlsAndPointersAsImages
+			} else {
+				newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
 			}
 			if !state.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
 				newState.Settings.TreatUrlsAndPointersAsMedia = state.Settings.TreatUrlsAndPointersAsMedia
+			} else {
+				newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
 			}
 
 			if state.Settings.VectorNumericType.IsNull() {
@@ -781,9 +787,16 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 					newState.Settings.ImagePreprocessing = &ImagePreprocessingModel{}
 				}
 
-				// Set PatchMethod to null if it's empty
+				// If PatchMethod is empty in the API response but was explicitly set in the config
+				// (even to an empty string), we should preserve the object
 				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-					newState.Settings.ImagePreprocessing = nil
+					// Only set to nil if it was null in the state (not explicitly set)
+					if state.Settings.ImagePreprocessing.PatchMethod.IsNull() {
+						newState.Settings.ImagePreprocessing = nil
+					} else {
+						// Otherwise preserve the empty object with null PatchMethod
+						newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+					}
 				}
 			}
 

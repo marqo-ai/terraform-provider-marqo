@@ -940,7 +940,6 @@ func testAccResourceMaximalIndexConfig(name string) string {
 				number_of_replicas = 1
 				number_of_shards = 2
 				storage_class = "marqo.balanced"
-				tensor_fields = ["multimodal_field"]
 				text_preprocessing = {
 					split_length = 3
 					split_method = "sentence"
@@ -991,7 +990,6 @@ func testAccResourceMaximalIndexConfigUpdated(name string) string {
 				number_of_replicas = 1
 				number_of_shards = 2
 				storage_class = "marqo.balanced"
-				tensor_fields = ["multimodal_field"]
 				text_preprocessing = {
 					split_length = 3
 					split_method = "sentence"
