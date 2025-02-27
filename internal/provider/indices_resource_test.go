@@ -46,10 +46,11 @@ func TestAccResourceCustomModelIndex(t *testing.T) {
 			},
 			// Import testing
 			{
-				ResourceName:      "marqo_index.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     unstructured_custom_model_index_name,
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        unstructured_custom_model_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -114,10 +115,11 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:      "marqo_index.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     unstructured_langbind_index_name,
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        unstructured_langbind_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -185,10 +187,11 @@ func TestAccResourceStructuredIndex(t *testing.T) {
 			},
 			// Import testing
 			{
-				ResourceName:      "marqo_index.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     structured_index_name,
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        structured_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -245,10 +248,11 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 			},
 			// Import testing
 			{
-				ResourceName:      "marqo_index.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     minimal_index_name,
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        minimal_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
@@ -338,11 +342,12 @@ func TestAccResourceImportIndex(t *testing.T) {
 			},
 			// Import the index
 			{
-				Config:            testAccResourceMinimalIndexConfig(import_index_name),
-				ResourceName:      "marqo_index.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     import_index_name,
+				Config:                               testAccResourceMinimalIndexConfig(import_index_name),
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        import_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
 				},
@@ -408,11 +413,12 @@ func TestAccResourceImportStructuredIndex(t *testing.T) {
 			},
 			// Import the structured index
 			{
-				Config:            testAccResourceStructuredIndexConfig(import_structured_index_name),
-				ResourceName:      "marqo_index.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     import_structured_index_name,
+				Config:                               testAccResourceStructuredIndexConfig(import_structured_index_name),
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        import_structured_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
 					"settings.all_fields", // all_fields might have different representation in API vs config
@@ -883,10 +889,11 @@ func TestAccResourceMaximalIndex(t *testing.T) {
 			},
 			// Import testing
 			{
-				ResourceName:      "marqo_index.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     maximal_index_name,
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        maximal_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
 				},
@@ -933,18 +940,6 @@ func testAccResourceMaximalIndexConfig(name string) string {
 				number_of_replicas = 1
 				number_of_shards = 2
 				storage_class = "marqo.balanced"
-				all_fields = [
-					{ "name" : "text_field", "type" : "text", "features" : ["lexical_search"] },
-					{ "name" : "image_field", "type" : "image_pointer" },
-					{
-						"name" : "multimodal_field",
-						"type" : "multimodal_combination",
-						"dependent_fields" : {
-							"image_field" : 0.8,
-							"text_field" : 0.2
-						},
-					},
-				]
 				tensor_fields = ["multimodal_field"]
 				text_preprocessing = {
 					split_length = 3
@@ -996,18 +991,6 @@ func testAccResourceMaximalIndexConfigUpdated(name string) string {
 				number_of_replicas = 1
 				number_of_shards = 2
 				storage_class = "marqo.balanced"
-				all_fields = [
-					{ "name" : "text_field", "type" : "text", "features" : ["lexical_search"] },
-					{ "name" : "image_field", "type" : "image_pointer" },
-					{
-						"name" : "multimodal_field",
-						"type" : "multimodal_combination",
-						"dependent_fields" : {
-							"image_field" : 0.8,
-							"text_field" : 0.2
-						},
-					},
-				]
 				tensor_fields = ["multimodal_field"]
 				text_preprocessing = {
 					split_length = 3

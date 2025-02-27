@@ -487,13 +487,16 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 				MarqoEndpoint: types.StringValue(indexDetail.MarqoEndpoint),
 				Timeouts:      existingTimeouts,
 				Settings: IndexSettingsModel{
-					Type:               types.StringValue(indexDetail.Type),
-					InferenceType:      types.StringValue(indexDetail.InferenceType),
-					NumberOfInferences: types.Int64Value(indexDetail.NumberOfInferences),
-					StorageClass:       types.StringValue(indexDetail.StorageClass),
-					NumberOfShards:     types.Int64Value(indexDetail.NumberOfShards),
-					NumberOfReplicas:   types.Int64Value(indexDetail.NumberOfReplicas),
-					Model:              types.StringValue(indexDetail.Model),
+					Type:                         types.StringValue(indexDetail.Type),
+					InferenceType:                types.StringValue(indexDetail.InferenceType),
+					NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
+					StorageClass:                 types.StringValue(indexDetail.StorageClass),
+					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
+					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
+					Model:                        types.StringValue(indexDetail.Model),
+					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
+					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
+					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
 				},
 			}
 
@@ -502,26 +505,6 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 				model.Settings.VectorNumericType = types.StringValue(indexDetail.VectorNumericType)
 			} else {
 				model.Settings.VectorNumericType = types.StringNull()
-			}
-
-			// Handle boolean fields - always set them to their actual values
-			// rather than using null for false values
-			if indexDetail.TreatUrlsAndPointersAsImages {
-				model.Settings.TreatUrlsAndPointersAsImages = types.BoolValue(true)
-			} else {
-				model.Settings.TreatUrlsAndPointersAsImages = types.BoolValue(false)
-			}
-
-			if indexDetail.TreatUrlsAndPointersAsMedia {
-				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(true)
-			} else {
-				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(false)
-			}
-
-			if indexDetail.NormalizeEmbeddings {
-				model.Settings.NormalizeEmbeddings = types.BoolValue(true)
-			} else {
-				model.Settings.NormalizeEmbeddings = types.BoolValue(false)
 			}
 
 			// Handle optional numeric fields
@@ -569,9 +552,7 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 				}
 			} else {
-				model.Settings.ImagePreprocessing = &ImagePreprocessingModel{
-					PatchMethod: types.StringNull(),
-				}
+				model.Settings.ImagePreprocessing = nil
 			}
 
 			// Handle VideoPreprocessing
@@ -675,28 +656,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		// marqo doesn't return timeouts, so we maintain the existing state
 		newState.Timeouts = state.Timeouts
 
-		// For update operations, ensure we preserve the values from the plan
-		// This is critical for shards and replicas which can only be increased
-		if !isImport {
-			// If this is an update operation, preserve the values from the plan
-			// for fields that might be updated but not yet reflected in the API
-			if !state.Settings.NumberOfShards.IsNull() &&
-				state.Settings.NumberOfShards.ValueInt64() > newState.Settings.NumberOfShards.ValueInt64() {
-				tflog.Debug(ctx, fmt.Sprintf("Preserving shards from plan: %d (API returned: %d)",
-					state.Settings.NumberOfShards.ValueInt64(),
-					newState.Settings.NumberOfShards.ValueInt64()))
-				newState.Settings.NumberOfShards = state.Settings.NumberOfShards
-			}
-
-			if !state.Settings.NumberOfReplicas.IsNull() &&
-				state.Settings.NumberOfReplicas.ValueInt64() > newState.Settings.NumberOfReplicas.ValueInt64() {
-				tflog.Debug(ctx, fmt.Sprintf("Preserving replicas from plan: %d (API returned: %d)",
-					state.Settings.NumberOfReplicas.ValueInt64(),
-					newState.Settings.NumberOfReplicas.ValueInt64()))
-				newState.Settings.NumberOfReplicas = state.Settings.NumberOfReplicas
-			}
-		}
-
 		// Special handling for import case - if this is a new import (state has empty values)
 		// we need to ensure consistent null values
 		if isImport {
@@ -712,9 +671,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			if newState.Settings.VectorNumericType.ValueString() == "" {
 				newState.Settings.VectorNumericType = types.StringNull()
 			}
-
-			// For import operations, we keep boolean values as they are (true or false)
-			// rather than converting false to null
 
 			// Set empty objects to null
 			if newState.Settings.AllFields != nil && len(newState.Settings.AllFields) == 0 {
@@ -734,7 +690,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 			if newState.Settings.ImagePreprocessing != nil &&
 				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-				newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+				newState.Settings.ImagePreprocessing = nil
 			}
 
 			if newState.Settings.VideoPreprocessing != nil &&
@@ -799,15 +755,19 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			if state.Settings.FilterStringMaxLength.IsNull() {
 				newState.Settings.FilterStringMaxLength = types.Int64Null()
 			}
-			if state.Settings.NormalizeEmbeddings.IsNull() {
-				newState.Settings.NormalizeEmbeddings = types.BoolNull()
+
+			// For boolean fields, if they're explicitly set in the configuration,
+			// use those values; otherwise keep them null
+			if !state.Settings.NormalizeEmbeddings.IsNull() {
+				newState.Settings.NormalizeEmbeddings = state.Settings.NormalizeEmbeddings
 			}
-			if state.Settings.TreatUrlsAndPointersAsImages.IsNull() {
-				newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+			if !state.Settings.TreatUrlsAndPointersAsImages.IsNull() {
+				newState.Settings.TreatUrlsAndPointersAsImages = state.Settings.TreatUrlsAndPointersAsImages
 			}
-			if state.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
-				newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
+			if !state.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+				newState.Settings.TreatUrlsAndPointersAsMedia = state.Settings.TreatUrlsAndPointersAsMedia
 			}
+
 			if state.Settings.VectorNumericType.IsNull() {
 				newState.Settings.VectorNumericType = types.StringNull()
 			}
@@ -823,7 +783,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 				// Set PatchMethod to null if it's empty
 				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+					newState.Settings.ImagePreprocessing = nil
 				}
 			}
 
@@ -1015,11 +975,8 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	settings := map[string]interface{}{
 		"type":                         model.Settings.Type.ValueString(),
 		"vectorNumericType":            model.Settings.VectorNumericType.ValueString(),
-		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
-		"treatUrlsAndPointersAsMedia":  model.Settings.TreatUrlsAndPointersAsMedia.ValueBool(),
 		"model":                        model.Settings.Model.ValueString(),
 		"modelProperties":              model.Settings.ModelProperties,
-		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
 		"allFields":                    convertAllFieldsToMap(model.Settings.AllFields),
 		"tensorFields":                 model.Settings.TensorFields,
 		"inferenceType":                model.Settings.InferenceType.ValueString(),
@@ -1028,7 +985,11 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		"numberOfShards":               model.Settings.NumberOfShards.ValueInt64(),
 		"numberOfReplicas":             model.Settings.NumberOfReplicas.ValueInt64(),
 		"filterStringMaxLength":        model.Settings.FilterStringMaxLength.ValueInt64(),
+		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
+		"treatUrlsAndPointersAsMedia":  model.Settings.TreatUrlsAndPointersAsMedia.ValueBool(),
+		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
 	}
+
 	// Optional dictionary fields
 	if model.Settings.ModelProperties != nil {
 		modelPropertiesMap := map[string]interface{}{
@@ -1048,7 +1009,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		settings["modelProperties"] = modelPropertiesMap
 	}
 	if model.Settings.TextPreprocessing != nil {
-
 		settings["textPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
 			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod.ValueString(),
@@ -1073,7 +1033,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 	if model.Settings.AnnParameters != nil {
-
 		settings["annParameters"] = map[string]interface{}{
 			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
 			"parameters": map[string]interface{}{
@@ -1086,18 +1045,12 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	// Remove optional fields if they are not set
 	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
 		delete(settings, "treatUrlsAndPointersAsImages")
-	} else {
-		settings["treatUrlsAndPointersAsImages"] = model.Settings.TreatUrlsAndPointersAsImages.ValueBool()
 	}
 	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
 		delete(settings, "treatUrlsAndPointersAsMedia")
-	} else {
-		settings["treatUrlsAndPointersAsMedia"] = model.Settings.TreatUrlsAndPointersAsMedia.ValueBool()
 	}
 	if model.Settings.NormalizeEmbeddings.IsNull() {
 		delete(settings, "normalizeEmbeddings")
-	} else {
-		settings["normalizeEmbeddings"] = model.Settings.NormalizeEmbeddings.ValueBool()
 	}
 	if model.Settings.Model.IsNull() {
 		delete(settings, "model")
@@ -1219,7 +1172,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 				tflog.Info(ctx, fmt.Sprintf("Existing index %s matches configuration. No update needed.", indexName))
 			}
 
-			// Set state to the (potentially updated) existing index
+			// Set state to the (potentially updated) existing index with preserved null values
 			diags = resp.State.Set(ctx, existingState)
 			resp.Diagnostics.Append(diags...)
 			resp.Diagnostics.AddWarning(fmt.Sprintf("Index %s already existed and has been imported into Terraform state.", indexName),
@@ -1570,12 +1523,56 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	// Check for drift between configuration and actual infrastructure
+	// Instead of silently using API values, detect drift and provide clear error messages
+	if currentIndex.NumberOfShards > model.Settings.NumberOfShards.ValueInt64() {
+		resp.Diagnostics.AddError(
+			"Drift Detected: Shard Count",
+			fmt.Sprintf("The API reports %d shards, but your configuration specifies %d shards.\n\n"+
+				"Shards can only be increased, not decreased. To resolve this:\n"+
+				"1. Update your configuration to match the current state: number_of_shards = %d\n"+
+				"2. Run terraform apply again\n\n"+
+				"This ensures your Terraform configuration accurately reflects the actual infrastructure.",
+				currentIndex.NumberOfShards, model.Settings.NumberOfShards.ValueInt64(), currentIndex.NumberOfShards))
+		return
+	}
+
+	if currentIndex.NumberOfReplicas > model.Settings.NumberOfReplicas.ValueInt64() {
+		resp.Diagnostics.AddError(
+			"Drift Detected: Replica Count",
+			fmt.Sprintf("The API reports %d replicas, but your configuration specifies %d replicas.\n\n"+
+				"Replicas can only be increased, not decreased. To resolve this:\n"+
+				"1. Update your configuration to match the current state: number_of_replicas = %d\n"+
+				"2. Run terraform apply again\n\n"+
+				"This ensures your Terraform configuration accurately reflects the actual infrastructure.",
+				currentIndex.NumberOfReplicas, model.Settings.NumberOfReplicas.ValueInt64(), currentIndex.NumberOfReplicas))
+		return
+	}
+
+	// Check if the number of inferences has been changed outside of Terraform
+	if !model.Settings.NumberOfInferences.IsNull() &&
+		currentIndex.NumberOfInferences != model.Settings.NumberOfInferences.ValueInt64() {
+		tflog.Info(ctx, fmt.Sprintf("API reports different number of inferences (%d) than plan (%d), will update to plan value",
+			currentIndex.NumberOfInferences, model.Settings.NumberOfInferences.ValueInt64()))
+	}
+
+	// Check if the inference type has been changed outside of Terraform
+	if !model.Settings.InferenceType.IsNull() &&
+		currentIndex.InferenceType != model.Settings.InferenceType.ValueString() &&
+		!strings.Contains(model.Settings.InferenceType.ValueString(), currentIndex.InferenceType) &&
+		!strings.Contains(currentIndex.InferenceType, model.Settings.InferenceType.ValueString()) {
+		tflog.Info(ctx, fmt.Sprintf("API reports different inference type (%s) than plan (%s), will update to plan value",
+			currentIndex.InferenceType, model.Settings.InferenceType.ValueString()))
+	}
+
 	if model.Settings.InferenceType.IsNull() {
 		delete(settings, "inferenceType")
 	}
+
 	if model.Settings.NumberOfInferences.IsNull() {
 		delete(settings, "numberOfInferences")
 	}
+
 	if model.Settings.NumberOfShards.IsNull() {
 		delete(settings, "numberOfShards")
 	}
@@ -1679,6 +1676,11 @@ func (r *indicesResource) ImportState(ctx context.Context, req resource.ImportSt
 			NumberOfShards:     types.Int64Value(0),
 			NumberOfReplicas:   types.Int64Value(0),
 			Model:              types.StringValue(""),
+			// Set boolean fields to null by default
+			NormalizeEmbeddings:          types.BoolNull(),
+			TreatUrlsAndPointersAsImages: types.BoolNull(),
+			TreatUrlsAndPointersAsMedia:  types.BoolNull(),
+			// Other fields will be populated by the Read method
 		},
 	}
 
