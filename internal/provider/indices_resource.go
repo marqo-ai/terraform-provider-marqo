@@ -986,21 +986,28 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Construct settings map
 	settings := map[string]interface{}{
-		"type":                         model.Settings.Type.ValueString(),
-		"vectorNumericType":            model.Settings.VectorNumericType.ValueString(),
-		"model":                        model.Settings.Model.ValueString(),
-		"modelProperties":              model.Settings.ModelProperties,
-		"allFields":                    convertAllFieldsToMap(model.Settings.AllFields),
-		"tensorFields":                 model.Settings.TensorFields,
-		"inferenceType":                model.Settings.InferenceType.ValueString(),
-		"numberOfInferences":           model.Settings.NumberOfInferences.ValueInt64(),
-		"storageClass":                 model.Settings.StorageClass.ValueString(),
-		"numberOfShards":               model.Settings.NumberOfShards.ValueInt64(),
-		"numberOfReplicas":             model.Settings.NumberOfReplicas.ValueInt64(),
-		"filterStringMaxLength":        model.Settings.FilterStringMaxLength.ValueInt64(),
-		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
-		"treatUrlsAndPointersAsMedia":  model.Settings.TreatUrlsAndPointersAsMedia.ValueBool(),
-		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
+		"type":                  model.Settings.Type.ValueString(),
+		"vectorNumericType":     model.Settings.VectorNumericType.ValueString(),
+		"model":                 model.Settings.Model.ValueString(),
+		"modelProperties":       model.Settings.ModelProperties,
+		"allFields":             convertAllFieldsToMap(model.Settings.AllFields),
+		"tensorFields":          model.Settings.TensorFields,
+		"inferenceType":         model.Settings.InferenceType.ValueString(),
+		"numberOfInferences":    model.Settings.NumberOfInferences.ValueInt64(),
+		"storageClass":          model.Settings.StorageClass.ValueString(),
+		"numberOfShards":        model.Settings.NumberOfShards.ValueInt64(),
+		"numberOfReplicas":      model.Settings.NumberOfReplicas.ValueInt64(),
+		"filterStringMaxLength": model.Settings.FilterStringMaxLength.ValueInt64(),
+	}
+
+	if !model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
+		settings["treatUrlsAndPointersAsImages"] = model.Settings.TreatUrlsAndPointersAsImages.ValueBool()
+	}
+	if !model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+		settings["treatUrlsAndPointersAsMedia"] = model.Settings.TreatUrlsAndPointersAsMedia.ValueBool()
+	}
+	if !model.Settings.NormalizeEmbeddings.IsNull() {
+		settings["normalizeEmbeddings"] = model.Settings.NormalizeEmbeddings.ValueBool()
 	}
 
 	// Optional dictionary fields
