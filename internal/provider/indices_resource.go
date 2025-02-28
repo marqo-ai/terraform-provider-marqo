@@ -730,6 +730,41 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			if newState.Settings.ModelProperties != nil && newState.Settings.ModelProperties.IsEmpty() {
 				newState.Settings.ModelProperties = nil
 			}
+
+			// Handle image_preprocessing
+			if state.Settings.ImagePreprocessing == nil {
+				newState.Settings.ImagePreprocessing = nil
+			} else {
+				// Ensure we always have an ImagePreprocessing object if it was in the config
+				if newState.Settings.ImagePreprocessing == nil {
+					newState.Settings.ImagePreprocessing = &ImagePreprocessingModel{}
+				}
+
+				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+				}
+			}
+
+			// preserve the video/audio preprocessing from current state since api does not return them
+			if state.Settings.VideoPreprocessing != nil {
+				newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
+			} else if newState.Settings.VideoPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				if newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.VideoPreprocessing = nil
+				}
+			}
+
+			if state.Settings.AudioPreprocessing != nil {
+				newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
+			} else if newState.Settings.AudioPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				if newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.AudioPreprocessing = nil
+				}
+			}
 		} else {
 			// For non-import operations, preserve values from the existing state
 
