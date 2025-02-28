@@ -527,6 +527,27 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			storageClass = mappedValue
 		}
 
+		var treatImagesVal types.Bool
+		if indexDetail.TreatUrlsAndPointersAsImages == nil {
+			treatImagesVal = types.BoolNull()
+		} else {
+			treatImagesVal = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsImages)
+		}
+
+		var treatMediaVal types.Bool
+		if indexDetail.TreatUrlsAndPointersAsMedia == nil {
+			treatMediaVal = types.BoolNull()
+		} else {
+			treatMediaVal = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsMedia)
+		}
+
+		var normalizeEmbeddingsVal types.Bool
+		if indexDetail.NormalizeEmbeddings == nil {
+			normalizeEmbeddingsVal = types.BoolNull()
+		} else {
+			normalizeEmbeddingsVal = types.BoolValue(*indexDetail.NormalizeEmbeddings)
+		}
+
 		// Handle image_preprocessing.patch_method
 		items[i] = indexModel{
 			Created:                      types.StringValue(indexDetail.Created),
@@ -543,14 +564,14 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			StoreSize:                    types.StringValue(indexDetail.StoreSize),
 			DocsDeleted:                  types.StringValue(indexDetail.DocsDeleted),
 			SearchQueryTotal:             types.StringValue(indexDetail.SearchQueryTotal),
-			TreatUrlsAndPointersAsImages: types.BoolValue(*indexDetail.TreatUrlsAndPointersAsImages),
-			TreatUrlsAndPointersAsMedia:  types.BoolValue(*indexDetail.TreatUrlsAndPointersAsMedia),
+			TreatUrlsAndPointersAsImages: treatImagesVal,
+			TreatUrlsAndPointersAsMedia:  treatMediaVal,
 			MarqoEndpoint:                types.StringValue(indexDetail.MarqoEndpoint),
 			Type:                         types.StringValue(indexDetail.Type),
 			VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
 			Model:                        types.StringValue(indexDetail.Model),
 			ModelProperties:              convertModelProperties(&indexDetail.ModelProperties),
-			NormalizeEmbeddings:          types.BoolValue(*indexDetail.NormalizeEmbeddings),
+			NormalizeEmbeddings:          normalizeEmbeddingsVal,
 			TextPreprocessing: &TextPreprocessingModel{
 				SplitLength:  types.StringValue(fmt.Sprintf("%d", indexDetail.TextPreprocessing.SplitLength)),
 				SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),

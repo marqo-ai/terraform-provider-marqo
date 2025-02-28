@@ -498,20 +498,20 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 			}
 
 			// Handle Bool fields
-			if indexDetail.TreatUrlsAndPointersAsImages != nil {
-				model.Settings.TreatUrlsAndPointersAsImages = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsImages)
-			} else {
+			if indexDetail.TreatUrlsAndPointersAsImages == nil {
 				model.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
-			}
-			if indexDetail.TreatUrlsAndPointersAsMedia != nil {
-				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsMedia)
 			} else {
+				model.Settings.TreatUrlsAndPointersAsImages = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsImages)
+			}
+			if indexDetail.TreatUrlsAndPointersAsMedia == nil {
 				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
-			}
-			if indexDetail.NormalizeEmbeddings != nil {
-				model.Settings.NormalizeEmbeddings = types.BoolValue(*indexDetail.NormalizeEmbeddings)
 			} else {
+				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsMedia)
+			}
+			if indexDetail.NormalizeEmbeddings == nil {
 				model.Settings.NormalizeEmbeddings = types.BoolNull()
+			} else {
+				model.Settings.NormalizeEmbeddings = types.BoolValue(*indexDetail.NormalizeEmbeddings)
 			}
 
 			// Handle optional string fields
