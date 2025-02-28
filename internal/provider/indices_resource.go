@@ -487,17 +487,31 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 				MarqoEndpoint: types.StringValue(indexDetail.MarqoEndpoint),
 				Timeouts:      existingTimeouts,
 				Settings: IndexSettingsModel{
-					Type:                         types.StringValue(indexDetail.Type),
-					InferenceType:                types.StringValue(indexDetail.InferenceType),
-					NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
-					StorageClass:                 types.StringValue(indexDetail.StorageClass),
-					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
-					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
-					Model:                        types.StringValue(indexDetail.Model),
-					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
-					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
-					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
+					Type:               types.StringValue(indexDetail.Type),
+					InferenceType:      types.StringValue(indexDetail.InferenceType),
+					NumberOfInferences: types.Int64Value(indexDetail.NumberOfInferences),
+					StorageClass:       types.StringValue(indexDetail.StorageClass),
+					NumberOfShards:     types.Int64Value(indexDetail.NumberOfShards),
+					NumberOfReplicas:   types.Int64Value(indexDetail.NumberOfReplicas),
+					Model:              types.StringValue(indexDetail.Model),
 				},
+			}
+
+			// Handle Bool fields
+			if indexDetail.TreatUrlsAndPointersAsImages != nil {
+				model.Settings.TreatUrlsAndPointersAsImages = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsImages)
+			} else {
+				model.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+			}
+			if indexDetail.TreatUrlsAndPointersAsMedia != nil {
+				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsMedia)
+			} else {
+				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
+			}
+			if indexDetail.NormalizeEmbeddings != nil {
+				model.Settings.NormalizeEmbeddings = types.BoolValue(*indexDetail.NormalizeEmbeddings)
+			} else {
+				model.Settings.NormalizeEmbeddings = types.BoolNull()
 			}
 
 			// Handle optional string fields
@@ -547,12 +561,12 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 			}
 
 			// Handle ImagePreprocessing
-			if indexDetail.ImagePreprocessing.PatchMethod != "" {
+			if indexDetail.ImagePreprocessing.PatchMethod == "" {
+				model.Settings.ImagePreprocessing = nil
+			} else {
 				model.Settings.ImagePreprocessing = &ImagePreprocessingModel{
 					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 				}
-			} else {
-				model.Settings.ImagePreprocessing = nil
 			}
 
 			// Handle VideoPreprocessing
@@ -690,7 +704,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 			if newState.Settings.ImagePreprocessing != nil &&
 				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-				newState.Settings.ImagePreprocessing = nil
+				newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 			}
 
 			if newState.Settings.VideoPreprocessing != nil &&
@@ -787,16 +801,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 					newState.Settings.ImagePreprocessing = &ImagePreprocessingModel{}
 				}
 
-				// If PatchMethod is empty in the API response but was explicitly set in the config
-				// (even to an empty string), we should preserve the object
 				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-					// Only set to nil if it was null in the state (not explicitly set)
-					if state.Settings.ImagePreprocessing.PatchMethod.IsNull() {
-						newState.Settings.ImagePreprocessing = nil
-					} else {
-						// Otherwise preserve the empty object with null PatchMethod
-						newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
-					}
+					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 				}
 			}
 
@@ -1036,8 +1042,12 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 	if model.Settings.ImagePreprocessing != nil {
-		settings["imagePreprocessing"] = map[string]interface{}{
-			"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
+		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
+			settings["imagePreprocessing"] = nil
+		} else {
+			settings["imagePreprocessing"] = map[string]interface{}{
+				"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
+			}
 		}
 	}
 	if model.Settings.VideoPreprocessing != nil {
@@ -1299,6 +1309,11 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	if model.Settings.ImagePreprocessing != nil &&
+		model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
+		model.Settings.ImagePreprocessing = nil
 	}
 
 	// Validate that only allowed fields are being modified
