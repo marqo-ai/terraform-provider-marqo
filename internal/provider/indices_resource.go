@@ -276,7 +276,6 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"video_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
-						Computed: true,
 						Attributes: map[string]schema.Attribute{
 							"split_length":  schema.Int64Attribute{Optional: true},
 							"split_overlap": schema.Int64Attribute{Optional: true},
@@ -284,7 +283,6 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"audio_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
-						Computed: true,
 						Attributes: map[string]schema.Attribute{
 							"split_length":  schema.Int64Attribute{Optional: true},
 							"split_overlap": schema.Int64Attribute{Optional: true},
