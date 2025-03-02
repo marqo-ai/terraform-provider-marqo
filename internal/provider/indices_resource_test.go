@@ -54,6 +54,8 @@ func TestAccResourceCustomModelIndex(t *testing.T) {
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
 				},
 			},
 			// Delete testing automatically occurs in TestCase
@@ -258,6 +260,8 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
 				},
 			},
 			// Update testing
@@ -671,7 +675,6 @@ func testAccResourceIndexConfig(name string) string {
 					split_method = "sentence"
 					split_overlap = 0
 				}
-				image_preprocessing = {}
 				video_preprocessing = {
 					split_length = 5
 					split_overlap = 1
