@@ -116,21 +116,6 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 					},
 				),
 			},
-			// ImportState testing
-			{
-				ResourceName:                         "marqo_index.test",
-				ImportState:                          true,
-				ImportStateVerify:                    true,
-				ImportStateId:                        unstructured_langbind_index_name,
-				ImportStateVerifyIdentifierAttribute: "index_name",
-				// Don't verify these fields as they might be computed or have different representations
-				ImportStateVerifyIgnore: []string{
-					"timeouts",
-					"settings.image_preprocessing",
-					"settings.video_preprocessing",
-					"settings.audio_preprocessing",
-				},
-			},
 			// Update and Read testing
 			{
 				Config: testAccResourceIndexConfigUpdated(unstructured_langbind_index_name),
@@ -323,7 +308,6 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 
 // TestAccResourceImportIndex specifically tests the import functionality.
 func TestAccResourceImportIndex(t *testing.T) {
-	t.Parallel() // Enable parallel testing
 	import_index_name := fmt.Sprintf("donotdelete_import_%s", randomString(6))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -396,7 +380,6 @@ func TestAccResourceImportIndex(t *testing.T) {
 
 // TestAccResourceImportStructuredIndex tests importing a structured index.
 func TestAccResourceImportStructuredIndex(t *testing.T) {
-	t.Parallel() // Enable parallel testing
 	import_structured_index_name := fmt.Sprintf("donotdelete_import_str_%s", randomString(7))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
