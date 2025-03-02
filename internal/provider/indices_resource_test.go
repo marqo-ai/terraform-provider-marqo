@@ -1016,7 +1016,7 @@ func testAccResourceMaximalIndexConfigUpdated(name string) string {
 						m = 16
 					}
 				}
-				filter_string_max_length = 40
+				filter_string_max_length = 30
 			}
 		}
 	`, name)

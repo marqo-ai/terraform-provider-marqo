@@ -741,6 +741,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
 					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 				}
+
 			}
 
 			// preserve the video/audio preprocessing from current state since api does not return them
@@ -839,6 +840,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
 					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 				}
+
 			}
 
 			// preserve the video/audio preprocessing from current state since api does not return them
@@ -1079,6 +1081,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.ImagePreprocessing != nil {
 		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
 			settings["imagePreprocessing"] = nil
+
 		} else {
 			settings["imagePreprocessing"] = map[string]interface{}{
 				"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
@@ -1344,11 +1347,6 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}
-
-	if model.Settings.ImagePreprocessing != nil &&
-		model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
-		model.Settings.ImagePreprocessing = nil
 	}
 
 	// Validate that only allowed fields are being modified
@@ -1751,9 +1749,7 @@ func (r *indicesResource) ImportState(ctx context.Context, req resource.ImportSt
 			TreatUrlsAndPointersAsImages: types.BoolNull(),
 			TreatUrlsAndPointersAsMedia:  types.BoolNull(),
 			// Initialize preprocessing fields to null
-			ImagePreprocessing: &ImagePreprocessingModel{
-				PatchMethod: types.StringNull(),
-			},
+			ImagePreprocessing: nil,
 			VideoPreprocessing: &VideoPreprocessingModelCreate{
 				SplitLength:  types.Int64Null(),
 				SplitOverlap: types.Int64Null(),
