@@ -731,39 +731,28 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				newState.Settings.ModelProperties = nil
 			}
 
-			// Handle image_preprocessing
+			// Image Preprocessing
 			if state.Settings.ImagePreprocessing == nil {
 				newState.Settings.ImagePreprocessing = nil
 			} else {
-				// Ensure we always have an ImagePreprocessing object if it was in the config
 				if newState.Settings.ImagePreprocessing == nil {
 					newState.Settings.ImagePreprocessing = &ImagePreprocessingModel{}
 				}
-
 				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
 					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 				}
+				// Preserve state value
+				newState.Settings.ImagePreprocessing = state.Settings.ImagePreprocessing
 			}
 
-			// preserve the video/audio preprocessing from current state since api does not return them
+			// Video Preprocessing: Always preserve from state
 			if state.Settings.VideoPreprocessing != nil {
 				newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
-			} else if newState.Settings.VideoPreprocessing != nil {
-				// If not in state but returned by API with zero values, set to null
-				if newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
-					newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
-					newState.Settings.VideoPreprocessing = nil
-				}
 			}
 
+			// Audio Preprocessing: Always preserve from state
 			if state.Settings.AudioPreprocessing != nil {
 				newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
-			} else if newState.Settings.AudioPreprocessing != nil {
-				// If not in state but returned by API with zero values, set to null
-				if newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
-					newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
-					newState.Settings.AudioPreprocessing = nil
-				}
 			}
 		} else {
 			// For non-import operations, preserve values from the existing state
@@ -1750,6 +1739,18 @@ func (r *indicesResource) ImportState(ctx context.Context, req resource.ImportSt
 			NormalizeEmbeddings:          types.BoolNull(),
 			TreatUrlsAndPointersAsImages: types.BoolNull(),
 			TreatUrlsAndPointersAsMedia:  types.BoolNull(),
+			// Initialize preprocessing fields to null
+			ImagePreprocessing: &ImagePreprocessingModel{
+				PatchMethod: types.StringNull(),
+			},
+			VideoPreprocessing: &VideoPreprocessingModelCreate{
+				SplitLength:  types.Int64Null(),
+				SplitOverlap: types.Int64Null(),
+			},
+			AudioPreprocessing: &AudioPreprocessingModelCreate{
+				SplitLength:  types.Int64Null(),
+				SplitOverlap: types.Int64Null(),
+			},
 			// Other fields will be populated by the Read method
 		},
 	}

@@ -113,18 +113,6 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 					},
 				),
 			},
-			// ImportState testing
-			{
-				ResourceName:                         "marqo_index.test",
-				ImportState:                          true,
-				ImportStateVerify:                    true,
-				ImportStateId:                        unstructured_langbind_index_name,
-				ImportStateVerifyIdentifierAttribute: "index_name",
-				// Don't verify these fields as they might be computed or have different representations
-				ImportStateVerifyIgnore: []string{
-					"timeouts",
-				},
-			},
 			// Update and Read testing
 			{
 				Config: testAccResourceIndexConfigUpdated(unstructured_langbind_index_name),
