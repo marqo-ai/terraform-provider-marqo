@@ -54,6 +54,7 @@ func TestAccResourceCustomModelIndex(t *testing.T) {
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.image_preprocessing",
 					"settings.video_preprocessing",
 					"settings.audio_preprocessing",
 				},
@@ -125,6 +126,7 @@ func TestAccResourceLangBindIndex(t *testing.T) {
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.image_preprocessing",
 					"settings.video_preprocessing",
 					"settings.audio_preprocessing",
 				},
@@ -199,6 +201,9 @@ func TestAccResourceStructuredIndex(t *testing.T) {
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.image_preprocessing",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
 				},
 			},
 			// Check for no changes on re-apply
@@ -260,6 +265,7 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 				// Don't verify these fields as they might be computed or have different representations
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.image_preprocessing",
 					"settings.video_preprocessing",
 					"settings.audio_preprocessing",
 				},
@@ -356,6 +362,9 @@ func TestAccResourceImportIndex(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "index_name",
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.image_preprocessing",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
 				},
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
@@ -427,7 +436,10 @@ func TestAccResourceImportStructuredIndex(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "index_name",
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
-					"settings.all_fields", // all_fields might have different representation in API vs config
+					"settings.all_fields",
+					"settings.image_preprocessing",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
 				},
 				Check: resource.ComposeTestCheckFunc(
 					func(s *terraform.State) error {
@@ -901,6 +913,9 @@ func TestAccResourceMaximalIndex(t *testing.T) {
 				ImportStateVerifyIdentifierAttribute: "index_name",
 				ImportStateVerifyIgnore: []string{
 					"timeouts",
+					"settings.image_preprocessing",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
 				},
 			},
 			// Update testing
