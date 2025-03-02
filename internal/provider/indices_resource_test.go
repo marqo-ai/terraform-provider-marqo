@@ -867,7 +867,7 @@ func TestAccResourceMaximalIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.normalize_embeddings", "true"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.GPU"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "2"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.balanced"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.text_preprocessing.split_length", "3"),
