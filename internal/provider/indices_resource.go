@@ -276,6 +276,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"video_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
+						Computed: true,
 						Attributes: map[string]schema.Attribute{
 							"split_length":  schema.Int64Attribute{Optional: true},
 							"split_overlap": schema.Int64Attribute{Optional: true},
@@ -283,6 +284,7 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"audio_preprocessing": schema.SingleNestedAttribute{
 						Optional: true,
+						Computed: true,
 						Attributes: map[string]schema.Attribute{
 							"split_length":  schema.Int64Attribute{Optional: true},
 							"split_overlap": schema.Int64Attribute{Optional: true},
@@ -741,18 +743,29 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
 					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
 				}
-				// Preserve state value
-				newState.Settings.ImagePreprocessing = state.Settings.ImagePreprocessing
 			}
 
-			// Video Preprocessing: Always preserve from state
+			// preserve the video/audio preprocessing from current state since api does not return them
 			if state.Settings.VideoPreprocessing != nil {
 				newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
+			} else if newState.Settings.VideoPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				// Doesnt do anything now because API doesn't return video/audio preprocessing
+				if newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.VideoPreprocessing = nil
+				}
 			}
 
-			// Audio Preprocessing: Always preserve from state
 			if state.Settings.AudioPreprocessing != nil {
 				newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
+			} else if newState.Settings.AudioPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				// Doesnt do anything now because API doesn't return video/audio preprocessing
+				if newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.AudioPreprocessing = nil
+				}
 			}
 		} else {
 			// For non-import operations, preserve values from the existing state
