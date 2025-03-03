@@ -704,7 +704,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 			if newState.Settings.ImagePreprocessing != nil &&
 				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-				newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
+				newState.Settings.ImagePreprocessing = nil
 			}
 
 			if newState.Settings.VideoPreprocessing != nil &&
@@ -729,19 +729,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 			if newState.Settings.ModelProperties != nil && newState.Settings.ModelProperties.IsEmpty() {
 				newState.Settings.ModelProperties = nil
-			}
-
-			// Image Preprocessing
-			if state.Settings.ImagePreprocessing == nil {
-				newState.Settings.ImagePreprocessing = nil
-			} else {
-				if newState.Settings.ImagePreprocessing == nil {
-					newState.Settings.ImagePreprocessing = &ImagePreprocessingModel{}
-				}
-				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
-				}
-
 			}
 
 			// preserve the video/audio preprocessing from current state since api does not return them
@@ -829,18 +816,9 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			}
 
 			// Handle image_preprocessing
-			if state.Settings.ImagePreprocessing == nil {
+			if newState.Settings.ImagePreprocessing != nil &&
+				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
 				newState.Settings.ImagePreprocessing = nil
-			} else {
-				// Ensure we always have an ImagePreprocessing object if it was in the config
-				if newState.Settings.ImagePreprocessing == nil {
-					newState.Settings.ImagePreprocessing = &ImagePreprocessingModel{}
-				}
-
-				if newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-					newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
-				}
-
 			}
 
 			// preserve the video/audio preprocessing from current state since api does not return them
@@ -1081,7 +1059,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	if model.Settings.ImagePreprocessing != nil {
 		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
 			settings["imagePreprocessing"] = nil
-
 		} else {
 			settings["imagePreprocessing"] = map[string]interface{}{
 				"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
@@ -1749,7 +1726,6 @@ func (r *indicesResource) ImportState(ctx context.Context, req resource.ImportSt
 			TreatUrlsAndPointersAsImages: types.BoolNull(),
 			TreatUrlsAndPointersAsMedia:  types.BoolNull(),
 			// Initialize preprocessing fields to null
-			ImagePreprocessing: nil,
 			VideoPreprocessing: &VideoPreprocessingModelCreate{
 				SplitLength:  types.Int64Null(),
 				SplitOverlap: types.Int64Null(),

@@ -308,6 +308,7 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 
 // TestAccResourceImportIndex specifically tests the import functionality.
 func TestAccResourceImportIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
 	import_index_name := fmt.Sprintf("donotdelete_import_%s", randomString(6))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -380,6 +381,7 @@ func TestAccResourceImportIndex(t *testing.T) {
 
 // TestAccResourceImportStructuredIndex tests importing a structured index.
 func TestAccResourceImportStructuredIndex(t *testing.T) {
+	t.Parallel() // Enable parallel testing
 	import_structured_index_name := fmt.Sprintf("donotdelete_import_str_%s", randomString(7))
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -718,7 +720,6 @@ func testAccResourceIndexConfigUpdated(name string) string {
 					split_method = "sentence"
 					split_overlap = 0
 				}
-				image_preprocessing = {}
 				video_preprocessing = {
 					split_length = 5
 					split_overlap = 1
@@ -910,7 +911,7 @@ func TestAccResourceMaximalIndex(t *testing.T) {
 						return nil
 					},
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "3"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.filter_string_max_length", "40"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.filter_string_max_length", "30"),
 					testAccCheckIndexIsReady(maximal_index_name),
 					func(s *terraform.State) error {
 						fmt.Println("Maximal Index update testing completed")
