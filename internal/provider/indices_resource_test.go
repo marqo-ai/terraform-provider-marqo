@@ -231,9 +231,9 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.basic"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "45m"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "45m"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "20m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "60m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "60m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "45m"),
 					func(s *terraform.State) error {
 						fmt.Println("Minimal Index testing completed")
 						return nil
@@ -264,9 +264,9 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 						return nil
 					},
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "45m"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "45m"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "20m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "60m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "60m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "45m"),
 					func(s *terraform.State) error {
 						fmt.Println("Minimal Index update testing completed")
 						return nil
@@ -292,9 +292,9 @@ func TestAccResourceMinimalIndex(t *testing.T) {
 						return nil
 					},
 					resource.TestCheckResourceAttr("marqo_index.test", "index_name", minimal_index_name),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "45m"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "45m"),
-					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "20m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.create", "60m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.update", "60m"),
+					resource.TestCheckResourceAttr("marqo_index.test", "timeouts.delete", "45m"),
 					func(s *terraform.State) error {
 						fmt.Println("Minimal Index recreation testing completed")
 						return nil
@@ -794,7 +794,7 @@ func testAccResourceMinimalIndexConfig(name string) string {
 		resource "marqo_index" "test" {
 			index_name = "%s"
 			timeouts = {
-				create = "45m"
+				create = "60m"
 				update = "60m"
 				delete = "45m"
 			}
@@ -816,7 +816,7 @@ func testAccResourceMinimalIndexConfigUpdated(name string) string {
 		resource "marqo_index" "test" {
 			index_name = "%s"
 			timeouts = {
-				create = "45m"
+				create = "60m"
 				update = "60m"
 				delete = "45m"
 			}
