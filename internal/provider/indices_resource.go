@@ -494,6 +494,9 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					NumberOfShards:     types.Int64Value(indexDetail.NumberOfShards),
 					NumberOfReplicas:   types.Int64Value(indexDetail.NumberOfReplicas),
 					Model:              types.StringValue(indexDetail.Model),
+					ImagePreprocessing: &ImagePreprocessingModel{
+						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
+					},
 				},
 			}
 
@@ -557,15 +560,6 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 					SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
 					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
 					SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
-				}
-			}
-
-			// Handle ImagePreprocessing
-			if indexDetail.ImagePreprocessing.PatchMethod == "" {
-				model.Settings.ImagePreprocessing = nil
-			} else {
-				model.Settings.ImagePreprocessing = &ImagePreprocessingModel{
-					PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 				}
 			}
 
@@ -702,9 +696,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				newState.Settings.TextPreprocessing = nil
 			}
 
-			if newState.Settings.ImagePreprocessing != nil &&
-				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+			if state.Settings.ImagePreprocessing == nil {
 				newState.Settings.ImagePreprocessing = nil
+			} else {
+				newState.Settings.ImagePreprocessing = state.Settings.ImagePreprocessing
 			}
 
 			if newState.Settings.VideoPreprocessing != nil &&
@@ -815,10 +810,10 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 				newState.Settings.VectorNumericType = types.StringNull()
 			}
 
-			// Handle image_preprocessing
-			if newState.Settings.ImagePreprocessing != nil &&
-				newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+			if state.Settings.ImagePreprocessing == nil {
 				newState.Settings.ImagePreprocessing = nil
+			} else {
+				newState.Settings.ImagePreprocessing = state.Settings.ImagePreprocessing
 			}
 
 			// preserve the video/audio preprocessing from current state since api does not return them
@@ -1057,8 +1052,11 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 	if model.Settings.ImagePreprocessing != nil {
-		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() {
+		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() || model.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
 			settings["imagePreprocessing"] = nil
+			model.Settings.ImagePreprocessing = &ImagePreprocessingModel{
+				PatchMethod: types.StringNull(),
+			}
 		} else {
 			settings["imagePreprocessing"] = map[string]interface{}{
 				"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
