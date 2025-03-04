@@ -732,8 +732,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			} else if newState.Settings.VideoPreprocessing != nil {
 				// If not in state but returned by API with zero values, set to null
 				// Doesnt do anything now because API doesn't return video/audio preprocessing
-				if newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
-					newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+				if newState.Settings.VideoPreprocessing.SplitLength.IsNull() &&
+					newState.Settings.VideoPreprocessing.SplitOverlap.IsNull() {
 					newState.Settings.VideoPreprocessing = nil
 				}
 			}
@@ -743,8 +743,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			} else if newState.Settings.AudioPreprocessing != nil {
 				// If not in state but returned by API with zero values, set to null
 				// Doesnt do anything now because API doesn't return video/audio preprocessing
-				if newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
-					newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+				if newState.Settings.AudioPreprocessing.SplitLength.IsNull() &&
+					newState.Settings.AudioPreprocessing.SplitOverlap.IsNull() {
 					newState.Settings.AudioPreprocessing = nil
 				}
 			}
@@ -1723,15 +1723,6 @@ func (r *indicesResource) ImportState(ctx context.Context, req resource.ImportSt
 			NormalizeEmbeddings:          types.BoolNull(),
 			TreatUrlsAndPointersAsImages: types.BoolNull(),
 			TreatUrlsAndPointersAsMedia:  types.BoolNull(),
-			// Initialize preprocessing fields to null
-			VideoPreprocessing: &VideoPreprocessingModelCreate{
-				SplitLength:  types.Int64Null(),
-				SplitOverlap: types.Int64Null(),
-			},
-			AudioPreprocessing: &AudioPreprocessingModelCreate{
-				SplitLength:  types.Int64Null(),
-				SplitOverlap: types.Int64Null(),
-			},
 			// Other fields will be populated by the Read method
 		},
 	}
