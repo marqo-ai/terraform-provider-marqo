@@ -36,14 +36,14 @@ type IndexDetail struct {
 	StoreSize                    string                  `json:"store.size"`
 	DocsDeleted                  string                  `json:"docs.deleted"`
 	SearchQueryTotal             string                  `json:"search.queryTotal"`
-	TreatUrlsAndPointersAsImages bool                    `json:"treatUrlsAndPointersAsImages"`
-	TreatUrlsAndPointersAsMedia  bool                    `json:"treatUrlsAndPointersAsMedia"`
+	TreatUrlsAndPointersAsImages *bool                   `json:"treatUrlsAndPointersAsImages"`
+	TreatUrlsAndPointersAsMedia  *bool                   `json:"treatUrlsAndPointersAsMedia"`
 	MarqoEndpoint                string                  `json:"marqoEndpoint"`
 	Type                         string                  `json:"type"`
 	VectorNumericType            string                  `json:"vectorNumericType"`
 	Model                        string                  `json:"model"`
 	ModelProperties              ModelProperties         `json:"modelProperties"`
-	NormalizeEmbeddings          bool                    `json:"normalizeEmbeddings"`
+	NormalizeEmbeddings          *bool                   `json:"normalizeEmbeddings"`
 	TextPreprocessing            TextPreprocessing       `json:"textPreprocessing"`
 	ImagePreprocessing           ImagePreprocessingModel `json:"imagePreprocessing"` // Assuming no specific structure
 	VideoPreprocessing           VideoPreprocessingModel `json:"videoPreprocessing"`

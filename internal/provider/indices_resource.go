@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	_ resource.Resource              = &indicesResource{}
-	_ resource.ResourceWithConfigure = &indicesResource{}
+	_ resource.Resource                = &indicesResource{}
+	_ resource.ResourceWithConfigure   = &indicesResource{}
+	_ resource.ResourceWithImportState = &indicesResource{}
 )
 
 // ManageIndicesResource is a helper function to simplify the provider implementation.
@@ -480,52 +481,124 @@ func convertModelPropertiesToResource(props *go_marqo.ModelProperties) *ModelPro
 func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, indexName string, existingTimeouts *timeouts) (*IndexResourceModel, bool) {
 	for _, indexDetail := range indices {
 		if indexDetail.IndexName == indexName {
-			return &IndexResourceModel{
-				//ID:        types.StringValue(indexDetail.IndexName),
+			// Create a new model with proper null handling
+			model := &IndexResourceModel{
 				IndexName:     types.StringValue(indexDetail.IndexName),
 				MarqoEndpoint: types.StringValue(indexDetail.MarqoEndpoint),
 				Timeouts:      existingTimeouts,
 				Settings: IndexSettingsModel{
-					Type:                         types.StringValue(indexDetail.Type),
-					VectorNumericType:            types.StringValue(indexDetail.VectorNumericType),
-					TreatUrlsAndPointersAsImages: types.BoolValue(indexDetail.TreatUrlsAndPointersAsImages),
-					TreatUrlsAndPointersAsMedia:  types.BoolValue(indexDetail.TreatUrlsAndPointersAsMedia),
-					Model:                        types.StringValue(indexDetail.Model),
-					ModelProperties:              convertModelPropertiesToResource(&indexDetail.ModelProperties),
-					AllFields:                    ConvertMarqoAllFieldInputs(indexDetail.AllFields),
-					TensorFields:                 indexDetail.TensorFields,
-					NormalizeEmbeddings:          types.BoolValue(indexDetail.NormalizeEmbeddings),
-					InferenceType:                types.StringValue(indexDetail.InferenceType),
-					NumberOfInferences:           types.Int64Value(indexDetail.NumberOfInferences),
-					StorageClass:                 types.StringValue(indexDetail.StorageClass),
-					NumberOfShards:               types.Int64Value(indexDetail.NumberOfShards),
-					NumberOfReplicas:             types.Int64Value(indexDetail.NumberOfReplicas),
-					TextPreprocessing: &TextPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
-						SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
-						SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
-					},
+					Type:               types.StringValue(indexDetail.Type),
+					InferenceType:      types.StringValue(indexDetail.InferenceType),
+					NumberOfInferences: types.Int64Value(indexDetail.NumberOfInferences),
+					StorageClass:       types.StringValue(indexDetail.StorageClass),
+					NumberOfShards:     types.Int64Value(indexDetail.NumberOfShards),
+					NumberOfReplicas:   types.Int64Value(indexDetail.NumberOfReplicas),
+					Model:              types.StringValue(indexDetail.Model),
 					ImagePreprocessing: &ImagePreprocessingModel{
 						PatchMethod: types.StringValue(indexDetail.ImagePreprocessing.PatchMethod),
 					},
-					VideoPreprocessing: &VideoPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
-						SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
-					},
-					AudioPreprocessing: &AudioPreprocessingModelCreate{
-						SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
-						SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
-					},
-					AnnParameters: &AnnParametersModelCreate{
-						SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
-						Parameters: &ParametersModel{
-							EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
-							M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
-						},
-					},
-					FilterStringMaxLength: types.Int64Value(indexDetail.FilterStringMaxLength),
 				},
-			}, true
+			}
+
+			// Handle Bool fields
+			if indexDetail.TreatUrlsAndPointersAsImages == nil {
+				model.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+			} else {
+				model.Settings.TreatUrlsAndPointersAsImages = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsImages)
+			}
+			if indexDetail.TreatUrlsAndPointersAsMedia == nil {
+				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
+			} else {
+				model.Settings.TreatUrlsAndPointersAsMedia = types.BoolValue(*indexDetail.TreatUrlsAndPointersAsMedia)
+			}
+			if indexDetail.NormalizeEmbeddings == nil {
+				model.Settings.NormalizeEmbeddings = types.BoolNull()
+			} else {
+				model.Settings.NormalizeEmbeddings = types.BoolValue(*indexDetail.NormalizeEmbeddings)
+			}
+
+			// Handle optional string fields
+			if indexDetail.VectorNumericType != "" {
+				model.Settings.VectorNumericType = types.StringValue(indexDetail.VectorNumericType)
+			} else {
+				model.Settings.VectorNumericType = types.StringNull()
+			}
+
+			// Handle optional numeric fields
+			if indexDetail.FilterStringMaxLength > 0 {
+				model.Settings.FilterStringMaxLength = types.Int64Value(indexDetail.FilterStringMaxLength)
+			} else {
+				model.Settings.FilterStringMaxLength = types.Int64Null()
+			}
+
+			// Handle model properties
+			if !reflect.DeepEqual(indexDetail.ModelProperties, go_marqo.ModelProperties{}) {
+				model.Settings.ModelProperties = convertModelPropertiesToResource(&indexDetail.ModelProperties)
+			} else {
+				model.Settings.ModelProperties = nil
+			}
+
+			// Handle AllFields
+			if len(indexDetail.AllFields) > 0 {
+				model.Settings.AllFields = ConvertMarqoAllFieldInputs(indexDetail.AllFields)
+			} else {
+				model.Settings.AllFields = nil
+			}
+
+			// Handle TensorFields
+			if len(indexDetail.TensorFields) > 0 {
+				model.Settings.TensorFields = indexDetail.TensorFields
+			} else {
+				model.Settings.TensorFields = nil
+			}
+
+			// Handle TextPreprocessing
+			if indexDetail.TextPreprocessing == (go_marqo.TextPreprocessing{}) {
+				model.Settings.TextPreprocessing = nil
+			} else {
+				model.Settings.TextPreprocessing = &TextPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.TextPreprocessing.SplitLength),
+					SplitMethod:  types.StringValue(indexDetail.TextPreprocessing.SplitMethod),
+					SplitOverlap: types.Int64Value(indexDetail.TextPreprocessing.SplitOverlap),
+				}
+			}
+
+			// Handle VideoPreprocessing
+			if indexDetail.VideoPreprocessing.SplitLength > 0 || indexDetail.VideoPreprocessing.SplitOverlap > 0 {
+				model.Settings.VideoPreprocessing = &VideoPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.VideoPreprocessing.SplitLength),
+					SplitOverlap: types.Int64Value(indexDetail.VideoPreprocessing.SplitOverlap),
+				}
+			} else {
+				model.Settings.VideoPreprocessing = nil
+			}
+
+			// Handle AudioPreprocessing
+			if indexDetail.AudioPreprocessing.SplitLength > 0 || indexDetail.AudioPreprocessing.SplitOverlap > 0 {
+				model.Settings.AudioPreprocessing = &AudioPreprocessingModelCreate{
+					SplitLength:  types.Int64Value(indexDetail.AudioPreprocessing.SplitLength),
+					SplitOverlap: types.Int64Value(indexDetail.AudioPreprocessing.SplitOverlap),
+				}
+			} else {
+				model.Settings.AudioPreprocessing = nil
+			}
+
+			// Handle AnnParameters
+			if indexDetail.AnnParameters.SpaceType != "" ||
+				indexDetail.AnnParameters.Parameters.EfConstruction > 0 ||
+				indexDetail.AnnParameters.Parameters.M > 0 {
+				model.Settings.AnnParameters = &AnnParametersModelCreate{
+					SpaceType: types.StringValue(indexDetail.AnnParameters.SpaceType),
+					Parameters: &ParametersModel{
+						EfConstruction: types.Int64Value(indexDetail.AnnParameters.Parameters.EfConstruction),
+						M:              types.Int64Value(indexDetail.AnnParameters.Parameters.M),
+					},
+				}
+			} else {
+				model.Settings.AnnParameters = nil
+			}
+
+			return model, true
 		}
 	}
 	return nil, false
@@ -538,6 +611,16 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Check if this is likely an import operation
+	isImport := state.MarqoEndpoint.IsNull() &&
+		(state.Settings.Type.ValueString() == "" ||
+			state.Settings.InferenceType.ValueString() == "" ||
+			state.Settings.NumberOfInferences.ValueInt64() == 0)
+
+	if isImport {
+		tflog.Info(ctx, fmt.Sprintf("Detected import operation for index %s", state.IndexName.ValueString()))
 	}
 
 	tflog.Debug(ctx, "Calling marqo client ListIndices")
@@ -581,43 +664,178 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		// marqo doesn't return timeouts, so we maintain the existing state
 		newState.Timeouts = state.Timeouts
 
-		if state.Settings.AllFields == nil {
-			newState.Settings.AllFields = nil
-		} else if len(newState.Settings.AllFields) == 0 {
-			newState.Settings.AllFields = []AllFieldInput{}
-		} else {
-			// Ensure features and dependent_fields are always set
-			for i := range newState.Settings.AllFields {
-				if len(newState.Settings.AllFields[i].Features) == 0 {
-					newState.Settings.AllFields[i].Features = nil
-				}
-				if len(newState.Settings.AllFields[i].DependentFields) == 0 {
-					newState.Settings.AllFields[i].DependentFields = nil
+		// Special handling for import case - if this is a new import (state has empty values)
+		// we need to ensure consistent null values
+		if isImport {
+			// For import operations, we want to set all optional fields to null
+			// unless they have explicit non-default values
+
+			// Handle optional scalar fields
+			if newState.Settings.FilterStringMaxLength.ValueInt64() == 0 {
+				newState.Settings.FilterStringMaxLength = types.Int64Null()
+			}
+
+			// Set empty string vector_numeric_type to null
+			if newState.Settings.VectorNumericType.ValueString() == "" {
+				newState.Settings.VectorNumericType = types.StringNull()
+			}
+
+			// Set empty objects to null
+			if newState.Settings.AllFields != nil && len(newState.Settings.AllFields) == 0 {
+				newState.Settings.AllFields = nil
+			}
+			if newState.Settings.TensorFields != nil && len(newState.Settings.TensorFields) == 0 {
+				newState.Settings.TensorFields = nil
+			}
+
+			// Handle optional nested objects
+			if newState.Settings.TextPreprocessing != nil &&
+				newState.Settings.TextPreprocessing.SplitLength.ValueInt64() == 0 &&
+				newState.Settings.TextPreprocessing.SplitMethod.ValueString() == "" &&
+				newState.Settings.TextPreprocessing.SplitOverlap.ValueInt64() == 0 {
+				newState.Settings.TextPreprocessing = nil
+			}
+
+			if state.Settings.ImagePreprocessing == nil {
+				newState.Settings.ImagePreprocessing = nil
+			} else {
+				newState.Settings.ImagePreprocessing = state.Settings.ImagePreprocessing
+			}
+
+			if newState.Settings.VideoPreprocessing != nil &&
+				newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
+				newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+				newState.Settings.VideoPreprocessing = nil
+			}
+
+			if newState.Settings.AudioPreprocessing != nil &&
+				newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
+				newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+				newState.Settings.AudioPreprocessing = nil
+			}
+
+			if newState.Settings.AnnParameters != nil &&
+				newState.Settings.AnnParameters.SpaceType.ValueString() == "" &&
+				newState.Settings.AnnParameters.Parameters != nil &&
+				newState.Settings.AnnParameters.Parameters.EfConstruction.ValueInt64() == 0 &&
+				newState.Settings.AnnParameters.Parameters.M.ValueInt64() == 0 {
+				newState.Settings.AnnParameters = nil
+			}
+
+			if newState.Settings.ModelProperties != nil && newState.Settings.ModelProperties.IsEmpty() {
+				newState.Settings.ModelProperties = nil
+			}
+
+			// preserve the video/audio preprocessing from current state since api does not return them
+			if state.Settings.VideoPreprocessing != nil {
+				newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
+			} else if newState.Settings.VideoPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				// Doesnt do anything now because API doesn't return video/audio preprocessing
+				if newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.VideoPreprocessing = nil
 				}
 			}
-		}
 
-		// If these fields are not set, set them to null
-		if state.Settings.TextPreprocessing == nil {
-			newState.Settings.TextPreprocessing = nil
-		}
-		if state.Settings.AnnParameters == nil {
-			newState.Settings.AnnParameters = nil
-		}
-		if state.Settings.FilterStringMaxLength.IsNull() {
-			newState.Settings.FilterStringMaxLength = types.Int64Null()
-		}
-		if state.Settings.NormalizeEmbeddings.IsNull() {
-			newState.Settings.NormalizeEmbeddings = types.BoolNull()
-		}
-		if state.Settings.TreatUrlsAndPointersAsImages.IsNull() {
-			newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
-		}
-		if state.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
-			newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
-		}
-		if state.Settings.VectorNumericType.IsNull() {
-			newState.Settings.VectorNumericType = types.StringNull()
+			if state.Settings.AudioPreprocessing != nil {
+				newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
+			} else if newState.Settings.AudioPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				// Doesnt do anything now because API doesn't return video/audio preprocessing
+				if newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.AudioPreprocessing = nil
+				}
+			}
+		} else {
+			// For non-import operations, preserve values from the existing state
+
+			// Handle AllFields
+			if state.Settings.AllFields == nil {
+				newState.Settings.AllFields = nil
+			} else if len(newState.Settings.AllFields) == 0 {
+				newState.Settings.AllFields = []AllFieldInput{}
+			} else {
+				// Ensure features and dependent_fields are always set
+				for i := range newState.Settings.AllFields {
+					if len(newState.Settings.AllFields[i].Features) == 0 {
+						newState.Settings.AllFields[i].Features = nil
+					}
+					if len(newState.Settings.AllFields[i].DependentFields) == 0 {
+						newState.Settings.AllFields[i].DependentFields = nil
+					}
+				}
+			}
+
+			// Handle TensorFields
+			if len(state.Settings.TensorFields) == 0 {
+				newState.Settings.TensorFields = nil
+			}
+
+			// Handle optional nested objects
+			// If these fields are not set in the state, set them to null
+			if state.Settings.TextPreprocessing == nil {
+				newState.Settings.TextPreprocessing = nil
+			}
+			if state.Settings.AnnParameters == nil {
+				newState.Settings.AnnParameters = nil
+			}
+
+			// Handle optional scalar fields
+			// If these fields are null in the state, keep them null
+			if state.Settings.FilterStringMaxLength.IsNull() {
+				newState.Settings.FilterStringMaxLength = types.Int64Null()
+			}
+
+			// For boolean fields, if they're explicitly set in the configuration,
+			// use those values; otherwise keep them null
+			if !state.Settings.NormalizeEmbeddings.IsNull() {
+				newState.Settings.NormalizeEmbeddings = state.Settings.NormalizeEmbeddings
+			} else {
+				newState.Settings.NormalizeEmbeddings = types.BoolNull()
+			}
+			if !state.Settings.TreatUrlsAndPointersAsImages.IsNull() {
+				newState.Settings.TreatUrlsAndPointersAsImages = state.Settings.TreatUrlsAndPointersAsImages
+			} else {
+				newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
+			}
+			if !state.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+				newState.Settings.TreatUrlsAndPointersAsMedia = state.Settings.TreatUrlsAndPointersAsMedia
+			} else {
+				newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
+			}
+
+			if state.Settings.VectorNumericType.IsNull() {
+				newState.Settings.VectorNumericType = types.StringNull()
+			}
+
+			if state.Settings.ImagePreprocessing == nil {
+				newState.Settings.ImagePreprocessing = nil
+			} else {
+				newState.Settings.ImagePreprocessing = state.Settings.ImagePreprocessing
+			}
+
+			// preserve the video/audio preprocessing from current state since api does not return them
+			if state.Settings.VideoPreprocessing != nil {
+				newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
+			} else if newState.Settings.VideoPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				if newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.VideoPreprocessing = nil
+				}
+			}
+
+			if state.Settings.AudioPreprocessing != nil {
+				newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
+			} else if newState.Settings.AudioPreprocessing != nil {
+				// If not in state but returned by API with zero values, set to null
+				if newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
+					newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
+					newState.Settings.AudioPreprocessing = nil
+				}
+			}
 		}
 
 		// Ignore these fields for structured indexes
@@ -625,40 +843,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 			newState.Settings.FilterStringMaxLength = types.Int64Null()
 			newState.Settings.TreatUrlsAndPointersAsImages = types.BoolNull()
 			newState.Settings.TreatUrlsAndPointersAsMedia = types.BoolNull()
-		}
-
-		// Handle image_preprocessing
-		if state.Settings.ImagePreprocessing == nil {
-			newState.Settings.ImagePreprocessing = nil
-		} else if newState.Settings.ImagePreprocessing != nil &&
-			newState.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
-			newState.Settings.ImagePreprocessing.PatchMethod = types.StringNull()
-		}
-
-		// preserve the video/audio preprocessing from current state since api does not return them
-		if state.Settings.VideoPreprocessing != nil {
-			newState.Settings.VideoPreprocessing = state.Settings.VideoPreprocessing
-		}
-		if state.Settings.AudioPreprocessing != nil {
-			newState.Settings.AudioPreprocessing = state.Settings.AudioPreprocessing
-		}
-
-		// Then handle zero values
-		if newState.Settings.VideoPreprocessing != nil &&
-			newState.Settings.VideoPreprocessing.SplitLength.ValueInt64() == 0 &&
-			newState.Settings.VideoPreprocessing.SplitOverlap.ValueInt64() == 0 {
-			newState.Settings.VideoPreprocessing = nil
-		}
-
-		if newState.Settings.AudioPreprocessing != nil &&
-			newState.Settings.AudioPreprocessing.SplitLength.ValueInt64() == 0 &&
-			newState.Settings.AudioPreprocessing.SplitOverlap.ValueInt64() == 0 {
-			newState.Settings.AudioPreprocessing = nil
-		}
-
-		// Handle model properties
-		if newState.Settings.ModelProperties.IsEmpty() {
-			newState.Settings.ModelProperties = nil
 		}
 
 		// Remove null fields
@@ -669,7 +853,6 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// if index no longer exists in cloud, delete the state
 	if !found {
-
 		resp.Diagnostics.AddWarning("Resource Not Found", "The specified index does not exist in the cloud. The state will be deleted.")
 		// Then Totally Remove from terraform resources
 		resp.State.RemoveResource(ctx)
@@ -819,22 +1002,30 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Construct settings map
 	settings := map[string]interface{}{
-		"type":                         model.Settings.Type.ValueString(),
-		"vectorNumericType":            model.Settings.VectorNumericType.ValueString(),
-		"treatUrlsAndPointersAsImages": model.Settings.TreatUrlsAndPointersAsImages.ValueBool(),
-		"treatUrlsAndPointersAsMedia":  model.Settings.TreatUrlsAndPointersAsMedia.ValueBool(),
-		"model":                        model.Settings.Model.ValueString(),
-		"modelProperties":              model.Settings.ModelProperties,
-		"normalizeEmbeddings":          model.Settings.NormalizeEmbeddings.ValueBool(),
-		"allFields":                    convertAllFieldsToMap(model.Settings.AllFields),
-		"tensorFields":                 model.Settings.TensorFields,
-		"inferenceType":                model.Settings.InferenceType.ValueString(),
-		"numberOfInferences":           model.Settings.NumberOfInferences.ValueInt64(),
-		"storageClass":                 model.Settings.StorageClass.ValueString(),
-		"numberOfShards":               model.Settings.NumberOfShards.ValueInt64(),
-		"numberOfReplicas":             model.Settings.NumberOfReplicas.ValueInt64(),
-		"filterStringMaxLength":        model.Settings.FilterStringMaxLength.ValueInt64(),
+		"type":                  model.Settings.Type.ValueString(),
+		"vectorNumericType":     model.Settings.VectorNumericType.ValueString(),
+		"model":                 model.Settings.Model.ValueString(),
+		"modelProperties":       model.Settings.ModelProperties,
+		"allFields":             convertAllFieldsToMap(model.Settings.AllFields),
+		"tensorFields":          model.Settings.TensorFields,
+		"inferenceType":         model.Settings.InferenceType.ValueString(),
+		"numberOfInferences":    model.Settings.NumberOfInferences.ValueInt64(),
+		"storageClass":          model.Settings.StorageClass.ValueString(),
+		"numberOfShards":        model.Settings.NumberOfShards.ValueInt64(),
+		"numberOfReplicas":      model.Settings.NumberOfReplicas.ValueInt64(),
+		"filterStringMaxLength": model.Settings.FilterStringMaxLength.ValueInt64(),
 	}
+
+	if !model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
+		settings["treatUrlsAndPointersAsImages"] = model.Settings.TreatUrlsAndPointersAsImages.ValueBool()
+	}
+	if !model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
+		settings["treatUrlsAndPointersAsMedia"] = model.Settings.TreatUrlsAndPointersAsMedia.ValueBool()
+	}
+	if !model.Settings.NormalizeEmbeddings.IsNull() {
+		settings["normalizeEmbeddings"] = model.Settings.NormalizeEmbeddings.ValueBool()
+	}
+
 	// Optional dictionary fields
 	if model.Settings.ModelProperties != nil {
 		modelPropertiesMap := map[string]interface{}{
@@ -854,7 +1045,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		settings["modelProperties"] = modelPropertiesMap
 	}
 	if model.Settings.TextPreprocessing != nil {
-
 		settings["textPreprocessing"] = map[string]interface{}{
 			"splitLength":  model.Settings.TextPreprocessing.SplitLength.ValueInt64(),
 			"splitMethod":  model.Settings.TextPreprocessing.SplitMethod.ValueString(),
@@ -862,8 +1052,15 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 	if model.Settings.ImagePreprocessing != nil {
-		settings["imagePreprocessing"] = map[string]interface{}{
-			"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
+		if model.Settings.ImagePreprocessing.PatchMethod.IsNull() || model.Settings.ImagePreprocessing.PatchMethod.ValueString() == "" {
+			settings["imagePreprocessing"] = nil
+			model.Settings.ImagePreprocessing = &ImagePreprocessingModel{
+				PatchMethod: types.StringNull(),
+			}
+		} else {
+			settings["imagePreprocessing"] = map[string]interface{}{
+				"patchMethod": model.Settings.ImagePreprocessing.PatchMethod.ValueString(),
+			}
 		}
 	}
 	if model.Settings.VideoPreprocessing != nil {
@@ -879,7 +1076,6 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 	if model.Settings.AnnParameters != nil {
-
 		settings["annParameters"] = map[string]interface{}{
 			"spaceType": model.Settings.AnnParameters.SpaceType.ValueString(),
 			"parameters": map[string]interface{}{
@@ -890,17 +1086,17 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Remove optional fields if they are not set
-	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() || !model.Settings.TreatUrlsAndPointersAsImages.ValueBool() {
+	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
 		delete(settings, "treatUrlsAndPointersAsImages")
 	}
-	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() || !model.Settings.TreatUrlsAndPointersAsMedia.ValueBool() {
+	if model.Settings.TreatUrlsAndPointersAsMedia.IsNull() {
 		delete(settings, "treatUrlsAndPointersAsMedia")
+	}
+	if model.Settings.NormalizeEmbeddings.IsNull() {
+		delete(settings, "normalizeEmbeddings")
 	}
 	if model.Settings.Model.IsNull() {
 		delete(settings, "model")
-	}
-	if model.Settings.NormalizeEmbeddings.IsNull() || model.Settings.NormalizeEmbeddings.IsUnknown() {
-		delete(settings, "normalizeEmbeddings")
 	}
 	if model.Settings.ModelProperties == nil ||
 		(model.Settings.ModelProperties.Name.IsNull() &&
@@ -1019,7 +1215,7 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 				tflog.Info(ctx, fmt.Sprintf("Existing index %s matches configuration. No update needed.", indexName))
 			}
 
-			// Set state to the (potentially updated) existing index
+			// Set state to the (potentially updated) existing index with preserved null values
 			diags = resp.State.Set(ctx, existingState)
 			resp.Diagnostics.Append(diags...)
 			resp.Diagnostics.AddWarning(fmt.Sprintf("Index %s already existed and has been imported into Terraform state.", indexName),
@@ -1114,9 +1310,150 @@ func (r *indicesResource) Delete(ctx context.Context, req resource.DeleteRequest
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var model IndexResourceModel
+	var state IndexResourceModel
+
 	diags := req.Plan.Get(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Validate that only allowed fields are being modified
+	// The only modifiable fields are:
+	// - inference_type
+	// - number_of_inferences
+	// - number_of_replicas (can only go up)
+	// - number_of_shards (can only go up)
+
+	// Check for changes in non-modifiable fields
+	if model.Settings.Type.ValueString() != state.Settings.Type.ValueString() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Index Type",
+			fmt.Sprintf("The index type cannot be modified from '%s' to '%s'. You must destroy and recreate the index to change this field.",
+				state.Settings.Type.ValueString(), model.Settings.Type.ValueString()))
+		return
+	}
+
+	if model.Settings.Model.ValueString() != state.Settings.Model.ValueString() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Index Model",
+			fmt.Sprintf("The model cannot be modified from '%s' to '%s'. You must destroy and recreate the index to change this field.",
+				state.Settings.Model.ValueString(), model.Settings.Model.ValueString()))
+		return
+	}
+
+	if model.Settings.StorageClass.ValueString() != state.Settings.StorageClass.ValueString() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Storage Class",
+			fmt.Sprintf("The storage class cannot be modified from '%s' to '%s'. You must destroy and recreate the index to change this field.",
+				state.Settings.StorageClass.ValueString(), model.Settings.StorageClass.ValueString()))
+		return
+	}
+
+	// Check for changes in other fields that are not modifiable
+	// This is not an exhaustive list, but covers the most common fields
+	if !reflect.DeepEqual(model.Settings.AllFields, state.Settings.AllFields) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify All Fields",
+			"The all_fields configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !reflect.DeepEqual(model.Settings.TensorFields, state.Settings.TensorFields) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Tensor Fields",
+			"The tensor_fields configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	// Check for changes in nested objects
+	if !reflect.DeepEqual(model.Settings.TextPreprocessing, state.Settings.TextPreprocessing) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Text Preprocessing",
+			"The text_preprocessing configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !reflect.DeepEqual(model.Settings.ImagePreprocessing, state.Settings.ImagePreprocessing) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Image Preprocessing",
+			"The image_preprocessing configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !reflect.DeepEqual(model.Settings.VideoPreprocessing, state.Settings.VideoPreprocessing) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Video Preprocessing",
+			"The video_preprocessing configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !reflect.DeepEqual(model.Settings.AudioPreprocessing, state.Settings.AudioPreprocessing) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Audio Preprocessing",
+			"The audio_preprocessing configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !reflect.DeepEqual(model.Settings.AnnParameters, state.Settings.AnnParameters) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify ANN Parameters",
+			"The ann_parameters configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !reflect.DeepEqual(model.Settings.ModelProperties, state.Settings.ModelProperties) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Model Properties",
+			"The model_properties configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	// Check for changes in scalar fields
+	if !model.Settings.VectorNumericType.IsNull() && !state.Settings.VectorNumericType.IsNull() &&
+		model.Settings.VectorNumericType.ValueString() != state.Settings.VectorNumericType.ValueString() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Vector Numeric Type",
+			"The vector_numeric_type field cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !model.Settings.FilterStringMaxLength.IsNull() && !state.Settings.FilterStringMaxLength.IsNull() &&
+		model.Settings.FilterStringMaxLength.ValueInt64() != state.Settings.FilterStringMaxLength.ValueInt64() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Filter String Max Length",
+			"The filter_string_max_length field cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	// Check for changes in boolean fields
+	if !model.Settings.TreatUrlsAndPointersAsImages.IsNull() && !state.Settings.TreatUrlsAndPointersAsImages.IsNull() &&
+		model.Settings.TreatUrlsAndPointersAsImages.ValueBool() != state.Settings.TreatUrlsAndPointersAsImages.ValueBool() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify treat_urls_and_pointers_as_images",
+			"This field cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !model.Settings.TreatUrlsAndPointersAsMedia.IsNull() && !state.Settings.TreatUrlsAndPointersAsMedia.IsNull() &&
+		model.Settings.TreatUrlsAndPointersAsMedia.ValueBool() != state.Settings.TreatUrlsAndPointersAsMedia.ValueBool() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify treat_urls_and_pointers_as_media",
+			"This field cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !model.Settings.NormalizeEmbeddings.IsNull() && !state.Settings.NormalizeEmbeddings.IsNull() &&
+		model.Settings.NormalizeEmbeddings.ValueBool() != state.Settings.NormalizeEmbeddings.ValueBool() {
+		resp.Diagnostics.AddError(
+			"Cannot Modify normalize_embeddings",
+			"This field cannot be modified. You must destroy and recreate the index to change this field.")
 		return
 	}
 
@@ -1127,7 +1464,8 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to List Indices",
-			fmt.Sprintf("Could not check index status: %s", err.Error()))
+			fmt.Sprintf("Could not check index status: %s", err.Error()),
+		)
 		return
 	}
 
@@ -1187,12 +1525,12 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		tflog.Warn(ctx, fmt.Sprintf("No mapping found for storage class '%s'", currentIndex.StorageClass))
 	}
 
-	// Construct settings map with all required settings
+	// Construct settings map with only the modifiable settings
 	settings := map[string]interface{}{
 		"inferenceType":      model.Settings.InferenceType.ValueString(),
 		"numberOfInferences": model.Settings.NumberOfInferences.ValueInt64(),
-		"numberOfShards":     currentIndex.NumberOfShards,
-		"numberOfReplicas":   currentIndex.NumberOfReplicas,
+		"numberOfShards":     model.Settings.NumberOfShards.ValueInt64(),
+		"numberOfReplicas":   model.Settings.NumberOfReplicas.ValueInt64(),
 		"storageClass":       mappedStorageClass,
 		"type":               currentIndex.Type,
 	}
@@ -1205,15 +1543,84 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		currentIndex.NumberOfReplicas))
 
 	// Log the desired changes
-	tflog.Debug(ctx, fmt.Sprintf("Desired changes - InferenceType: %s, NumberOfInferences: %d",
+	tflog.Debug(ctx, fmt.Sprintf("Desired changes - InferenceType: %s, NumberOfInferences: %d, NumberOfShards: %d, NumberOfReplicas: %d",
 		model.Settings.InferenceType.ValueString(),
-		model.Settings.NumberOfInferences.ValueInt64()))
+		model.Settings.NumberOfInferences.ValueInt64(),
+		model.Settings.NumberOfShards.ValueInt64(),
+		model.Settings.NumberOfReplicas.ValueInt64()))
+
+	// Validate that shards and replicas are only increasing
+	if model.Settings.NumberOfShards.ValueInt64() < currentIndex.NumberOfShards {
+		resp.Diagnostics.AddError(
+			"Invalid Shard Count",
+			fmt.Sprintf("Cannot decrease number of shards from %d to %d. Shards can only be increased.",
+				currentIndex.NumberOfShards, model.Settings.NumberOfShards.ValueInt64()))
+		return
+	}
+
+	if model.Settings.NumberOfReplicas.ValueInt64() < currentIndex.NumberOfReplicas {
+		resp.Diagnostics.AddError(
+			"Invalid Replica Count",
+			fmt.Sprintf("Cannot decrease number of replicas from %d to %d. Replicas can only be increased.",
+				currentIndex.NumberOfReplicas, model.Settings.NumberOfReplicas.ValueInt64()))
+		return
+	}
+
+	// Check for drift between configuration and actual infrastructure
+	// Instead of silently using API values, detect drift and provide clear error messages
+	if currentIndex.NumberOfShards > model.Settings.NumberOfShards.ValueInt64() {
+		resp.Diagnostics.AddError(
+			"Drift Detected: Shard Count",
+			fmt.Sprintf("The API reports %d shards, but your configuration specifies %d shards.\n\n"+
+				"Shards can only be increased, not decreased. To resolve this:\n"+
+				"1. Update your configuration to match the current state: number_of_shards = %d\n"+
+				"2. Run terraform apply again\n\n"+
+				"This ensures your Terraform configuration accurately reflects the actual infrastructure.",
+				currentIndex.NumberOfShards, model.Settings.NumberOfShards.ValueInt64(), currentIndex.NumberOfShards))
+		return
+	}
+
+	if currentIndex.NumberOfReplicas > model.Settings.NumberOfReplicas.ValueInt64() {
+		resp.Diagnostics.AddError(
+			"Drift Detected: Replica Count",
+			fmt.Sprintf("The API reports %d replicas, but your configuration specifies %d replicas.\n\n"+
+				"Replicas can only be increased, not decreased. To resolve this:\n"+
+				"1. Update your configuration to match the current state: number_of_replicas = %d\n"+
+				"2. Run terraform apply again\n\n"+
+				"This ensures your Terraform configuration accurately reflects the actual infrastructure.",
+				currentIndex.NumberOfReplicas, model.Settings.NumberOfReplicas.ValueInt64(), currentIndex.NumberOfReplicas))
+		return
+	}
+
+	// Check if the number of inferences has been changed outside of Terraform
+	if !model.Settings.NumberOfInferences.IsNull() &&
+		currentIndex.NumberOfInferences != model.Settings.NumberOfInferences.ValueInt64() {
+		tflog.Info(ctx, fmt.Sprintf("API reports different number of inferences (%d) than plan (%d), will update to plan value",
+			currentIndex.NumberOfInferences, model.Settings.NumberOfInferences.ValueInt64()))
+	}
+
+	// Check if the inference type has been changed outside of Terraform
+	if !model.Settings.InferenceType.IsNull() &&
+		currentIndex.InferenceType != model.Settings.InferenceType.ValueString() &&
+		!strings.Contains(model.Settings.InferenceType.ValueString(), currentIndex.InferenceType) &&
+		!strings.Contains(currentIndex.InferenceType, model.Settings.InferenceType.ValueString()) {
+		tflog.Info(ctx, fmt.Sprintf("API reports different inference type (%s) than plan (%s), will update to plan value",
+			currentIndex.InferenceType, model.Settings.InferenceType.ValueString()))
+	}
 
 	if model.Settings.InferenceType.IsNull() {
 		delete(settings, "inferenceType")
 	}
+
 	if model.Settings.NumberOfInferences.IsNull() {
 		delete(settings, "numberOfInferences")
+	}
+
+	if model.Settings.NumberOfShards.IsNull() {
+		delete(settings, "numberOfShards")
+	}
+	if model.Settings.NumberOfReplicas.IsNull() {
+		delete(settings, "numberOfReplicas")
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Final update settings being sent: %+v", settings))
@@ -1251,7 +1658,6 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// Do final read to get the complete state
 	// Preserve computed/meta fields from current state
-	var state IndexResourceModel
 	model.MarqoEndpoint = state.MarqoEndpoint
 	model.Timeouts = state.Timeouts
 	readResp := resource.ReadResponse{State: resp.State}
@@ -1265,4 +1671,72 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	diags = resp.State.Set(ctx, &model)
 	resp.Diagnostics.Append(diags...)
 	resp.State = readResp.State
+}
+
+// ImportState imports an existing index into Terraform state.
+func (r *indicesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// Extract the index name from the import ID
+	indexName := req.ID
+
+	tflog.Info(ctx, fmt.Sprintf("Importing index %s", indexName))
+
+	// List all indices to find the one we're importing
+	indices, err := r.marqoClient.ListIndices()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Listing Indices During Import",
+			fmt.Sprintf("Could not list indices: %s", err.Error()),
+		)
+		return
+	}
+
+	// Find the index in the list
+	var foundIndex bool
+	for _, index := range indices {
+		if index.IndexName == indexName {
+			foundIndex = true
+			break
+		}
+	}
+
+	if !foundIndex {
+		resp.Diagnostics.AddError(
+			"Index Not Found",
+			fmt.Sprintf("Index with name %s was not found", indexName),
+		)
+		return
+	}
+
+	// Create a minimal state with the index name and empty settings
+	// The Read method will be called after this to populate the full state
+	initialState := IndexResourceModel{
+		IndexName: types.StringValue(indexName),
+		Settings: IndexSettingsModel{
+			Type:               types.StringValue(""),
+			InferenceType:      types.StringValue(""),
+			NumberOfInferences: types.Int64Value(0),
+			StorageClass:       types.StringValue(""),
+			NumberOfShards:     types.Int64Value(0),
+			NumberOfReplicas:   types.Int64Value(0),
+			Model:              types.StringValue(""),
+			// Set boolean fields to null by default
+			NormalizeEmbeddings:          types.BoolNull(),
+			TreatUrlsAndPointersAsImages: types.BoolNull(),
+			TreatUrlsAndPointersAsMedia:  types.BoolNull(),
+			// Initialize preprocessing fields to null
+			VideoPreprocessing: &VideoPreprocessingModelCreate{
+				SplitLength:  types.Int64Null(),
+				SplitOverlap: types.Int64Null(),
+			},
+			AudioPreprocessing: &AudioPreprocessingModelCreate{
+				SplitLength:  types.Int64Null(),
+				SplitOverlap: types.Int64Null(),
+			},
+			// Other fields will be populated by the Read method
+		},
+	}
+
+	// Set the entire state at once
+	diags := resp.State.Set(ctx, &initialState)
+	resp.Diagnostics.Append(diags...)
 }
