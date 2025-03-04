@@ -154,7 +154,7 @@ func TestAccResourceStructuredIndex(t *testing.T) {
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.vector_numeric_type", "float"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.normalize_embeddings", "true"),
-					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.small"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.large"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
 					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "2"),
@@ -300,7 +300,7 @@ func testAccResourceStructuredIndexConfig(name string) string {
             tensor_fields        = ["multimodal_field"]
             model                = "open_clip/ViT-L-14/laion2b_s32b_b82k"
             normalize_embeddings = true
-            inference_type       = "marqo.CPU.small"
+            inference_type       = "marqo.CPU.large"
             text_preprocessing = {
                 split_length  = 2
                 split_method  = "sentence"
@@ -438,7 +438,7 @@ func testAccResourceIndexConfigCustomModel(name string) string {
                 type = "hf"
             }
             normalize_embeddings = true
-            inference_type = "marqo.CPU.small"
+            inference_type = "marqo.CPU.large"
             number_of_inferences = 1
             number_of_replicas = 0
             number_of_shards = 1

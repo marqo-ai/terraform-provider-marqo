@@ -2,58 +2,59 @@
 
 This page will walk you through using OpenTofu to manage your Marqo Cloud resources.
 
-OpenTofu, a fork of Terraform, is an open-source infrastructure as code tool that enables you to safely and predictably create, change, and delete cloud resources. 
-For more information on opentofu and terraform, please visit the following links: [OpenTofu](https://opentofu.org) and [Terraform](https://www.terraform.io/).
+OpenTofu, a fork of Terraform, is an open-source infrastructure as code tool that enables you to safely and predictably create, change, and delete cloud resources.
+For more information on OpenTofu and Terraform, please visit the websites for [OpenTofu](https://opentofu.org) and [Terraform](https://www.terraform.io/).
 
-The marqo opentofu provider is located at [`registry.opentofu.org/marqo-ai/marqo`](https://github.com/opentofu/registry/blob/main/providers/m/marqo-ai/marqo.json).
+The Marqo OpenTofu provider is located at [`registry.opentofu.org/marqo-ai/marqo`](https://github.com/opentofu/registry/blob/main/providers/m/marqo-ai/marqo.json).
 
-If you wish to use the terraform provider instead, please note the following
-- replace the provider source with `marqo-ai/marqo`
-- replace all `tofu` commands in the guide below with `terraform`
+If you wish to use the Terraform provider instead, please note the following:
+- replace the `provider` source with `marqo-ai/marqo`
+- replace all `tofu` commands below with `terraform`
 
-Detailed documentation can be found in marqodocs [here](https://docs.marqo.ai/2.11/Cloud-Reference/opentofu_provider/).
+Detailed documentation can be found in [the Marqo docs](https://docs.marqo.ai/latest/reference/cloud/opentofu-provider/).
 
 ---
 
 ## Installation Instructions
 
-1. Install Opentofu by following the instructions on the [Opentofu website](https://opentofu.org/docs/intro/install/). Alternatively, install Terraform by following the instructions on the [Terraform website](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli).
-2. Create a Marqo configuration (a `.tf` file with your marqo API and endpoint details) in a new directory
+1. Install OpenTofu by following the instructions on the [OpenTofu website](https://opentofu.org/docs/intro/install/) (or Terraform via the [Terraform website](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)).
+2. Create a `.tf` configuration file with your Marqo API and endpoint details (see the examples below).
 3. Run `tofu init` in the directory you created the configuration in to initialize the configuration
 4. At this point, you should be able to run `tofu plan` and `tofu apply` to create and manage your Marqo resources.
 
 Some common commands are:
-- `tofu plan` - checks whether the configuration is valid and what actions will be taken
-- `tofu apply` - creates or updates the resources in your account
-- `tofu destroy` - deletes the resources in your account
+- `tofu plan`: checks whether the configuration is valid and what actions will be taken
+- `tofu apply`: creates or updates the resources in your account
+- `tofu destroy`: deletes the resources in your account
 
-See the [Opentofu documentation](https://opentofu.org/docs/intro/) for more information on how to use Opentofu.
+See the [OpenTofu documentation](https://opentofu.org/docs/intro/) for more information on how to use OpenTofu.
 
 ## Overview of Features
 
-The marqo opentofu provider supports the following:
+The Marqo OpenTofu provider supports the following features:
 
-- A datasource called `marqo_read_indices` that allows you to read all of your marqo indexes in your account.
-- A resource called `marqo_index` that allows you to create and manage a marqo index.
+- A datasource called `marqo_read_indices` that allows you to describe all of the indexes in your Marqo Cloud account.
+- A resource called `marqo_index` that allows you to create and manage a Marqo Cloud index.
 
 ## Sample Configuration
 
 For both of the examples below, create a file within each configuration directory named `terraform.tfvars` containing your api key as follows
 
-```python
+```
 marqo_api_key = "<KEY>"
 ```
 
-Note that the host must be set to `"https://api.marqo.ai/api/v2"`
 
 ### Reading All Indexes in Your Account (datasource)
+
+Note that the host must be set to `"https://api.marqo.ai/api/v2"`
 
 ```terraform
 terraform {
   required_providers {
     marqo = {
       source = "registry.opentofu.org/marqo-ai/marqo"
-      version = "1.0.1"
+      version = "1.2.0"
     }
   }
 }
@@ -79,12 +80,14 @@ variable "marqo_api_key" {
 
 ### Creating and Managing a Structured Index (resource)
 
+Refer to the [provider documentation](https://docs.marqo.ai/latest/reference/cloud/opentofu-provider) for more information on the settings available for the `marqo_index` resource.
+
 ```terraform
 terraform {
   required_providers {
     marqo = {
       source = "registry.opentofu.org/marqo-ai/marqo"
-      version = "1.0.1"
+      version = "1.2.0"
     }
   }
 }
@@ -95,7 +98,7 @@ provider "marqo" {
 }
 
 resource "marqo_index" "example" {
-  index_name = "example_index_dependent_2"
+  index_name = "example_index"
   settings = {
     type                = "structured"
     vector_numeric_type = "float"
@@ -112,13 +115,13 @@ resource "marqo_index" "example" {
       },
     ],
     number_of_inferences = 1
+    inference_type       = "marqo.CPU.large"
     storage_class        = "marqo.basic"
+    number_of_shards     = 1
     number_of_replicas   = 0
-    number_of_shards     = 2
-    tensor_fields        = ["multimodal_field"],
     model                = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+    tensor_fields        = ["multimodal_field"],
     normalize_embeddings = true
-    inference_type       = "marqo.CPU.small"
     text_preprocessing = {
       split_length  = 2
       split_method  = "sentence"
@@ -143,6 +146,12 @@ output "created_index" {
 
 variable "marqo_api_key" {
   type        = string
-  description = "Marqo API key"
+  description = "Marqo Cloud API key"
 }
 ```
+
+## Testing
+
+To verify that your index has been created and is ready to use, you can add some data to the index and query it using the Marqo API.
+
+Browse to your index details page in the Marqo Cloud Console for snippets to help you get started.
