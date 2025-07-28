@@ -642,11 +642,11 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 
 		storaceClassMap := map[string]string{
-			"BASIC":       "marqo.basic",
-			"BALANCED":    "marqo.balanced",
+			"BASIC":               "marqo.basic",
+			"BALANCED":            "marqo.balanced",
 			"BALANCED_STORAGE":    "marqo.balanced.storage",
-			"BALANCED_THROUGHPUT":    "marqo.balanced.throughput",
-			"PERFORMANCE": "marqo.performance",
+			"BALANCED_THROUGHPUT": "marqo.balanced.throughput",
+			"PERFORMANCE":         "marqo.performance",
 		}
 
 		if !newState.Settings.InferenceType.IsNull() {
@@ -1511,16 +1511,16 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// Map storage class values similar to inference type
 	storageClassMap := map[string]string{
-		"BASIC":             "marqo.basic",
-		"BALANCED":          "marqo.balanced",
+		"BASIC":                     "marqo.basic",
+		"BALANCED":                  "marqo.balanced",
 		"BALANCED_STORAGE":          "marqo.balanced.storage",
-		"BALANCED_THROUGHPUT":          "marqo.balanced.throughput",
-		"PERFORMANCE":       "marqo.performance",
-		"marqo.basic":       "marqo.basic",
-		"marqo.balanced":    "marqo.balanced",
+		"BALANCED_THROUGHPUT":       "marqo.balanced.throughput",
+		"PERFORMANCE":               "marqo.performance",
+		"marqo.basic":               "marqo.basic",
+		"marqo.balanced":            "marqo.balanced",
 		"marqo.balanced.storage":    "marqo.balanced.storage",
-		"marqo.balanced.throughput":    "marqo.balanced.throughput",
-		"marqo.performance": "marqo.performance",
+		"marqo.balanced.throughput": "marqo.balanced.throughput",
+		"marqo.performance":         "marqo.performance",
 	}
 
 	mappedStorageClass := currentIndex.StorageClass

@@ -510,11 +510,11 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	storaceClassMap := map[string]string{
-		"BASIC":       "marqo.basic",
-		"BALANCED":    "marqo.balanced",
+		"BASIC":               "marqo.basic",
+		"BALANCED":            "marqo.balanced",
 		"BALANCED_STORAGE":    "marqo.balanced.storage",
-		"BALANCED_THROUGHPUT":    "marqo.balanced.throughput",
-		"PERFORMANCE": "marqo.performance",
+		"BALANCED_THROUGHPUT": "marqo.balanced.throughput",
+		"PERFORMANCE":         "marqo.performance",
 	}
 
 	items := make([]indexModel, len(indices))
