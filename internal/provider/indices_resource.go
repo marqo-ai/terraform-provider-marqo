@@ -1513,9 +1513,13 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 	storageClassMap := map[string]string{
 		"BASIC":             "marqo.basic",
 		"BALANCED":          "marqo.balanced",
+		"BALANCED_STORAGE":          "marqo.balanced.storage",
+		"BALANCED_THROUGHPUT":          "marqo.balanced.throughput",
 		"PERFORMANCE":       "marqo.performance",
 		"marqo.basic":       "marqo.basic",
 		"marqo.balanced":    "marqo.balanced",
+		"marqo.balanced.storage":    "marqo.balanced.storage",
+		"marqo.balanced.throughput":    "marqo.balanced.throughput",
 		"marqo.performance": "marqo.performance",
 	}
 
