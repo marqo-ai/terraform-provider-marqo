@@ -644,6 +644,8 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		storaceClassMap := map[string]string{
 			"BASIC":       "marqo.basic",
 			"BALANCED":    "marqo.balanced",
+			"BALANCED_STORAGE":    "marqo.balanced.storage",
+			"BALANCED_THROUGHPUT":    "marqo.balanced.throughput",
 			"PERFORMANCE": "marqo.performance",
 		}
 

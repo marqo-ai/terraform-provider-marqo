@@ -1024,3 +1024,199 @@ func testAccResourceMaximalIndexConfigUpdated(name string) string {
 		}
 	`, name)
 }
+
+func TestAccResourceBalancedStorageIndex(t *testing.T) {
+	t.Parallel()
+	balanced_storage_index_name := fmt.Sprintf("donotdelete_bal_storage_%s", randomString(7))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(balanced_storage_index_name),
+				),
+			},
+			// Create and Read testing
+			{
+				Config: testAccResourceBalancedIndexConfig(balanced_storage_index_name, "marqo.balanced.storage"),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Create Balanced Storage Index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", balanced_storage_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.small"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.balanced.storage"),
+					testAccCheckIndexIsReady(balanced_storage_index_name),
+					func(s *terraform.State) error {
+						fmt.Println("Finished Create Balanced Storage Index")
+						return nil
+					},
+				),
+			},
+			// Update testing
+			{
+				Config: testAccResourceBalancedIndexConfigUpdated(balanced_storage_index_name, "marqo.balanced.storage"),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Update Balanced Storage Index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", balanced_storage_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.balanced.storage"),
+					testAccCheckIndexIsReady(balanced_storage_index_name),
+					func(s *terraform.State) error {
+						fmt.Println("Finished Update Balanced Storage Index")
+						return nil
+					},
+				),
+			},
+			// Import testing
+			{
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        balanced_storage_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
+				// Don't verify these fields as they might be computed or have different representations
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
+					"settings.image_preprocessing",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
+				},
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestAccResourceBalancedThroughputIndex(t *testing.T) {
+	t.Parallel()
+	balanced_throughput_index_name := fmt.Sprintf("donotdelete_throughput_%s", randomString(7))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Check if index exists and delete if it does
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(balanced_throughput_index_name),
+				),
+			},
+			// Create and Read testing
+			{
+				Config: testAccResourceBalancedIndexConfig(balanced_throughput_index_name, "marqo.balanced.throughput"),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Create Balanced Throughput Index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", balanced_throughput_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.type", "unstructured"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.model", "open_clip/ViT-L-14/laion2b_s32b_b82k"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.inference_type", "marqo.CPU.small"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_replicas", "0"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_shards", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.balanced.throughput"),
+					testAccCheckIndexIsReady(balanced_throughput_index_name),
+					func(s *terraform.State) error {
+						fmt.Println("Finished Create Balanced Throughput Index")
+						return nil
+					},
+				),
+			},
+			// Update testing
+			{
+				Config: testAccResourceBalancedIndexConfigUpdated(balanced_throughput_index_name, "marqo.balanced.throughput"),
+				Check: resource.ComposeTestCheckFunc(
+					func(s *terraform.State) error {
+						fmt.Println("Starting Update Balanced Throughput Index")
+						return nil
+					},
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", balanced_throughput_index_name),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.number_of_inferences", "2"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.storage_class", "marqo.balanced.throughput"),
+					testAccCheckIndexIsReady(balanced_throughput_index_name),
+					func(s *terraform.State) error {
+						fmt.Println("Finished Update Balanced Throughput Index")
+						return nil
+					},
+				),
+			},
+			// Import testing
+			{
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        balanced_throughput_index_name,
+				ImportStateVerifyIdentifierAttribute: "index_name",
+				// Don't verify these fields as they might be computed or have different representations
+				ImportStateVerifyIgnore: []string{
+					"timeouts",
+					"settings.image_preprocessing",
+					"settings.video_preprocessing",
+					"settings.audio_preprocessing",
+				},
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func testAccResourceBalancedIndexConfig(name string, storageClass string) string {
+	return fmt.Sprintf(`
+		resource "marqo_index" "test" {
+			index_name = "%s"
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
+			settings = {
+				type = "unstructured"
+				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+				inference_type = "marqo.CPU.small"
+				number_of_inferences = 1
+				number_of_replicas = 0
+				number_of_shards = 1
+				storage_class = "%s"
+			}
+		}
+	`, name, storageClass)
+}
+
+func testAccResourceBalancedIndexConfigUpdated(name string, storageClass string) string {
+	return fmt.Sprintf(`
+		resource "marqo_index" "test" {
+			index_name = "%s"
+			timeouts = {
+				create = "45m"
+				update = "45m"
+				delete = "20m"
+			}
+			settings = {
+				type = "unstructured"
+				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+				inference_type = "marqo.CPU.small"
+				number_of_inferences = 2
+				number_of_replicas = 0
+				number_of_shards = 1
+				storage_class = "%s"
+			}
+		}
+	`, name, storageClass)
+}
