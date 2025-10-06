@@ -66,6 +66,7 @@ type IndexSettingsModel struct {
 	AudioPreprocessing           *AudioPreprocessingModelCreate `tfsdk:"audio_preprocessing"`
 	AnnParameters                *AnnParametersModelCreate      `tfsdk:"ann_parameters"`
 	FilterStringMaxLength        types.Int64                    `tfsdk:"filter_string_max_length"`
+	CollapseFields               []CollapseFieldInput           `tfsdk:"collapse_fields"`
 }
 
 type ModelPropertiesModelCreate struct {
@@ -84,6 +85,11 @@ type AllFieldInput struct {
 	Type            types.String             `tfsdk:"type"`
 	Features        []types.String           `tfsdk:"features"`
 	DependentFields map[string]types.Float64 `tfsdk:"dependent_fields"`
+}
+
+type CollapseFieldInput struct {
+	Name      types.String `tfsdk:"name"`
+	MinGroups types.Int64  `tfsdk:"min_groups"`
 }
 
 type TextPreprocessingModelCreate struct {
@@ -305,6 +311,15 @@ func (r *indicesResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"filter_string_max_length": schema.Int64Attribute{
 						Optional: true,
+					},
+					"collapse_fields": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"name":       schema.StringAttribute{Optional: true},
+								"min_groups": schema.Int64Attribute{Optional: true},
+							},
+						},
 					},
 				},
 			},
@@ -598,6 +613,28 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 				model.Settings.AnnParameters = nil
 			}
 
+			// Handle CollapseFields
+			if len(indexDetail.CollapseFields) > 0 {
+				var collapseFields []CollapseFieldInput
+				for _, field := range indexDetail.CollapseFields {
+					// If MinGroups is 0 in the API response, set it to null
+					// This will preserve the value from the configuration
+					minGroups := field.MinGroups
+					var minGroupsValue types.Int64
+					if minGroups == 0 {
+						minGroupsValue = types.Int64Null()
+					} else {
+						minGroupsValue = types.Int64Value(minGroups)
+					}
+
+					collapseFields = append(collapseFields, CollapseFieldInput{
+						Name:      types.StringValue(field.Name),
+						MinGroups: minGroupsValue,
+					})
+				}
+				model.Settings.CollapseFields = collapseFields
+			}
+
 			return model, true
 		}
 	}
@@ -851,6 +888,7 @@ func (r *indicesResource) Read(ctx context.Context, req resource.ReadRequest, re
 		if newState.Settings.InferenceType.IsNull() {
 			newState.Settings.InferenceType = types.StringNull()
 		}
+
 	}
 
 	// if index no longer exists in cloud, delete the state
@@ -1087,6 +1125,21 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
+	if len(model.Settings.CollapseFields) > 0 {
+		collapseFieldsList := make([]map[string]interface{}, len(model.Settings.CollapseFields))
+		for i, field := range model.Settings.CollapseFields {
+			collapseField := map[string]interface{}{
+				"name": field.Name.ValueString(),
+			}
+			// Only include minGroups if it's explicitly set
+			if !field.MinGroups.IsNull() && !field.MinGroups.IsUnknown() {
+				collapseField["minGroups"] = field.MinGroups.ValueInt64()
+			}
+			collapseFieldsList[i] = collapseField
+		}
+		settings["collapseFields"] = collapseFieldsList
+	}
+
 	// Remove optional fields if they are not set
 	if model.Settings.TreatUrlsAndPointersAsImages.IsNull() {
 		delete(settings, "treatUrlsAndPointersAsImages")
@@ -1147,6 +1200,9 @@ func (r *indicesResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	if model.Settings.FilterStringMaxLength.IsNull() || model.Settings.FilterStringMaxLength.IsUnknown() {
 		delete(settings, "filterStringMaxLength")
+	}
+	if len(model.Settings.CollapseFields) == 0 {
+		delete(settings, "collapseFields")
 	}
 
 	tflog.Debug(ctx, "Creating index with settings: %#v", settings)
@@ -1414,6 +1470,14 @@ func (r *indicesResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError(
 			"Cannot Modify Model Properties",
 			"The model_properties configuration cannot be modified. You must destroy and recreate the index to change this field.")
+		return
+	}
+
+	if !reflect.DeepEqual(model.Settings.CollapseFields, state.Settings.CollapseFields) {
+		resp.Diagnostics.AddError(
+			"Cannot Modify Index Collapse Fields",
+			"The collapse_fields setting cannot be modified after index creation. To change it, you must recreate the index.",
+		)
 		return
 	}
 

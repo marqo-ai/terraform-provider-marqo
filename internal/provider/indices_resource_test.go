@@ -1024,3 +1024,157 @@ func testAccResourceMaximalIndexConfigUpdated(name string) string {
 		}
 	`, name)
 }
+
+func TestAccResourceWithCollapseFields(t *testing.T) {
+	testIndexName := "test_collapse_fields_index"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Delete if exists
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(testIndexName),
+				),
+			},
+			// Create with collapse fields
+			{
+				Config: testAccResourceIndexWithCollapseFieldsConfig(testIndexName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", testIndexName),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.collapse_fields.#", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.collapse_fields.0.name", "product_family"),
+					testAccCheckIndexIsReady(testIndexName),
+				),
+			},
+			// Update collapse fields
+			{
+				Config:      testAccResourceIndexUpdateWithCollapseFieldsConfig(testIndexName),
+				ExpectError: regexp.MustCompile("Cannot Modify Index Collapse Fields"),
+			},
+		},
+	})
+}
+
+func testAccResourceIndexWithCollapseFieldsConfig(name string) string {
+	return fmt.Sprintf(`
+	resource "marqo_index" "test" {
+		index_name = "%s"
+		timeouts = {
+			create = "60m"
+			update = "60m"
+			delete = "45m"
+		}
+		settings = {
+			type = "unstructured"
+			model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+			inference_type = "marqo.CPU.large"
+			number_of_inferences = 1
+			number_of_replicas = 0
+			number_of_shards = 1
+			storage_class = "marqo.basic"
+			collapse_fields = [
+				{
+					name = "product_family"
+					min_groups = 100
+				}
+			]
+		}
+	}
+		`, name)
+}
+
+func testAccResourceIndexUpdateWithCollapseFieldsConfig(name string) string {
+	return fmt.Sprintf(`
+	resource "marqo_index" "test" {
+		index_name = "%s"
+		timeouts = {
+			create = "60m"
+			update = "60m"
+			delete = "45m"
+		}
+		settings = {
+			type = "unstructured"
+			model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+			inference_type = "marqo.CPU.large"
+			number_of_inferences = 1
+			number_of_replicas = 0
+			number_of_shards = 1
+			storage_class = "marqo.basic"
+			collapse_fields = [
+				{
+					name = "product_family_2"
+					min_groups = 200
+				}
+			]
+		}
+	}
+		`, name)
+}
+
+func TestAccResourceWithOptionalCollapseFieldsMinGroups(t *testing.T) {
+	testIndexName := "test_collapse_fields_optional"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Delete if exists
+			{
+				Config: testAccEmptyConfig(),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckIndexExistsAndDelete(testIndexName),
+				),
+			},
+			// Create with collapse fields but no min_groups
+			{
+				Config: testAccResourceIndexWithOptionalCollapseFieldsConfig(testIndexName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("marqo_index.test", "index_name", testIndexName),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.collapse_fields.#", "1"),
+					resource.TestCheckResourceAttr("marqo_index.test", "settings.collapse_fields.0.name", "product_family"),
+					// Don't check min_groups since we expect it to be null
+					testAccCheckIndexIsReady(testIndexName),
+				),
+			},
+			// Import testing to verify state consistency
+			{
+				ResourceName:                         "marqo_index.test",
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        testIndexName,
+				ImportStateVerifyIdentifierAttribute: "index_name",
+				ImportStateVerifyIgnore:              []string{"timeouts"},
+			},
+		},
+	})
+}
+
+func testAccResourceIndexWithOptionalCollapseFieldsConfig(name string) string {
+	return fmt.Sprintf(`
+    resource "marqo_index" "test" {
+        index_name = "%s"
+        timeouts = {
+            create = "60m"
+            update = "60m"
+            delete = "45m"
+        }
+        settings = {
+            type = "unstructured"
+            model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
+            inference_type = "marqo.CPU.large"
+            number_of_inferences = 1
+            number_of_replicas = 0
+            number_of_shards = 1
+            storage_class = "marqo.basic"
+            collapse_fields = [
+                {
+                    name = "product_family"
+                }
+            ]
+        }
+    }
+        `, name)
+}
