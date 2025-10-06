@@ -31,6 +31,7 @@ Optional:
 
 - `all_fields` (Attributes List) (see [below for nested schema](#nestedatt--items--all_fields))
 - `audio_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--audio_preprocessing))
+- `collapse_fields` (Attributes List) (see [below for nested schema](#nestedatt--items--collapse_fields))
 - `model_properties` (Attributes) (see [below for nested schema](#nestedatt--items--model_properties))
 - `tensor_fields` (List of String)
 - `video_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--items--video_preprocessing))
@@ -80,6 +81,18 @@ Optional:
 
 - `split_length` (String)
 - `split_overlap` (String)
+
+
+<a id="nestedatt--items--collapse_fields"></a>
+### Nested Schema for `items.collapse_fields`
+
+Optional:
+
+- `min_groups` (Number) The minimum number of groups for the collapse field
+
+Read-Only:
+
+- `name` (String) The name of the collapse field
 
 
 <a id="nestedatt--items--model_properties"></a>
