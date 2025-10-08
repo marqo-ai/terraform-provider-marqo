@@ -617,8 +617,8 @@ func (r *indicesResource) findAndCreateState(indices []go_marqo.IndexDetail, ind
 			if len(indexDetail.CollapseFields) > 0 {
 				var collapseFields []CollapseFieldInput
 				for _, field := range indexDetail.CollapseFields {
-					// If MinGroups is 0 in the API response, set it to null
-					// This will preserve the value from the configuration
+					// This handles undefined Go integers being assigned a value of zero. We want to omit the field in this case.
+					// Zero min_groups is invalid in Marqo, so we can safely assume that a zero value means the field was not set.
 					minGroups := field.MinGroups
 					var minGroupsValue types.Int64
 					if minGroups == 0 {
