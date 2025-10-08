@@ -623,9 +623,15 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		if len(indexDetail.CollapseFields) > 0 {
 			collapseFields := make([]CollapseFieldInput, len(indexDetail.CollapseFields))
 			for j, field := range indexDetail.CollapseFields {
+				var minGroupsValue types.Int64
+				if field.MinGroups == 0 {
+					minGroupsValue = types.Int64Null()
+				} else {
+					minGroupsValue = types.Int64Value(field.MinGroups)
+				}
 				collapseFields[j] = CollapseFieldInput{
 					Name:      types.StringValue(field.Name),
-					MinGroups: types.Int64Value(field.MinGroups),
+					MinGroups: minGroupsValue,
 				}
 			}
 			items[i].CollapseFields = collapseFields
