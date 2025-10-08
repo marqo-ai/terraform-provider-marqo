@@ -46,6 +46,7 @@ Optional:
 - `all_fields` (Attributes List) (see [below for nested schema](#nestedatt--settings--all_fields))
 - `ann_parameters` (Attributes) (see [below for nested schema](#nestedatt--settings--ann_parameters))
 - `audio_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--audio_preprocessing))
+- `collapse_fields` (Attributes List) (see [below for nested schema](#nestedatt--settings--collapse_fields))
 - `filter_string_max_length` (Number)
 - `image_preprocessing` (Attributes) (see [below for nested schema](#nestedatt--settings--image_preprocessing))
 - `model_properties` (Attributes) (see [below for nested schema](#nestedatt--settings--model_properties))
@@ -93,6 +94,15 @@ Optional:
 
 - `split_length` (Number)
 - `split_overlap` (Number)
+
+
+<a id="nestedatt--settings--collapse_fields"></a>
+### Nested Schema for `settings.collapse_fields`
+
+Optional:
+
+- `min_groups` (Number)
+- `name` (String)
 
 
 <a id="nestedatt--settings--image_preprocessing"></a>

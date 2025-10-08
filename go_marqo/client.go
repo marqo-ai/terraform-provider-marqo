@@ -51,6 +51,7 @@ type IndexDetail struct {
 	AnnParameters                AnnParameters           `json:"annParameters"`
 	MarqoVersion                 string                  `json:"marqoVersion"`
 	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
+	CollapseFields               []CollapseFieldInput    `json:"collapseFields"`
 }
 
 type AllFieldInput struct {
@@ -58,6 +59,11 @@ type AllFieldInput struct {
 	Type            string             `tfsdk:"type"`
 	Features        []string           `tfsdk:"features"`
 	DependentFields map[string]float64 `tfsdk:"dependentFields"`
+}
+
+type CollapseFieldInput struct {
+	Name      string `json:"name"`
+	MinGroups int64  `json:"minGroups"`
 }
 
 type ModelProperties struct {
@@ -149,6 +155,7 @@ type IndexSettings struct {
 	NumberOfReplicas             int64                   `json:"numberOfReplicas"`
 	TreatUrlsAndPointersAsImages bool                    `json:"treatUrlsAndPointersAsImages"`
 	FilterStringMaxLength        int64                   `json:"filterStringMaxLength"`
+	CollapseFields               []CollapseFieldInput    `json:"collapseFields"`
 }
 
 // NewClient creates and returns a new API client or an error.

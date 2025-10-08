@@ -62,6 +62,7 @@ type indexModel struct {
 	AnnParameters                *AnnParametersModel      `tfsdk:"ann_parameters"`
 	MarqoVersion                 types.String             `tfsdk:"marqo_version"`
 	FilterStringMaxLength        types.String             `tfsdk:"filter_string_max_length"`
+	CollapseFields               []CollapseFieldInput     `tfsdk:"collapse_fields"`
 }
 
 type ModelPropertiesModel struct {
@@ -370,6 +371,23 @@ func (d *indicesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 								},
 							},
 						},
+						"collapse_fields": schema.ListNestedAttribute{
+							Computed: true,
+							Optional: true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Computed:    true,
+										Description: "The name of the collapse field",
+									},
+									"min_groups": schema.Int64Attribute{
+										Computed:    true,
+										Optional:    true,
+										Description: "The minimum number of groups for the collapse field",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -600,6 +618,26 @@ func (d *indicesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		// Remove null fields
 		if items[i].InferenceType.IsNull() {
 			items[i].InferenceType = types.StringNull()
+		}
+
+		if len(indexDetail.CollapseFields) > 0 {
+			collapseFields := make([]CollapseFieldInput, len(indexDetail.CollapseFields))
+			for j, field := range indexDetail.CollapseFields {
+				var minGroupsValue types.Int64
+				if field.MinGroups == 0 {
+					minGroupsValue = types.Int64Null()
+				} else {
+					minGroupsValue = types.Int64Value(field.MinGroups)
+				}
+				collapseFields[j] = CollapseFieldInput{
+					Name:      types.StringValue(field.Name),
+					MinGroups: minGroupsValue,
+				}
+			}
+			items[i].CollapseFields = collapseFields
+		} else {
+			// Set to empty slice instead of nil
+			items[i].CollapseFields = []CollapseFieldInput{}
 		}
 	}
 
