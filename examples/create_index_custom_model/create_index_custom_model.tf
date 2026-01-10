@@ -25,7 +25,7 @@ resource "marqo_index" "example" {
       trust_remote_code = false
     }
     normalize_embeddings = false
-    inference_type       = "marqo.CPU.small"
+    inference_type       = "marqo.CPU.large"
     all_fields           = []
     number_of_inferences = 1
     number_of_replicas   = 0

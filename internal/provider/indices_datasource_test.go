@@ -74,7 +74,7 @@ func testAccDataSourceIndexConfig(name string) string {
 				treat_urls_and_pointers_as_media = true
 				model = "open_clip/ViT-L-14/laion2b_s32b_b82k"
 				normalize_embeddings = true
-				inference_type = "marqo.CPU.small"
+				inference_type = "marqo.CPU.large"
 				all_fields = []
 				number_of_inferences = 1
 				number_of_replicas = 0
@@ -95,7 +95,7 @@ func testAccDataSourceIndexConfig(name string) string {
 				}
 				filter_string_max_length = 20
 			}
-		}	
+		}
 		`, name)
 }
 
@@ -115,7 +115,7 @@ func testAccCheckIndexInDataSource(dataSourceName string, indexName string) reso
 			if ds.Primary.Attributes[fmt.Sprintf("items.%d.index_name", i)] == indexName {
 				// Check attributes for this specific index
 				attributesToCheck := map[string]string{
-					"inference_type": "marqo.CPU.small",
+					"inference_type": "marqo.CPU.large",
 					"storage_class":  "marqo.basic",
 					// Add more attributes to check
 				}
